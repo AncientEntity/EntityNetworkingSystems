@@ -55,42 +55,44 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-     <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetClient.cs" />
-     <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetServer.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\NetClient.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\NetServer.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\Packets.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Scripts\UnityPacketHandler.cs" />
      <Compile Include="Assets\Examples\Scripts\ExampleClient.cs" />
      <Compile Include="Assets\Examples\Scripts\ExampleHost.cs" />
  <Reference Include="Unity.Timeline.Editor">
- <HintPath>G:/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
+ <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
  </Reference>
  <Reference Include="Unity.VSCode.Editor">
- <HintPath>G:/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.VSCode.Editor.dll</HintPath>
+ <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.VSCode.Editor.dll</HintPath>
  </Reference>
  <Reference Include="Unity.TextMeshPro.Editor">
- <HintPath>G:/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
+ <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
  </Reference>
  <Reference Include="UnityEngine.UI">
- <HintPath>G:/EntityNetworkingSystems/Library/ScriptAssemblies/UnityEngine.UI.dll</HintPath>
+ <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/UnityEngine.UI.dll</HintPath>
  </Reference>
  <Reference Include="Unity.Timeline">
- <HintPath>G:/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Timeline.dll</HintPath>
+ <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Timeline.dll</HintPath>
  </Reference>
  <Reference Include="Unity.CollabProxy.Editor">
- <HintPath>G:/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.CollabProxy.Editor.dll</HintPath>
+ <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.CollabProxy.Editor.dll</HintPath>
  </Reference>
  <Reference Include="Unity.Rider.Editor">
- <HintPath>G:/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Rider.Editor.dll</HintPath>
+ <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Rider.Editor.dll</HintPath>
  </Reference>
  <Reference Include="Unity.2D.Sprite.Editor">
- <HintPath>G:/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.2D.Sprite.Editor.dll</HintPath>
+ <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.2D.Sprite.Editor.dll</HintPath>
  </Reference>
  <Reference Include="Unity.2D.Tilemap.Editor">
- <HintPath>G:/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.2D.Tilemap.Editor.dll</HintPath>
+ <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.2D.Tilemap.Editor.dll</HintPath>
  </Reference>
  <Reference Include="Unity.TextMeshPro">
- <HintPath>G:/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.TextMeshPro.dll</HintPath>
+ <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.TextMeshPro.dll</HintPath>
  </Reference>
  <Reference Include="UnityEditor.UI">
- <HintPath>G:/EntityNetworkingSystems/Library/ScriptAssemblies/UnityEditor.UI.dll</HintPath>
+ <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/UnityEditor.UI.dll</HintPath>
  </Reference>
  <Reference Include="UnityEngine.AIModule">
  <HintPath>C:/Program Files/Unity/Hub/Editor/2019.2.2f1/Editor/Data/Managed/UnityEngine/UnityEngine.AIModule.dll</HintPath>
