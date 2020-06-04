@@ -14,16 +14,26 @@ public class NetServer
     public string hostAddress;
     public int hostPort=44594;
     public int maxConnections = 8;
-
+    [Space]
+    public string localObjectTag = "localOnly";
 
     TcpListener server = null;
     List<NetworkPlayer> connections = new List<NetworkPlayer>();
     List<Thread> connThreads = new List<Thread>();
     Thread connectionHandler = null;
 
+    //public delegate void playerEvent(NetworkPlayer player);
+    //public event playerEvent onPlayerConnect;
+    //public event playerEvent onPlayerDisconnect;
 
     public void Initialize()
     {
+        if (server != null)
+        {
+            Debug.LogError("Trying to initial NetServer when it has already been initialized.");
+            return;
+        }
+
         if (hostAddress == "")
         {
             //If no ip given, use 0.0.0.0
@@ -32,6 +42,17 @@ public class NetServer
         if(hostPort == 0)
         {
             hostPort = 44594;
+        }
+
+        if (UnityPacketHandler.instance == null)
+        {
+            GameObject uPH = new GameObject("Unity Packet Handler");
+            uPH.AddComponent<UnityPacketHandler>();
+            GameObject.DontDestroyOnLoad(uPH);
+        }
+        if(NetworkData.instance == null)
+        {
+            Debug.LogWarning("NetworkData object not found.");
         }
 
         //Create server
@@ -81,6 +102,7 @@ public class NetServer
             Thread connThread = new Thread(() => ClientHandler(netClient));
             connThread.Start();
 
+            //onPlayerConnect.Invoke(netClient);
         }
     }
 
@@ -88,9 +110,16 @@ public class NetServer
     {
         while (client != null)
         {
-            //SendPacket(client, new Packet("Test What is up drama alert nation"));
-            //Debug.Log("Sent Test Message");
-            //Thread.Sleep(500);
+            Packet pack = RecvPacket(client);
+            UnityPacketHandler.instance.QueuePacket(pack);
+            foreach (NetworkPlayer player in connections.ToArray())
+            {
+                if(player == null || player.tcpClient == null)
+                {
+                    continue;
+                }
+                SendPacket(player, pack);
+            }
         }
     }
 
@@ -130,8 +159,9 @@ public class NetServer
         //Fisrt get packet size
         byte[] packetSize = new byte[4];
         player.netStream.Read(packetSize, 0, packetSize.Length);
+        //Debug.Log(Encoding.Default.GetString(packetSize));
         int pSize = int.Parse(Encoding.Default.GetString(packetSize));
-        Debug.Log(pSize);
+        //Debug.Log(pSize);
 
         //Get packet
         byte[] byteMessage = new byte[pSize];

@@ -16,18 +16,32 @@ public class NetClient
     public TcpClient client = null;
     public NetworkStream netStream;
     Thread connectionHandler = null;
+    [Space]
+    public string localObjectTag = "localOnly";
 
     public void Initialize()
     {
+        if(client != null)
+        {
+            Debug.LogError("Trying to initial NetClient when it has already been initialized.");
+            return;
+        }
+
         client = new TcpClient();
+
+        if (UnityPacketHandler.instance == null)
+        {
+            GameObject uPH = new GameObject("Unity Packet Handler");
+            uPH.AddComponent<UnityPacketHandler>();
+            GameObject.DontDestroyOnLoad(uPH);
+        }
     }
 
     public void ConnectionHandler()
     {
         while (client != null)
         {
-            //Packet packet = RecvPacket();
-            //Debug.Log(packet.data);
+            UnityPacketHandler.instance.QueuePacket(RecvPacket());
         }
     }
 
@@ -45,6 +59,13 @@ public class NetClient
     public void SendPacket(Packet packet)
     {
         byte[] array = Packet.SerializePacket(packet);
+
+        //First send packet size
+        byte[] arraySize = new byte[4];
+        arraySize = Encoding.Default.GetBytes("" + array.Length);
+        netStream.Write(arraySize, 0, arraySize.Length);
+
+        //Send packet
         netStream.Write(array, 0, array.Length);
     }
 

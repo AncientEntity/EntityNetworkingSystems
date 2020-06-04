@@ -59,3 +59,39 @@ public class Packet
 
 
 }
+
+
+[System.Serializable]
+public class GameObjectInstantiateData
+{
+    public int prefabDomainID = -1;
+    public int prefabID = -1;
+    public SerializableVector position;
+}
+
+[System.Serializable]
+public class SerializableVector
+{
+    public float x;
+    public float y;
+    public float z;
+
+    public SerializableVector(float X, float Y, float Z)
+    {
+        x = X;
+        y = Y;
+        z = Z;
+    }
+
+    public SerializableVector(Vector3 vec)
+    {
+        x = vec.x;
+        y = vec.y;
+        z = vec.z;
+    }
+
+    public Vector3 ToVec3()
+    {
+        return new Vector3(x,y,z);
+    }
+}
