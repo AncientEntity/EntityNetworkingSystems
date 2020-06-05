@@ -58,9 +58,11 @@
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\NetClient.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\NetServer.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\NetTools.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\NetworkObject.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\Packets.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetworkData.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\UnityPacketHandler.cs" />
+     <Compile Include="Assets\Examples\Scripts\DestroyOnUseUI.cs" />
      <Compile Include="Assets\Examples\Scripts\ExampleClient.cs" />
      <Compile Include="Assets\Examples\Scripts\ExampleHost.cs" />
  <Reference Include="Unity.Timeline.Editor">

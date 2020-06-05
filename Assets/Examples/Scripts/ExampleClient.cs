@@ -17,14 +17,15 @@ public class ExampleClient : MonoBehaviour
     {
         if(Input.GetKeyDown(KeyCode.Space))
         {
-            GameObjectInstantiateData gOID = new GameObjectInstantiateData();
-            gOID.prefabDomainID = 0;
-            gOID.prefabID = 0;
-            gOID.position = new SerializableVector(Random.Range(-4.0f,4.0f),Random.Range(-4.0f,4.0f),0);
-            Packet p = new Packet(gOID);
-            p.packetType = Packet.pType.gOInstantiate;
-            netClient.SendPacket(p);
+            NetTools.NetInstantiate(0, 0, new Vector3(Random.Range(-4.0f, 4.0f), Random.Range(-4.0f, 4.0f), 0));
         }
+        if(Input.GetKeyDown(KeyCode.F1))
+        {
+            int randIndex = Random.Range(0, NetworkData.usedNetworkObjectInstances.Count);
+            //print(randIndex);
+            NetTools.NetDestroy(NetworkData.usedNetworkObjectInstances[randIndex]);
+        }
+
         if(Input.GetKeyDown(KeyCode.F11))
         {
             Screen.fullScreen = !Screen.fullScreen;

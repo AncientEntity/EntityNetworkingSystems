@@ -10,6 +10,13 @@ public class Packet
 {
     static BinaryFormatter bF = null;
 
+    public enum sendType
+    {
+        buffered,
+        nonbuffered,
+    }
+    public sendType packetSendType = sendType.buffered;
+
     public enum pType
     {
         gOInstantiate,
@@ -18,9 +25,22 @@ public class Packet
         rpc,
         message,
         unassigned,
+        allBuffered,
+        loginInfo,
     }
     public pType packetType = pType.unassigned;
     public object data;
+
+    public int packetOwnerID = NetTools.clientID; //-1 has all authority, if the client tries lying to server, the server verifies it in NetServer anyways...
+    public bool sendToAll = true;
+    public int relatesToNetObjID = -1; 
+
+    public Packet(pType packetType, sendType typeOfSend,object obj)
+    {
+        this.packetType = packetType;
+        this.packetSendType = typeOfSend;
+        this.data = obj;
+    }
 
     public Packet(object obj)
     {
@@ -36,7 +56,7 @@ public class Packet
         }
         MemoryStream ms = new MemoryStream(serialized);
         byte[] b = new byte[ms.Length];
-        ms.Seek(0, SeekOrigin.Begin);
+        //ms.Seek(0, SeekOrigin.Begin);
         return (Packet)bF.Deserialize(ms);
     }
 
@@ -60,6 +80,11 @@ public class Packet
 
 }
 
+[System.Serializable]
+public class PlayerLoginData
+{
+    public int playerNetworkID = -1;
+}
 
 [System.Serializable]
 public class GameObjectInstantiateData
@@ -67,6 +92,8 @@ public class GameObjectInstantiateData
     public int prefabDomainID = -1;
     public int prefabID = -1;
     public SerializableVector position;
+
+    public int netObjID = -1; //Client can create this, however the server will edit it if it is already being used for another NetworkObject.
 }
 
 [System.Serializable]

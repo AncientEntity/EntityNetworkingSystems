@@ -11,6 +11,7 @@ using System.Text;
 [System.Serializable]
 public class NetClient
 {
+    public static NetClient instanceClient;
 
     public bool connectedToServer = false;
     public TcpClient client = null;
@@ -21,13 +22,20 @@ public class NetClient
 
     public void Initialize()
     {
-        if(client != null)
+        if (instanceClient == null)
+        {
+            instanceClient = this;
+        }
+
+            if (client != null)
         {
             Debug.LogError("Trying to initial NetClient when it has already been initialized.");
             return;
         }
 
         client = new TcpClient();
+        NetTools.isClient = true;
+
 
         if (UnityPacketHandler.instance == null)
         {
@@ -41,7 +49,17 @@ public class NetClient
     {
         while (client != null)
         {
-            UnityPacketHandler.instance.QueuePacket(RecvPacket());
+            if (NetTools.isServer)
+            {
+                return; //Prevents packets from being ran twice if the client is also the server.
+            }
+            try
+            {
+                UnityPacketHandler.instance.QueuePacket(RecvPacket());
+            } catch
+            {
+                //Something went wrong with deserialization.
+            }
         }
     }
 

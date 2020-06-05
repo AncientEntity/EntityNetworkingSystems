@@ -11,6 +11,8 @@ using System.Text;
 [System.Serializable]
 public class NetServer
 {
+    public static NetServer serverInstance = null;
+
     public string hostAddress;
     public int hostPort=44594;
     public int maxConnections = 8;
@@ -22,12 +24,17 @@ public class NetServer
     List<Thread> connThreads = new List<Thread>();
     Thread connectionHandler = null;
 
-    //public delegate void playerEvent(NetworkPlayer player);
-    //public event playerEvent onPlayerConnect;
-    //public event playerEvent onPlayerDisconnect;
+    public List<Packet> bufferedPackets = new List<Packet>();
+
+    int lastPlayerID = -1;
 
     public void Initialize()
     {
+        if(serverInstance == null)
+        {
+            serverInstance = this;
+        }
+
         if (server != null)
         {
             Debug.LogError("Trying to initial NetServer when it has already been initialized.");
@@ -59,6 +66,7 @@ public class NetServer
         server = new TcpListener(IPAddress.Any, hostPort);
         server.Start();
         Debug.Log("Server started successfully.");
+        NetTools.isServer = true;
 
         connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
         connectionHandler.Start();
@@ -96,6 +104,8 @@ public class NetServer
 
             TcpClient tcpClient = server.AcceptTcpClient();
             NetworkPlayer netClient = new NetworkPlayer(tcpClient);
+            netClient.clientID = lastPlayerID + 1;
+            lastPlayerID += 1;
             connections.Add(netClient);
             Debug.Log("New Client Connected Successfully.");
 
@@ -108,17 +118,49 @@ public class NetServer
 
     public void ClientHandler(NetworkPlayer client)
     {
+        //Send login info
+        PlayerLoginData pLD = new PlayerLoginData();
+        pLD.playerNetworkID = client.clientID;
+        Packet loginInfoPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered,pLD);
+
+
+        //Send buffered packets
+        if(bufferedPackets.Count > 0)
+        {
+            Packet pack = new Packet(Packet.pType.allBuffered, Packet.sendType.nonbuffered, bufferedPackets);
+            SendPacket(client, pack);
+        }
+
         while (client != null)
         {
-            Packet pack = RecvPacket(client);
-            UnityPacketHandler.instance.QueuePacket(pack);
-            foreach (NetworkPlayer player in connections.ToArray())
+            try
             {
-                if(player == null || player.tcpClient == null)
+                Packet pack = RecvPacket(client);
+                if (pack.packetOwnerID != client.clientID)// && client.tcpClient == NetClient.instanceClient.client) //if server dont change cause if it is -1 it has all authority.
                 {
-                    continue;
+                    pack.packetOwnerID = client.clientID;
                 }
-                SendPacket(player, pack);
+                UnityPacketHandler.instance.QueuePacket(pack);
+                if (pack.sendToAll)
+                {
+                    foreach (NetworkPlayer player in connections.ToArray())
+                    {
+                        if (player == null || player.tcpClient == null)
+                        {
+                            continue;
+                        }
+
+                        SendPacket(player, pack);
+                    }
+                }
+                if (pack.packetSendType == Packet.sendType.buffered)
+                {
+                    Debug.Log("Buffered Packet");
+                    bufferedPackets.Add(pack);
+                }
+            }catch
+            {
+               //Something went wrong with packet deserialization.
             }
         }
     }
@@ -185,11 +227,12 @@ public class NetServer
 
 public class NetworkPlayer
 {
+    public int clientID = -1;
     public TcpClient tcpClient;
     public NetworkStream netStream;
     public Vector3 proximityPosition = Vector3.zero;
     public float loadProximity = 10f;
-
+    
     public NetworkPlayer (TcpClient client)
     {
         this.tcpClient = client;
