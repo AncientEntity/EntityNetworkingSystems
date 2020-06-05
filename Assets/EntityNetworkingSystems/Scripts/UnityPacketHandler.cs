@@ -41,6 +41,11 @@ public class UnityPacketHandler : MonoBehaviour
                 Packet curPacket = packetQueue[0];
                 packetQueue.RemoveAt(0);
 
+                if(curPacket == null)
+                {
+                    continue;
+                }
+
                 if (curPacket.packetType == Packet.pType.gOInstantiate) //It gets instantiated NetTools.
                 {
                     if(NetTools.clientID == curPacket.packetOwnerID)
@@ -65,7 +70,7 @@ public class UnityPacketHandler : MonoBehaviour
                 else if (curPacket.packetType == Packet.pType.gODestroy)
                 {
                     NetworkObject found = NetworkObject.NetObjFromNetID((int)curPacket.data);
-                    if (found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.packetOwnerID == -1))
+                    if (found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.serverAuthority))
                     {
                         Destroy(found.gameObject);
                     }
@@ -78,16 +83,20 @@ public class UnityPacketHandler : MonoBehaviour
                 }
                 else if (curPacket.packetType == Packet.pType.loginInfo)
                 {
-                    Debug.Log("Login Info Packet Recieved.");
+                    //Debug.Log("Login Info Packet Recieved.");
                     NetTools.clientID = ((PlayerLoginData)curPacket.data).playerNetworkID;
+                    NetClient.instanceClient.clientID = NetTools.clientID;
+
+                    NetTools.onJoinServer.Invoke();
                 } else if (curPacket.packetType == Packet.pType.netVarEdit)
                 {
                     NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.data;
                     NetworkObject netObj = NetworkObject.NetObjFromNetID(nFP.networkObjID);
-                    if(netObj == null)
+                    if(netObj == null || (netObj.ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority))
                     {
                         continue; //Probably was instantiated on client but not server or vice versa.
                     }
+                    //Debug.Log("Seting NetVarEdit.");
                     netObj.SetFieldLocal(nFP.fieldName, nFP.data);
                 }
 

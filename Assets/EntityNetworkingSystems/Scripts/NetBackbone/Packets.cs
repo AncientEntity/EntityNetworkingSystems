@@ -31,7 +31,8 @@ public class Packet
     public pType packetType = pType.unassigned;
     public object data;
 
-    public int packetOwnerID = NetTools.clientID; //-1 has all authority, if the client tries lying to server, the server verifies it in NetServer anyways...
+    public int packetOwnerID = NetTools.clientID; //If the client tries lying to server, the server verifies it in NetServer anyways...
+    public bool serverAuthority = false; //Manually changed in NetServer. Client changing it wont effect other clients/server.
     public bool sendToAll = true;
     public int relatesToNetObjID = -1; 
 

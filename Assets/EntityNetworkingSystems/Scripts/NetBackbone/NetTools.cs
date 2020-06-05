@@ -1,12 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class NetTools : MonoBehaviour
 {
     public static int clientID = -1;
     public static bool isServer = false;
     public static bool isClient = false;
+
+    public static UnityEvent onJoinServer = new UnityEvent(); //Gets ran when the login packet finishes :D
 
     public static GameObject NetInstantiate(int prefabDomain, int prefabID, Vector3 position, Packet.sendType sT = Packet.sendType.buffered)
     {
@@ -21,6 +24,12 @@ public class NetTools : MonoBehaviour
         Packet p = new Packet(gOID);
         p.packetType = Packet.pType.gOInstantiate;
         p.packetSendType = sT;
+
+
+        if(sT == Packet.sendType.buffered && isServer)
+        {
+            NetServer.serverInstance.bufferedPackets.Add(p);
+        }
 
         NetClient.instanceClient.SendPacket(p);
 

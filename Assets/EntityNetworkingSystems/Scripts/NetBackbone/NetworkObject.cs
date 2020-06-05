@@ -1,21 +1,26 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class NetworkObject : MonoBehaviour
 {
     //NETWORK OBJECT AUTOMATICALLY GETS ADDED TO PREFAB WHEN INSTANTIATED OVER THE NETWORK.
 
-    static List<NetworkObject> allNetObjs = new List<NetworkObject>();
+    public static List<NetworkObject> allNetObjs = new List<NetworkObject>();
 
     public int networkID = -1;
     public int ownerID = -1;
     public List<NetworkField> fields = new List<NetworkField>();
+    [Space]
+    public UnityEvent onNetworkStart;
 
     [HideInInspector]
     public int prefabID = -1;
     [HideInInspector]
     public int prefabDomainID = -1;
+    
+
 
     void Start()
     {
@@ -28,6 +33,8 @@ public class NetworkObject : MonoBehaviour
         {
             allNetObjs.Add(this);
         }
+        onNetworkStart.Invoke();
+
     }
 
     public bool IsOwner()
@@ -59,6 +66,18 @@ public class NetworkObject : MonoBehaviour
         return null;
     }
 
+    public void UpdateField(string fieldName, object data,bool immediateOnSelf=false)
+    {
+        for (int i = 0; i < fields.Count; i++)
+        {
+            if (fields[i].fieldName == fieldName)
+            {
+                fields[i].UpdateField(data,networkID,immediateOnSelf);
+                break;
+            }
+        }
+    }
+
     public void SetFieldLocal(string fieldName, object data)
     {
         for (int i = 0; i < fields.Count; i++)
@@ -82,6 +101,19 @@ public class NetworkObject : MonoBehaviour
         }
         return null;
     }
+
+    public List<Packet> GeneratePacketListForFields()
+    {
+        List<Packet> fieldPackets = new List<Packet>();
+        foreach(NetworkField netField in fields)
+        {
+            Packet packet = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered, new NetworkFieldPacket(networkID, netField.fieldName, netField.GetField()));
+            fieldPackets.Add(packet);
+            //print("Adding netfield: " + netField.fieldName);
+        }
+        return fieldPackets;
+    }
+
 
 }
 
@@ -130,4 +162,5 @@ public class NetworkFieldPacket
         this.fieldName = fieldName;
         data = val;
     }
+
 }

@@ -66,6 +66,7 @@
      <Compile Include="Assets\Examples\Scripts\ExampleClient.cs" />
      <Compile Include="Assets\Examples\Scripts\ExampleHost.cs" />
      <Compile Include="Assets\Examples\Scripts\ExampleMoving.cs" />
+     <Compile Include="Assets\Examples\Scripts\ExamplePlayerController.cs" />
  <Reference Include="Unity.Timeline.Editor">
  <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
  </Reference>

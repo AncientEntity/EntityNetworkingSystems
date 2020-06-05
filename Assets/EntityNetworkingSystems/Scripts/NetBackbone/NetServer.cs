@@ -122,30 +122,61 @@ public class NetServer
 
     public void ClientHandler(NetworkPlayer client)
     {
+        Thread.Sleep(150);
         //Send login info
         PlayerLoginData pLD = new PlayerLoginData();
         pLD.playerNetworkID = client.clientID;
-        Packet loginInfoPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered,pLD);
-        loginInfoPacket.sendToAll = false;
-        SendPacket(client, loginInfoPacket);
+        Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, pLD);
+        loginPacket.packetOwnerID = -1;
+        loginPacket.sendToAll = false;
+        SendPacket(client, loginPacket);
 
+
+        Thread.Sleep(150); //Prevents a memory error on the client side? bruh.
         //Send buffered packets
-        if(bufferedPackets.Count > 0)
+        if (bufferedPackets.Count > 0)
         {
-            Packet pack = new Packet(Packet.pType.allBuffered, Packet.sendType.nonbuffered, bufferedPackets);
-            pack.sendToAll = false;
-            SendPacket(client, pack);
+            List<Packet> packetsToSend = new List<Packet>(); //Will contain buffered packets and all network fields to be updated.
+            packetsToSend.AddRange(bufferedPackets);
+            //Debug.Log(packetsToSend.Count);
+            foreach (NetworkObject netObj in NetworkObject.allNetObjs)
+            {
+                if (netObj.fields.Count > 0)
+                {
+                    List<Packet> temp = netObj.GeneratePacketListForFields();
+                    packetsToSend.AddRange(temp);
+                }
+            }
+            //Debug.Log(packetsToSend.Count);
+            Packet bpacket = new Packet(Packet.pType.allBuffered, Packet.sendType.nonbuffered, packetsToSend);
+            bpacket.sendToAll = false;
+            SendPacket(client, bpacket);
         }
 
         while (client != null)
         {
             try
             {
+                Thread.Sleep(25);
                 Packet pack = RecvPacket(client);
                 if (pack.packetOwnerID != client.clientID)// && client.tcpClient == NetClient.instanceClient.client) //if server dont change cause if it is -1 it has all authority.
                 {
                     pack.packetOwnerID = client.clientID;
                 }
+                if(client.clientID == NetClient.instanceClient.clientID) //Setup server authority.
+                {
+                    pack.serverAuthority = true;
+                } else
+                {
+                    pack.serverAuthority = false;
+                }
+
+                if (pack.packetSendType == Packet.sendType.buffered)
+                {
+                    Debug.Log("Buffered Packet");
+                    bufferedPackets.Add(pack);
+                }
+
                 UnityPacketHandler.instance.QueuePacket(pack);
                 if (pack.sendToAll)
                 {
@@ -159,11 +190,6 @@ public class NetServer
 
                         SendPacket(player, pack);
                     }
-                }
-                if (pack.packetSendType == Packet.sendType.buffered)
-                {
-                    //Debug.Log("Buffered Packet");
-                    bufferedPackets.Add(pack);
                 }
             }catch
             {

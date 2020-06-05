@@ -1,12 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Net.Sockets;
 using System.Net;
 using System.Threading;
 using System.Text;
+using System;
+using UnityEngine.Events;
 
 [System.Serializable]
 public class NetClient
@@ -18,8 +18,7 @@ public class NetClient
     public NetworkStream netStream;
     Thread connectionHandler = null;
     [Space]
-    public string localObjectTag = "localOnly";
-
+    public int clientID = -1;
 
     public void Initialize()
     {
@@ -50,14 +49,19 @@ public class NetClient
     {
         while (client != null)
         {
+            Thread.Sleep(25);
+            try
+            {
+                Packet packet = RecvPacket();
 
-            Packet packet = RecvPacket();
-
-            //if (packet.packetType == Packet.pType.loginInfo)
-            //{
-            UnityPacketHandler.instance.QueuePacket(packet);
-            //} //Otherwise NetServer will run it. But since the server is sending the login info to the client, it'll only get it here.
-
+                //if (packet.packetType == Packet.pType.loginInfo)
+                //{
+                UnityPacketHandler.instance.QueuePacket(packet);
+                //} //Otherwise NetServer will run it. But since the server is sending the login info to the client, it'll only get it here.
+            } catch (System.Exception e)
+            {
+                Debug.LogError(e);
+            }
         }
     }
 
@@ -110,5 +114,6 @@ public class NetClient
     //    netStream.Read(message, 0, message.Length);
     //    return message;
     //}
+
 
 }
