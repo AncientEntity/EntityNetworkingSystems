@@ -5,8 +5,9 @@ using UnityEngine;
 public class UnityPacketHandler : MonoBehaviour
 {
     public static UnityPacketHandler instance = null;
+    public bool handlerRunning = false;
     public List<Packet> packetQueue = new List<Packet>();
-
+    public int amountPerUpdate = 100;
 
     void Awake()
     {
@@ -19,43 +20,131 @@ public class UnityPacketHandler : MonoBehaviour
         }
     }
 
-    void Update()
+    public void StartHandler()
     {
-        if(packetQueue.Count > 0)
+        if(handlerRunning == true)
         {
-            Packet curPacket = packetQueue[0];
-            packetQueue.RemoveAt(0);
+            return; //Prevent multiple handlers.
+        }
+        StartCoroutine(HandleThreads());
+    }
 
-            if(curPacket.packetType == Packet.pType.gOInstantiate)
+    public IEnumerator HandleThreads()
+    {
+        int countTillUpdate = 0;
+        handlerRunning = true;
+        yield return new WaitForFixedUpdate();
+        while (NetClient.instanceClient != null || NetServer.serverInstance != null)
+        {
+            if (packetQueue.Count > 0)
             {
-                GameObjectInstantiateData gOID = (GameObjectInstantiateData)curPacket.data;
-                GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(),Quaternion.identity);
-                NetworkObject nObj = g.AddComponent<NetworkObject>();
-                nObj.ownerID = curPacket.packetOwnerID;
-                nObj.prefabDomainID = gOID.prefabDomainID;
-                nObj.prefabID = gOID.prefabID;
-                nObj.networkID = gOID.netObjID;
+                Packet curPacket = packetQueue[0];
+                packetQueue.RemoveAt(0);
 
-            } else if (curPacket.packetType == Packet.pType.gODestroy)
-            {
-                NetworkObject found = NetworkObject.NetObjFromNetID((int)curPacket.data);
-                if(found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.packetOwnerID == -1))
+                if (curPacket.packetType == Packet.pType.gOInstantiate) //It gets instantiated NetTools.
                 {
-                    Destroy(found.gameObject);
+                    if(NetTools.clientID == curPacket.packetOwnerID)
+                    {
+                        continue;
+                    }
+
+
+                    GameObjectInstantiateData gOID = (GameObjectInstantiateData)curPacket.data;
+                    GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), Quaternion.identity);
+                    NetworkObject nObj = g.GetComponent<NetworkObject>();
+                    if (nObj == null)
+                    {
+                        nObj = g.AddComponent<NetworkObject>();
+                    }
+                    nObj.ownerID = curPacket.packetOwnerID;
+                    nObj.prefabDomainID = gOID.prefabDomainID;
+                    nObj.prefabID = gOID.prefabID;
+                    nObj.networkID = gOID.netObjID;
+
+                }
+                else if (curPacket.packetType == Packet.pType.gODestroy)
+                {
+                    NetworkObject found = NetworkObject.NetObjFromNetID((int)curPacket.data);
+                    if (found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.packetOwnerID == -1))
+                    {
+                        Destroy(found.gameObject);
+                    }
+                }
+                else if (curPacket.packetType == Packet.pType.allBuffered)
+                {
+                    //Debug.Log("Recieved buffered packets.");
+                    List<Packet> packetInfo = (List<Packet>)curPacket.data;
+                    packetQueue.AddRange(packetInfo);
+                }
+                else if (curPacket.packetType == Packet.pType.loginInfo)
+                {
+                    Debug.Log("Login Info Packet Recieved.");
+                    NetTools.clientID = ((PlayerLoginData)curPacket.data).playerNetworkID;
+                } else if (curPacket.packetType == Packet.pType.netVarEdit)
+                {
+                    NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.data;
+                    NetworkObject netObj = NetworkObject.NetObjFromNetID(nFP.networkObjID);
+                    if(netObj == null)
+                    {
+                        continue; //Probably was instantiated on client but not server or vice versa.
+                    }
+                    netObj.SetFieldLocal(nFP.fieldName, nFP.data);
+                }
+
+
+
+                countTillUpdate++;
+                if (packetQueue.Count < 0 || countTillUpdate >= amountPerUpdate)
+                {
+                    yield return new WaitForFixedUpdate();
+                    countTillUpdate = 0;
                 }
             }
-            else if(curPacket.packetType == Packet.pType.allBuffered)
+            else
             {
-                //Debug.Log("Recieved buffered packets.");
-                List<Packet> packetInfo = (List<Packet>)curPacket.data;
-                packetQueue.AddRange(packetInfo);
-            } else if (curPacket.packetType == Packet.pType.loginInfo)
-            {
-                Debug.Log("Login Info Packet Recieved.");
-                NetTools.clientID = ((PlayerLoginData)curPacket.data).playerNetworkID;
+                yield return new WaitForFixedUpdate();
             }
         }
+        handlerRunning = false;
     }
+
+    //void Update()
+    //{
+    //    if(packetQueue.Count > 0)
+    //    {
+    //        Packet curPacket = packetQueue[0];
+    //        packetQueue.RemoveAt(0);
+
+    //        if(curPacket.packetType == Packet.pType.gOInstantiate)
+    //        {
+    //            GameObjectInstantiateData gOID = (GameObjectInstantiateData)curPacket.data;
+    //            GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(),Quaternion.identity);
+    //            NetworkObject nObj = g.AddComponent<NetworkObject>();
+    //            nObj.ownerID = curPacket.packetOwnerID;
+    //            nObj.prefabDomainID = gOID.prefabDomainID;
+    //            nObj.prefabID = gOID.prefabID;
+    //            nObj.networkID = gOID.netObjID;
+
+    //        } else if (curPacket.packetType == Packet.pType.gODestroy)
+    //        {
+    //            NetworkObject found = NetworkObject.NetObjFromNetID((int)curPacket.data);
+    //            if(found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.packetOwnerID == -1))
+    //            {
+    //                Destroy(found.gameObject);
+    //            }
+    //        }
+    //        else if(curPacket.packetType == Packet.pType.allBuffered)
+    //        {
+    //            //Debug.Log("Recieved buffered packets.");
+    //            List<Packet> packetInfo = (List<Packet>)curPacket.data;
+    //            packetQueue.AddRange(packetInfo);
+    //        } else if (curPacket.packetType == Packet.pType.loginInfo)
+    //        {
+    //            Debug.Log("Login Info Packet Recieved.");
+    //            NetTools.clientID = ((PlayerLoginData)curPacket.data).playerNetworkID;
+    //        }
+    //    }
+    //}
 
     public void QueuePacket(Packet packet)
     {

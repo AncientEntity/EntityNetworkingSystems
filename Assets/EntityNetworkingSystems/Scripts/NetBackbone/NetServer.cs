@@ -28,9 +28,11 @@ public class NetServer
 
     int lastPlayerID = -1;
 
+
+
     public void Initialize()
     {
-        if(serverInstance == null)
+        if (serverInstance == null)
         {
             serverInstance = this;
         }
@@ -67,6 +69,8 @@ public class NetServer
         server.Start();
         Debug.Log("Server started successfully.");
         NetTools.isServer = true;
+
+        UnityPacketHandler.instance.StartHandler();
 
         connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
         connectionHandler.Start();
@@ -122,12 +126,14 @@ public class NetServer
         PlayerLoginData pLD = new PlayerLoginData();
         pLD.playerNetworkID = client.clientID;
         Packet loginInfoPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered,pLD);
-
+        loginInfoPacket.sendToAll = false;
+        SendPacket(client, loginInfoPacket);
 
         //Send buffered packets
         if(bufferedPackets.Count > 0)
         {
             Packet pack = new Packet(Packet.pType.allBuffered, Packet.sendType.nonbuffered, bufferedPackets);
+            pack.sendToAll = false;
             SendPacket(client, pack);
         }
 
@@ -145,7 +151,8 @@ public class NetServer
                 {
                     foreach (NetworkPlayer player in connections.ToArray())
                     {
-                        if (player == null || player.tcpClient == null)
+                        //Debug.Log(player.clientID + " " + NetTools.clientID);
+                        if (player == null || player.tcpClient == null || (player.clientID == NetTools.clientID))
                         {
                             continue;
                         }
@@ -155,7 +162,7 @@ public class NetServer
                 }
                 if (pack.packetSendType == Packet.sendType.buffered)
                 {
-                    Debug.Log("Buffered Packet");
+                    //Debug.Log("Buffered Packet");
                     bufferedPackets.Add(pack);
                 }
             }catch

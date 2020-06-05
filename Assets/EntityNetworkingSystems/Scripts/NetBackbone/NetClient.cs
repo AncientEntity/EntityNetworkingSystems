@@ -20,6 +20,7 @@ public class NetClient
     [Space]
     public string localObjectTag = "localOnly";
 
+
     public void Initialize()
     {
         if (instanceClient == null)
@@ -49,17 +50,14 @@ public class NetClient
     {
         while (client != null)
         {
-            if (NetTools.isServer)
-            {
-                return; //Prevents packets from being ran twice if the client is also the server.
-            }
-            try
-            {
-                UnityPacketHandler.instance.QueuePacket(RecvPacket());
-            } catch
-            {
-                //Something went wrong with deserialization.
-            }
+
+            Packet packet = RecvPacket();
+
+            //if (packet.packetType == Packet.pType.loginInfo)
+            //{
+            UnityPacketHandler.instance.QueuePacket(packet);
+            //} //Otherwise NetServer will run it. But since the server is sending the login info to the client, it'll only get it here.
+
         }
     }
 
@@ -70,6 +68,7 @@ public class NetClient
         client.Connect(IPAddress.Parse(ip), port);
         Debug.Log("Connection Accepted");
         netStream = client.GetStream();
+        UnityPacketHandler.instance.StartHandler();
         connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
         connectionHandler.Start();
     }

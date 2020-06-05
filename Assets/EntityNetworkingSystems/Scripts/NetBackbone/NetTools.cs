@@ -8,7 +8,7 @@ public class NetTools : MonoBehaviour
     public static bool isServer = false;
     public static bool isClient = false;
 
-    public static void NetInstantiate(int prefabDomain, int prefabID, Vector3 position, Packet.sendType sT = Packet.sendType.buffered)
+    public static GameObject NetInstantiate(int prefabDomain, int prefabID, Vector3 position, Packet.sendType sT = Packet.sendType.buffered)
     {
         SerializableVector finalVector = new SerializableVector(position);
 
@@ -22,8 +22,23 @@ public class NetTools : MonoBehaviour
         p.packetType = Packet.pType.gOInstantiate;
         p.packetSendType = sT;
 
-        NetClient.instanceClient.SendPacket(p);    
+        NetClient.instanceClient.SendPacket(p);
+
+        GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), Quaternion.identity);
+        NetworkObject nObj = g.GetComponent<NetworkObject>();
+        if (nObj == null)
+        {
+            nObj = g.AddComponent<NetworkObject>();
+        }
+        nObj.ownerID = NetTools.clientID;
+        nObj.prefabDomainID = gOID.prefabDomainID;
+        nObj.prefabID = gOID.prefabID;
+        nObj.networkID = gOID.netObjID;
+
+        return g;
     }
+
+
 
     public static void NetDestroy(NetworkObject netObj, Packet.sendType sT = Packet.sendType.buffered)
     {

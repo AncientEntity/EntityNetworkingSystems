@@ -10,6 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1041219312761159110}
   - component: {fileID: 3678232543528101461}
+  - component: {fileID: 3424184802889837087}
+  - component: {fileID: -7292164649192616921}
   m_Layer: 0
   m_Name: TestPrefab
   m_TagString: Untagged
@@ -80,3 +82,33 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &3424184802889837087
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9011985434738064851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b68817bb681ee0469d772173dec3ef5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  networkID: -1
+  ownerID: -1
+  fields:
+  - fieldName: position
+  prefabID: -1
+  prefabDomainID: -1
+--- !u!114 &-7292164649192616921
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9011985434738064851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bdcb3c0059a8e5d45908b91e79abbc7a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

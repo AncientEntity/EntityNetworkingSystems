@@ -54,10 +54,12 @@ public class Packet
         {
             bF = new BinaryFormatter();
         }
+
         MemoryStream ms = new MemoryStream(serialized);
-        byte[] b = new byte[ms.Length];
+        //byte[] b = new byte[ms.Length];
         //ms.Seek(0, SeekOrigin.Begin);
-        return (Packet)bF.Deserialize(ms);
+        Packet decoded = (Packet)bF.Deserialize(ms);
+        return decoded;
     }
 
 
@@ -93,7 +95,7 @@ public class GameObjectInstantiateData
     public int prefabID = -1;
     public SerializableVector position;
 
-    public int netObjID = -1; //Client can create this, however the server will edit it if it is already being used for another NetworkObject.
+    public int netObjID = -1;
 }
 
 [System.Serializable]
