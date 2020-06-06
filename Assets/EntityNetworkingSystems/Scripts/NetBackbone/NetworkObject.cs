@@ -150,6 +150,11 @@ public class NetworkField
 
     public void InitializeDefaultValue(int netID)
     {
+        if(initialized)
+        {
+            return;
+        }
+
         switch (defaultValue)
         {
             case valueInitializer.INT:
