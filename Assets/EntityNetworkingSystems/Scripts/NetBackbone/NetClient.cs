@@ -7,6 +7,7 @@ using System.Threading;
 using System.Text;
 using System;
 using UnityEngine.Events;
+using System.Runtime.Serialization.Formatters.Binary;
 
 [System.Serializable]
 public class NetClient
@@ -22,6 +23,7 @@ public class NetClient
 
     public void Initialize()
     {
+
         if (instanceClient == null)
         {
             instanceClient = this;
@@ -47,22 +49,18 @@ public class NetClient
 
     public void ConnectionHandler()
     {
+        //Thread.Sleep(150);
         while (client != null)
         {
-            Thread.Sleep(25);
-            try
-            {
-                Packet packet = RecvPacket();
+            Packet packet = RecvPacket();
 
-                //if (packet.packetType == Packet.pType.loginInfo)
-                //{
-                UnityPacketHandler.instance.QueuePacket(packet);
-                //} //Otherwise NetServer will run it. But since the server is sending the login info to the client, it'll only get it here.
-            } catch (System.Exception e)
-            {
-                Debug.LogError(e);
-            }
+            //if (packet.packetType == Packet.pType.loginInfo)
+            //{
+            UnityPacketHandler.instance.QueuePacket(packet);
+            //} //Otherwise NetServer will run it. But since the server is sending the login info to the client, it'll only get it here.
+            //Thread.Sleep(50);
         }
+        Debug.Log("NetClient.ConnectionHandler() thread has successfully finished.");
     }
 
 
@@ -77,13 +75,26 @@ public class NetClient
         connectionHandler.Start();
     }
 
+    public void DisconnectFromServer()
+    {
+        if (client != null)
+        {
+            Debug.Log("Disconnecting From Server");
+            client.GetStream().Close();
+            client.Close();
+            client = null;
+            NetClient.instanceClient = null;
+            connectionHandler.Abort();
+        }
+    }
+
     public void SendPacket(Packet packet)
     {
-        byte[] array = Packet.SerializePacket(packet);
+        byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
 
         //First send packet size
         byte[] arraySize = new byte[4];
-        arraySize = Encoding.Default.GetBytes("" + array.Length);
+        arraySize = System.BitConverter.GetBytes(array.Length);
         netStream.Write(arraySize, 0, arraySize.Length);
 
         //Send packet
@@ -92,16 +103,18 @@ public class NetClient
 
     public Packet RecvPacket()
     {
-        //Fisrt get packet size
+        //First get packet size
         byte[] packetSize = new byte[4];
         netStream.Read(packetSize, 0, packetSize.Length);
-        int pSize = int.Parse(Encoding.Default.GetString(packetSize));
+        //Debug.Log(Encoding.ASCII.GetString(packetSize));
+        int pSize = System.BitConverter.ToInt32(packetSize,0);
         //Debug.Log(pSize);
 
         //Get packet
         byte[] byteMessage = new byte[pSize];
         netStream.Read(byteMessage, 0, byteMessage.Length);
-        return Packet.DeserializePacket(byteMessage);
+        //Debug.Log(Encoding.ASCII.GetString(byteMessage));
+        return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
     }
 
     //public void SendMessage(byte[] message)
@@ -115,5 +128,9 @@ public class NetClient
     //    return message;
     //}
 
+    void OnDestroy()
+    {
+        DisconnectFromServer();
+    }
 
 }

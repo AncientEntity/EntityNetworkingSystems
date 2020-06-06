@@ -32,6 +32,7 @@ public class NetServer
 
     public void Initialize()
     {
+
         if (serverInstance == null)
         {
             serverInstance = this;
@@ -86,6 +87,8 @@ public class NetServer
                 client.tcpClient.Close();
             }
             server.Stop();
+            server = null;
+            NetServer.serverInstance = null;
         }
     }
 
@@ -118,11 +121,12 @@ public class NetServer
 
             //onPlayerConnect.Invoke(netClient);
         }
+        Debug.Log("NetServer.ConnectionHandler() thread has successfully finished.");
     }
 
     public void ClientHandler(NetworkPlayer client)
     {
-        Thread.Sleep(150);
+        //Thread.Sleep(100);
         //Send login info
         PlayerLoginData pLD = new PlayerLoginData();
         pLD.playerNetworkID = client.clientID;
@@ -132,7 +136,7 @@ public class NetServer
         SendPacket(client, loginPacket);
 
 
-        Thread.Sleep(150); //Prevents a memory error on the client side? bruh.
+        //Thread.Sleep(50); //Prevents a memory error on the client side? bruh.
         //Send buffered packets
         if (bufferedPackets.Count > 0)
         {
@@ -148,16 +152,16 @@ public class NetServer
                 }
             }
             //Debug.Log(packetsToSend.Count);
-            Packet bpacket = new Packet(Packet.pType.allBuffered, Packet.sendType.nonbuffered, packetsToSend);
+            Packet bpacket = new Packet(Packet.pType.allBuffered, Packet.sendType.nonbuffered, new PacketListPacket(packetsToSend));
             bpacket.sendToAll = false;
             SendPacket(client, bpacket);
         }
 
-        while (client != null)
+        while (client != null && server != null)
         {
             try
             {
-                Thread.Sleep(25);
+                //Thread.Sleep(50);
                 Packet pack = RecvPacket(client);
                 if (pack.packetOwnerID != client.clientID)// && client.tcpClient == NetClient.instanceClient.client) //if server dont change cause if it is -1 it has all authority.
                 {
@@ -173,7 +177,7 @@ public class NetServer
 
                 if (pack.packetSendType == Packet.sendType.buffered)
                 {
-                    Debug.Log("Buffered Packet");
+                    //Debug.Log("Buffered Packet");
                     bufferedPackets.Add(pack);
                 }
 
@@ -191,11 +195,13 @@ public class NetServer
                         SendPacket(player, pack);
                     }
                 }
-            }catch
+            }catch (System.Exception e)
             {
-               //Something went wrong with packet deserialization.
+                //Something went wrong with packet deserialization or connection closed.
+                Debug.LogError(e);
             }
         }
+        Debug.Log("NetServer.ClientHandler() thread has successfully finished.");
     }
 
     public bool IsInitialized()
@@ -218,11 +224,12 @@ public class NetServer
 
     public void SendPacket(NetworkPlayer player, Packet packet)
     {
-        byte[] array = Packet.SerializePacket(packet);
+        byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
 
         //First send packet size
         byte[] arraySize = new byte[4];
-        arraySize = Encoding.Default.GetBytes(""+array.Length);
+        arraySize = System.BitConverter.GetBytes(array.Length);
+        //Debug.Log("Length: " + arraySize.Length);
         player.netStream.Write(arraySize, 0, arraySize.Length);
 
         //Send packet
@@ -231,17 +238,21 @@ public class NetServer
 
     public Packet RecvPacket(NetworkPlayer player)
     {
-        //Fisrt get packet size
+        //First get packet size
         byte[] packetSize = new byte[4];
         player.netStream.Read(packetSize, 0, packetSize.Length);
-        //Debug.Log(Encoding.Default.GetString(packetSize));
-        int pSize = int.Parse(Encoding.Default.GetString(packetSize));
+        int pSize = System.BitConverter.ToInt32(packetSize, 0);
         //Debug.Log(pSize);
 
         //Get packet
         byte[] byteMessage = new byte[pSize];
         player.netStream.Read(byteMessage, 0, byteMessage.Length);
-        return Packet.DeserializePacket(byteMessage);
+        return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
+    }
+
+    void OnDestroy()
+    {
+        StopServer();
     }
 
     //public void SendMessage(NetworkPlayer client, byte[] message)
@@ -265,6 +276,7 @@ public class NetworkPlayer
     public NetworkStream netStream;
     public Vector3 proximityPosition = Vector3.zero;
     public float loadProximity = 10f;
+    public Thread threadHandlingClient;
     
     public NetworkPlayer (TcpClient client)
     {

@@ -8,8 +8,9 @@ using UnityEngine;
 [System.Serializable]
 public class Packet
 {
-    static BinaryFormatter bF = null;
+    //public static BinaryFormatter bF = null;
 
+    [System.Serializable]
     public enum sendType
     {
         buffered,
@@ -17,6 +18,7 @@ public class Packet
     }
     public sendType packetSendType = sendType.buffered;
 
+    [System.Serializable]
     public enum pType
     {
         gOInstantiate,
@@ -27,9 +29,12 @@ public class Packet
         unassigned,
         allBuffered,
         loginInfo,
+        netObjNetStartInvoke,
     }
     public pType packetType = pType.unassigned;
-    public object data;
+
+    public string jsonData;
+    public string jsonDataTypeName;
 
     public int packetOwnerID = NetTools.clientID; //If the client tries lying to server, the server verifies it in NetServer anyways...
     public bool serverAuthority = false; //Manually changed in NetServer. Client changing it wont effect other clients/server.
@@ -40,39 +45,62 @@ public class Packet
     {
         this.packetType = packetType;
         this.packetSendType = typeOfSend;
-        this.data = obj;
+        SetPacketData(obj);
     }
 
     public Packet(object obj)
     {
-        data = obj;
+        SetPacketData(obj);
     }
 
+    public void SetPacketData(object data)
+    {
+        jsonData = JsonUtility.ToJson(data);
+        jsonDataTypeName = data.GetType().ToString();
+    }
+
+    public object GetPacketData()
+    {
+        System.Type t = System.Type.GetType(jsonDataTypeName);
+        return JsonUtility.FromJson(jsonData,t);
+    }
+
+    public static Packet DeJsonifyPacket(string jsonPacket)
+    {
+        //Debug.Log(jsonPacket);
+        return JsonUtility.FromJson<Packet>(jsonPacket);
+    }
+
+    public static string JsonifyPacket(Packet packet)
+    {
+        return JsonUtility.ToJson(packet);
+    }
 
     public static Packet DeserializePacket(byte[] serialized)
     {
-        if (bF == null)
-        {
-            bF = new BinaryFormatter();
-        }
+        BinaryFormatter bF = new BinaryFormatter();
 
-        MemoryStream ms = new MemoryStream(serialized);
-        //byte[] b = new byte[ms.Length];
-        //ms.Seek(0, SeekOrigin.Begin);
-        Packet decoded = (Packet)bF.Deserialize(ms);
-        return decoded;
+        using (MemoryStream ms = new MemoryStream(serialized))
+        {
+            //byte[] b = new byte[ms.Length];
+            //ms.Seek(0, SeekOrigin.Begin);
+            Debug.Log(serialized.Length);
+            Packet decoded = (Packet)bF.Deserialize(ms);
+            return decoded;
+        }
     }
 
 
     public static byte[] SerializePacket(Packet packet)
     {
-        if(bF == null)
+        BinaryFormatter bF = new BinaryFormatter();
+
+        using (MemoryStream ms = new MemoryStream())
         {
-            bF = new BinaryFormatter();
+            bF.Serialize(ms, packet);
+            return ms.ToArray();
         }
-        MemoryStream ms = new MemoryStream();
-        bF.Serialize(ms, packet);
-        return ms.ToArray();
+
     }
 
     public byte[] SelfSerialize()
@@ -95,6 +123,7 @@ public class GameObjectInstantiateData
     public int prefabDomainID = -1;
     public int prefabID = -1;
     public SerializableVector position;
+    public SerializableQuaternion rotation;
 
     public int netObjID = -1;
 }
@@ -123,5 +152,58 @@ public class SerializableVector
     public Vector3 ToVec3()
     {
         return new Vector3(x,y,z);
+    }
+}
+
+[System.Serializable]
+public class SerializableQuaternion
+{
+    public float x = 0f;
+    public float y = 0f;
+    public float z = 0f;
+    public float w = 0f;
+
+    public SerializableQuaternion(Quaternion q)
+    {
+        x = q.x;
+        y = q.y;
+        z = q.z;
+        w = q.w;
+    }
+
+    public Quaternion ToQuaternion()
+    {
+        return new Quaternion(x, y, z, w);
+    }
+}
+
+[System.Serializable]
+public class JsonPacketObject
+{
+    public string jsonData;
+    public string jsonDataTypeName;
+
+    public JsonPacketObject(string data,string jsonTypeName)
+    {
+        jsonData = data;
+        jsonDataTypeName = jsonTypeName;
+    }
+
+    public object ToObject()
+    {
+        return JsonUtility.FromJson(jsonData, System.Type.GetType(jsonDataTypeName));
+    }
+
+}
+
+
+[System.Serializable]
+public class PacketListPacket
+{
+    public List<Packet> packets = new List<Packet>();
+
+    public PacketListPacket(List<Packet> packets)
+    {
+        this.packets = packets;
     }
 }

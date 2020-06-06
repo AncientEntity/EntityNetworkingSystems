@@ -9,14 +9,27 @@ public class ExamplePlayerController : MonoBehaviour
     void Start()
     {
         net = GetComponent<NetworkObject>();
+        net.onNetworkStart.AddListener(OnNetStart);
+    }
+
+    void OnNetStart()
+    {
         net.UpdateField("position", new SerializableVector(transform.position),immediateOnSelf:true);
     }
 
     void FixedUpdate()
     {
+        if(!net.initialized)
+        {
+            return;
+        }
+
         if(!net.IsOwner())
         {
-            transform.position = ((SerializableVector)net.GetField("position")).ToVec3();
+            if (net.fields[0].IsInitialized())
+            {
+                transform.position = ((SerializableVector)net.GetField("position")).ToVec3();
+            }
             return;
         }
         if (Input.GetKey(KeyCode.W))

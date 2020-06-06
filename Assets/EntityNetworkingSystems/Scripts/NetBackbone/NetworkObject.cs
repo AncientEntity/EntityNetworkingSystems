@@ -9,6 +9,8 @@ public class NetworkObject : MonoBehaviour
 
     public static List<NetworkObject> allNetObjs = new List<NetworkObject>();
 
+    public bool initialized = false; //Has it been initialized on the network?
+    [Space]
     public int networkID = -1;
     public int ownerID = -1;
     public List<NetworkField> fields = new List<NetworkField>();
@@ -22,7 +24,7 @@ public class NetworkObject : MonoBehaviour
     
 
 
-    void Start()
+    void Awake()
     {
         if(NetworkData.usedNetworkObjectInstances.Contains(networkID) == false)
         {
@@ -33,7 +35,7 @@ public class NetworkObject : MonoBehaviour
         {
             allNetObjs.Add(this);
         }
-        onNetworkStart.Invoke();
+        //onNetworkStart.Invoke(); //Invokes inside of UnityPacketHandler
 
     }
 
@@ -107,7 +109,13 @@ public class NetworkObject : MonoBehaviour
         List<Packet> fieldPackets = new List<Packet>();
         foreach(NetworkField netField in fields)
         {
-            Packet packet = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered, new NetworkFieldPacket(networkID, netField.fieldName, netField.GetField()));
+            if(!netField.IsInitialized())
+            {
+                continue; 
+            }
+
+            Packet packet = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
+                new NetworkFieldPacket(networkID, netField.fieldName, new JsonPacketObject(JsonUtility.ToJson(netField.GetField()), netField.GetField().GetType().ToString())));
             fieldPackets.Add(packet);
             //print("Adding netfield: " + netField.fieldName);
         }
@@ -121,7 +129,9 @@ public class NetworkObject : MonoBehaviour
 public class NetworkField
 {
     public string fieldName;
-    private object data;
+    private string jsonData = "notinitialized";
+    private string jsonDataTypeName = "notinitialized";
+    private bool initialized = false;
 
     public void UpdateField(object newValue, NetworkObject netObj)
     {
@@ -130,22 +140,35 @@ public class NetworkField
 
     public void UpdateField(object newValue,int netObjID, bool immediateOnSelf=false)
     {
-        Packet packet = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered, new NetworkFieldPacket(netObjID,fieldName,newValue));
+        Packet packet = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
+            new NetworkFieldPacket(netObjID,fieldName,new JsonPacketObject(JsonUtility.ToJson(newValue), newValue.GetType().ToString())));
         NetClient.instanceClient.SendPacket(packet);
         if(immediateOnSelf)
         {
-            data = newValue;
+            LocalFieldSet(newValue);
         }
     }
 
     public void LocalFieldSet(object newValue)
     {
-        data = newValue; //This is used in UnityPacketHandler when setting it after packet being recieved. Don't use.
+        jsonData = JsonUtility.ToJson(newValue); //This is used in UnityPacketHandler when setting it after packet being recieved. Don't use.
+        jsonDataTypeName = newValue.GetType().ToString();
+        initialized = true;
     }
 
     public object GetField()
     {
-        return data;
+        if(!initialized)
+        {
+            return null;
+        }
+
+        return JsonUtility.FromJson(jsonData,System.Type.GetType(jsonDataTypeName));
+    }
+
+    public bool IsInitialized()
+    {
+        return initialized;
     }
 }
 
@@ -154,9 +177,9 @@ public class NetworkFieldPacket
 {
     public int networkObjID = -1;
     public string fieldName = "";
-    public object data;
+    public JsonPacketObject data;
 
-    public NetworkFieldPacket(int netID, string fieldName, object val)
+    public NetworkFieldPacket(int netID, string fieldName, JsonPacketObject val)
     {
         networkObjID = netID;
         this.fieldName = fieldName;

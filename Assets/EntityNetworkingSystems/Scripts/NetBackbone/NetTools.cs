@@ -11,29 +11,33 @@ public class NetTools : MonoBehaviour
 
     public static UnityEvent onJoinServer = new UnityEvent(); //Gets ran when the login packet finishes :D
 
-    public static GameObject NetInstantiate(int prefabDomain, int prefabID, Vector3 position, Packet.sendType sT = Packet.sendType.buffered)
+    public static GameObject NetInstantiate(int prefabDomain, int prefabID, Vector3 position,Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered)
     {
         SerializableVector finalVector = new SerializableVector(position);
+        SerializableQuaternion finalQuat = new SerializableQuaternion(rotation);
+
 
         GameObjectInstantiateData gOID = new GameObjectInstantiateData();
         gOID.position = finalVector;
+        gOID.rotation = finalQuat;
         gOID.prefabDomainID = prefabDomain;
         gOID.prefabID = prefabID;
         gOID.netObjID = GenerateNetworkObjectID();
+
 
         Packet p = new Packet(gOID);
         p.packetType = Packet.pType.gOInstantiate;
         p.packetSendType = sT;
 
 
-        if(sT == Packet.sendType.buffered && isServer)
-        {
-            NetServer.serverInstance.bufferedPackets.Add(p);
-        }
+        //if(sT == Packet.sendType.buffered && isServer)
+        //{
+        //    NetServer.serverInstance.bufferedPackets.Add(p);
+        //}
 
         NetClient.instanceClient.SendPacket(p);
 
-        GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), Quaternion.identity);
+        GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), rotation);
         NetworkObject nObj = g.GetComponent<NetworkObject>();
         if (nObj == null)
         {
@@ -43,6 +47,9 @@ public class NetTools : MonoBehaviour
         nObj.prefabDomainID = gOID.prefabDomainID;
         nObj.prefabID = gOID.prefabID;
         nObj.networkID = gOID.netObjID;
+
+        nObj.onNetworkStart.Invoke();
+        nObj.initialized = true;
 
         return g;
     }

@@ -12,7 +12,7 @@ public class ExampleClient : MonoBehaviour
         netClient = new NetClient();
         netClient.Initialize();
         netClient.ConnectToServer();
-        NetTools.onJoinServer.AddListener(delegate { CreatePlayer(); });
+        NetTools.onJoinServer.AddListener(delegate { InitializePlayer(); });
     }
 
 
@@ -21,16 +21,16 @@ public class ExampleClient : MonoBehaviour
     //    Debug.Log(NetTools.clientID);
     //}
 
-    void CreatePlayer()
+    void InitializePlayer()
     {
-        NetTools.NetInstantiate(0, 1, new Vector3(Random.Range(-4.0f, 4.0f), Random.Range(-4.0f, 4.0f)));
+        NetTools.NetInstantiate(0, 1, new Vector3(Random.Range(-4.0f, 4.0f), Random.Range(-4.0f, 4.0f)),Quaternion.identity);
     }
 
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            GameObject g = NetTools.NetInstantiate(0, 0, new Vector3(Random.Range(-4.0f, 4.0f), Random.Range(-4.0f, 4.0f), 0));
+            GameObject g = NetTools.NetInstantiate(0, 0, new Vector3(Random.Range(-4.0f, 4.0f), Random.Range(-4.0f, 4.0f), 0),Quaternion.identity);
             owned.Add(g.GetComponent<NetworkObject>());
         }
         if (Input.GetKeyDown(KeyCode.F1))

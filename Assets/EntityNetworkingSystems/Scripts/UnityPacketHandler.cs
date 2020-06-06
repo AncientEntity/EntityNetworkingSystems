@@ -41,35 +41,66 @@ public class UnityPacketHandler : MonoBehaviour
                 Packet curPacket = packetQueue[0];
                 packetQueue.RemoveAt(0);
 
-                if(curPacket == null)
+                if (curPacket == null)
                 {
                     continue;
                 }
 
                 if (curPacket.packetType == Packet.pType.gOInstantiate) //It gets instantiated NetTools.
                 {
-                    if(NetTools.clientID == curPacket.packetOwnerID)
+                    NetworkObject nObj = null;
+                    GameObjectInstantiateData gOID = (GameObjectInstantiateData)JsonUtility.FromJson<GameObjectInstantiateData>(curPacket.jsonData);
+
+                    if (NetTools.clientID != curPacket.packetOwnerID)
                     {
-                        continue;
+                        //GameObjectInstantiateData gOID = (GameObjectInstantiateData)curPacket.GetPacketData();
+                        GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), gOID.rotation.ToQuaternion());
+                        nObj = g.GetComponent<NetworkObject>();
+                        if (nObj == null)
+                        {
+                            nObj = g.AddComponent<NetworkObject>();
+                        }
+                        nObj.ownerID = curPacket.packetOwnerID;
+                        nObj.prefabDomainID = gOID.prefabDomainID;
+                        nObj.prefabID = gOID.prefabID;
+                        nObj.networkID = gOID.netObjID;
+
+                        nObj.onNetworkStart.Invoke();
+                        nObj.initialized = true;
                     }
 
+                    //GameObjectInstantiateData gOID = (GameObjectInstantiateData)curPacket.GetPacketData();
 
-                    GameObjectInstantiateData gOID = (GameObjectInstantiateData)curPacket.data;
-                    GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), Quaternion.identity);
-                    NetworkObject nObj = g.GetComponent<NetworkObject>();
-                    if (nObj == null)
-                    {
-                        nObj = g.AddComponent<NetworkObject>();
-                    }
-                    nObj.ownerID = curPacket.packetOwnerID;
-                    nObj.prefabDomainID = gOID.prefabDomainID;
-                    nObj.prefabID = gOID.prefabID;
-                    nObj.networkID = gOID.netObjID;
+                    //NetworkObject nObj = null;
+
+                    //if (NetTools.clientID != curPacket.packetOwnerID)
+                    //{
+                    //    GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), Quaternion.identity);
+                    //    nObj = g.GetComponent<NetworkObject>();
+                    //    if (nObj == null)
+                    //    {
+                    //        nObj = g.AddComponent<NetworkObject>();
+                    //    }
+                    //    nObj.ownerID = curPacket.packetOwnerID;
+                    //    nObj.prefabDomainID = gOID.prefabDomainID;
+                    //    nObj.prefabID = gOID.prefabID;
+                    //    nObj.networkID = gOID.netObjID;
+                    //    continue;
+                    //}
+                    //else
+                    //{
+                    //    nObj = NetworkObject.NetObjFromNetID(gOID.netObjID);
+                    //}
+
+                    //nObj.onNetworkStart.Invoke();
+                    //nObj.initialized = true;
+
+
 
                 }
                 else if (curPacket.packetType == Packet.pType.gODestroy)
                 {
-                    NetworkObject found = NetworkObject.NetObjFromNetID((int)curPacket.data);
+                    NetworkObject found = NetworkObject.NetObjFromNetID((int)curPacket.GetPacketData());
                     if (found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.serverAuthority))
                     {
                         Destroy(found.gameObject);
@@ -78,26 +109,26 @@ public class UnityPacketHandler : MonoBehaviour
                 else if (curPacket.packetType == Packet.pType.allBuffered)
                 {
                     //Debug.Log("Recieved buffered packets.");
-                    List<Packet> packetInfo = (List<Packet>)curPacket.data;
+                    List<Packet> packetInfo = ((PacketListPacket)curPacket.GetPacketData()).packets;
                     packetQueue.AddRange(packetInfo);
                 }
                 else if (curPacket.packetType == Packet.pType.loginInfo)
                 {
                     //Debug.Log("Login Info Packet Recieved.");
-                    NetTools.clientID = ((PlayerLoginData)curPacket.data).playerNetworkID;
+                    NetTools.clientID = ((PlayerLoginData)curPacket.GetPacketData()).playerNetworkID;
                     NetClient.instanceClient.clientID = NetTools.clientID;
 
                     NetTools.onJoinServer.Invoke();
                 } else if (curPacket.packetType == Packet.pType.netVarEdit)
                 {
-                    NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.data;
+                    NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.GetPacketData();
                     NetworkObject netObj = NetworkObject.NetObjFromNetID(nFP.networkObjID);
                     if(netObj == null || (netObj.ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority))
                     {
                         continue; //Probably was instantiated on client but not server or vice versa.
                     }
                     //Debug.Log("Seting NetVarEdit.");
-                    netObj.SetFieldLocal(nFP.fieldName, nFP.data);
+                    netObj.SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
                 }
 
 
@@ -108,6 +139,7 @@ public class UnityPacketHandler : MonoBehaviour
                     yield return new WaitForFixedUpdate();
                     countTillUpdate = 0;
                 }
+
             }
             else
             {
