@@ -12,7 +12,7 @@ I am mainly using this for my project at https://epocria.net
 - Player authority over an object. (Complete)
 - Network Fields, automatically get synced. (Complete)
 - RPC with Arguments (Complete)
-- Steamworks Integration (Soon)
+- Steamworks Integration (Inprogress)
 - Namespaces & Unity Package Release (Last)
 
 ## Extras
