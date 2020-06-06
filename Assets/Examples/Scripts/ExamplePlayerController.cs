@@ -5,11 +5,22 @@ using UnityEngine;
 public class ExamplePlayerController : MonoBehaviour
 {
     NetworkObject net;
-
+    SpriteRenderer sR;
     void Start()
     {
+        sR = GetComponent<SpriteRenderer>();
         net = GetComponent<NetworkObject>();
         net.onNetworkStart.AddListener(OnNetStart);
+    }
+
+    public void RandomColor(RPCArgs args)
+    {
+        sR = GetComponent<SpriteRenderer>();
+
+        float r = args.GetNext<float>();
+        float g = args.GetNext<float>();
+        float b = args.GetNext<float>();
+        sR.color = new Color(r,g, b);
     }
 
     void OnNetStart()

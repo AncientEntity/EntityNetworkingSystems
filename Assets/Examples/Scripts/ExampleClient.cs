@@ -35,9 +35,10 @@ public class ExampleClient : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.F1))
         {
-            int randIndex = Random.Range(0, NetworkData.usedNetworkObjectInstances.Count);
+            int randIndex = Random.Range(0, NetworkObject.allNetObjs.Count);
             //print(randIndex);
-            NetTools.NetDestroy(NetworkData.usedNetworkObjectInstances[randIndex]);
+            NetTools.NetDestroy(NetworkObject.allNetObjs[randIndex]);
+            Debug.Log(NetworkData.usedNetworkObjectInstances[randIndex]);
         }
 
         if (Input.GetKey(KeyCode.W))

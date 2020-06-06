@@ -65,48 +65,24 @@ public class UnityPacketHandler : MonoBehaviour
                         nObj.prefabID = gOID.prefabID;
                         nObj.networkID = gOID.netObjID;
 
+                        nObj.Initialize();
                         nObj.onNetworkStart.Invoke();
-                        nObj.initialized = true;
                     }
-
-                    //GameObjectInstantiateData gOID = (GameObjectInstantiateData)curPacket.GetPacketData();
-
-                    //NetworkObject nObj = null;
-
-                    //if (NetTools.clientID != curPacket.packetOwnerID)
-                    //{
-                    //    GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), Quaternion.identity);
-                    //    nObj = g.GetComponent<NetworkObject>();
-                    //    if (nObj == null)
-                    //    {
-                    //        nObj = g.AddComponent<NetworkObject>();
-                    //    }
-                    //    nObj.ownerID = curPacket.packetOwnerID;
-                    //    nObj.prefabDomainID = gOID.prefabDomainID;
-                    //    nObj.prefabID = gOID.prefabID;
-                    //    nObj.networkID = gOID.netObjID;
-                    //    continue;
-                    //}
-                    //else
-                    //{
-                    //    nObj = NetworkObject.NetObjFromNetID(gOID.netObjID);
-                    //}
-
-                    //nObj.onNetworkStart.Invoke();
-                    //nObj.initialized = true;
 
 
 
                 }
                 else if (curPacket.packetType == Packet.pType.gODestroy)
                 {
+                    //Debug.Log(curPacket.jsonData);
+                    //Debug.Log(curPacket.GetPacketData());
                     NetworkObject found = NetworkObject.NetObjFromNetID((int)curPacket.GetPacketData());
                     if (found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.serverAuthority))
                     {
                         Destroy(found.gameObject);
                     }
                 }
-                else if (curPacket.packetType == Packet.pType.allBuffered)
+                else if (curPacket.packetType == Packet.pType.multiPacket)
                 {
                     //Debug.Log("Recieved buffered packets.");
                     List<Packet> packetInfo = ((PacketListPacket)curPacket.GetPacketData()).packets;
@@ -129,6 +105,16 @@ public class UnityPacketHandler : MonoBehaviour
                     }
                     //Debug.Log("Seting NetVarEdit.");
                     netObj.SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
+                } else if (curPacket.packetType == Packet.pType.rpc)
+                {
+                    //Debug.Log(curPacket.jsonData);
+                    RPCPacketData rPD = (RPCPacketData)curPacket.GetPacketData();
+                    NetworkObject nObj = NetworkObject.NetObjFromNetID(rPD.networkObjectID);
+                    if(nObj.rpcs[rPD.rpcIndex].serverAuthorityRequired && !curPacket.serverAuthority)
+                    {
+                        continue; //Means only server can run it.
+                    }
+                    nObj.rpcs[rPD.rpcIndex].InvokeRPC(rPD.ReturnArgs());
                 }
 
 

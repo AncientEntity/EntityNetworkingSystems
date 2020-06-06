@@ -47,6 +47,7 @@ SpriteRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -94,10 +95,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b68817bb681ee0469d772173dec3ef5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  initialized: 0
   networkID: -1
   ownerID: -1
   fields:
   - fieldName: position
+    defaultValue: 6
+    onValueChange:
+      m_PersistentCalls:
+        m_Calls: []
+  rpcs:
+  - rpcName: RandomColor
+    serverAuthorityRequired: 0
+    onRpc:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: -3667445291438537542}
+          m_MethodName: RandomColor
+          m_Mode: 0
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
   onNetworkStart:
     m_PersistentCalls:
       m_Calls: []

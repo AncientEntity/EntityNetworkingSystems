@@ -9,6 +9,7 @@ public class NetworkData : MonoBehaviour
 
     public List<GameObjectList> networkPrefabList = new List<GameObjectList>();
 
+
     void Awake()
     {
         if(instance == null)
@@ -18,6 +19,11 @@ public class NetworkData : MonoBehaviour
         {
             Destroy(this);
         }
+    }
+
+    public static void AddUsedNetID(int id)
+    {
+        usedNetworkObjectInstances.Add(id);
     }
 
 }

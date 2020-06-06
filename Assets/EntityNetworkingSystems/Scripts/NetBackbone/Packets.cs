@@ -27,7 +27,7 @@ public class Packet
         rpc,
         message,
         unassigned,
-        allBuffered,
+        multiPacket,
         loginInfo,
         netObjNetStartInvoke,
     }
@@ -39,7 +39,9 @@ public class Packet
     public int packetOwnerID = NetTools.clientID; //If the client tries lying to server, the server verifies it in NetServer anyways...
     public bool serverAuthority = false; //Manually changed in NetServer. Client changing it wont effect other clients/server.
     public bool sendToAll = true;
+    public List<int> usersToRecieve = new List<int>(); //if send to all is false.
     public int relatesToNetObjID = -1; 
+
 
     public Packet(pType packetType, sendType typeOfSend,object obj)
     {
@@ -55,14 +57,33 @@ public class Packet
 
     public void SetPacketData(object data)
     {
-        jsonData = JsonUtility.ToJson(data);
+        object formattedData = data;
         jsonDataTypeName = data.GetType().ToString();
+
+
+        if (data.GetType().ToString() == "System.Int32" || data.GetType().ToString() == "System.Int16" || data.GetType().ToString() == "System.Int64")
+        {
+            //Automatically put it into an IntPacket so JsonUtility will jsonify it.
+            formattedData = new IntPacket((int)data);
+            jsonDataTypeName = formattedData.GetType().ToString();
+        }
+
+        jsonData = JsonUtility.ToJson(formattedData);
+        
     }
 
     public object GetPacketData()
     {
         System.Type t = System.Type.GetType(jsonDataTypeName);
-        return JsonUtility.FromJson(jsonData,t);
+        if (t.ToString() == "IntPacket")
+        {
+            //If integer you must first convert it out of a IntPacket.
+            return JsonUtility.FromJson<IntPacket>(jsonData).integer;
+        }
+        else
+        {
+            return JsonUtility.FromJson(jsonData, t);
+        }
     }
 
     public static Packet DeJsonifyPacket(string jsonPacket)
@@ -205,5 +226,25 @@ public class PacketListPacket
     public PacketListPacket(List<Packet> packets)
     {
         this.packets = packets;
+    }
+}
+
+[System.Serializable]
+public class IntPacket {
+    public int integer = 0;
+
+    public IntPacket(int integer)
+    {
+        this.integer = integer;
+    }
+}
+
+[System.Serializable]
+public class FloatPacket
+{
+    public float value = 0f;
+    public FloatPacket(float val)
+    {
+        value = val;
     }
 }

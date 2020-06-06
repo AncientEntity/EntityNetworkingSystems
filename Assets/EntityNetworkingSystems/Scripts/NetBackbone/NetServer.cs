@@ -152,7 +152,7 @@ public class NetServer
                 }
             }
             //Debug.Log(packetsToSend.Count);
-            Packet bpacket = new Packet(Packet.pType.allBuffered, Packet.sendType.nonbuffered, new PacketListPacket(packetsToSend));
+            Packet bpacket = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(packetsToSend));
             bpacket.sendToAll = false;
             SendPacket(client, bpacket);
         }
@@ -182,7 +182,7 @@ public class NetServer
                 }
 
                 UnityPacketHandler.instance.QueuePacket(pack);
-                if (pack.sendToAll)
+                if (pack.sendToAll || pack.usersToRecieve.Count > 0)
                 {
                     foreach (NetworkPlayer player in connections.ToArray())
                     {
@@ -192,7 +192,11 @@ public class NetServer
                             continue;
                         }
 
-                        SendPacket(player, pack);
+                        if (pack.sendToAll == true || pack.usersToRecieve.Contains(player.clientID))
+                        {
+                            SendPacket(player, pack);
+                        }
+
                     }
                 }
             }catch (System.Exception e)

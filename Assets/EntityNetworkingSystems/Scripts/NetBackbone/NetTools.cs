@@ -48,8 +48,9 @@ public class NetTools : MonoBehaviour
         nObj.prefabID = gOID.prefabID;
         nObj.networkID = gOID.netObjID;
 
+        nObj.Initialize();
         nObj.onNetworkStart.Invoke();
-        nObj.initialized = true;
+        //nObj.initialized = true;
 
         return g;
     }
@@ -67,7 +68,7 @@ public class NetTools : MonoBehaviour
 
         if(netObj == null)
         {
-            Debug.LogError("Network Object doesn't exist.");
+            Debug.LogError("Network Object doesn't exist. ID("+netID+")");
             return;
         }
 
@@ -75,7 +76,7 @@ public class NetTools : MonoBehaviour
         {
             //Destroy(netObj.gameObject);
 
-            Packet p = new Packet(Packet.pType.gODestroy, sT, netObj.networkID);
+            Packet p = new Packet(Packet.pType.gODestroy, sT,netObj.networkID);
             p.relatesToNetObjID = netID;
             p.packetOwnerID = clientID;
             NetClient.instanceClient.SendPacket(p);
@@ -85,6 +86,30 @@ public class NetTools : MonoBehaviour
         }
     }
 
+    public static List<Packet> GenerateScenePackets()
+    {
+        //Will generate all the packets required to sync scenes for users. Useful for right when the server begins.
+        //Only generates packets for NetworkObject's that are included inside of NetworkData's prefab domains.
+        List<Packet> objPackets = new List<Packet>();
+        foreach(NetworkObject netObj in NetworkObject.allNetObjs)
+        {
+            if(netObj.prefabID == -1 || netObj.prefabDomainID == -1)
+            {
+                continue; //It isn't registered.
+            } 
+
+            GameObjectInstantiateData gOID = new GameObjectInstantiateData();
+            gOID.netObjID = netObj.networkID;
+            gOID.position = new SerializableVector(netObj.transform.position);
+            gOID.rotation = new SerializableQuaternion(netObj.transform.rotation);
+            gOID.prefabID = netObj.prefabID;
+            gOID.prefabDomainID = netObj.prefabDomainID;
+
+            Packet p = new Packet(Packet.pType.gOInstantiate, Packet.sendType.nonbuffered, gOID);
+            objPackets.Add(p);
+        }
+        return objPackets;
+    }
 
     public static int GenerateNetworkObjectID()
     {

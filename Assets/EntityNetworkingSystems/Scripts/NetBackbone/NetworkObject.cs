@@ -14,6 +14,7 @@ public class NetworkObject : MonoBehaviour
     public int networkID = -1;
     public int ownerID = -1;
     public List<NetworkField> fields = new List<NetworkField>();
+    public List<RPC> rpcs = new List<RPC>();
     [Space]
     public UnityEvent onNetworkStart;
 
@@ -26,22 +27,37 @@ public class NetworkObject : MonoBehaviour
 
     void Awake()
     {
-        if(NetworkData.usedNetworkObjectInstances.Contains(networkID) == false)
+        //onNetworkStart.Invoke(); //Invokes inside of UnityPacketHandler
+
+    }
+
+    public void Initialize()
+    {
+        if(networkID == -1)
         {
-            NetworkData.usedNetworkObjectInstances.Add(networkID);
+            networkID = NetTools.GenerateNetworkObjectID();
         }
 
-        if (allNetObjs.Contains(this) == false)
+        if (NetworkData.usedNetworkObjectInstances.Contains(networkID) == false && networkID != -1)
+        {
+            NetworkData.AddUsedNetID(networkID);
+        }
+
+        if (NetworkObject.allNetObjs.Contains(this) == false)
         {
             allNetObjs.Add(this);
         }
-        //onNetworkStart.Invoke(); //Invokes inside of UnityPacketHandler
-        
-        foreach(NetworkField field in fields)
+        foreach (NetworkField field in fields)
         {
             field.InitializeDefaultValue(networkID);
         }
-
+        int index = 0;
+        foreach(RPC rpc in rpcs)
+        {
+            rpc.SetParentNetworkObject(this,index);
+            index += 1;
+        }
+        initialized = true;
     }
 
     public bool IsOwner()
@@ -144,6 +160,7 @@ public class NetworkField
         None,
     };
     public valueInitializer defaultValue = valueInitializer.None;
+    public UnityEvent onValueChange;
     private string jsonData = "notinitialized";
     private string jsonDataTypeName = "notinitialized";
     private bool initialized = false;
@@ -198,6 +215,7 @@ public class NetworkField
         jsonData = JsonUtility.ToJson(newValue); //This is used in UnityPacketHandler when setting it after packet being recieved. Don't use.
         jsonDataTypeName = newValue.GetType().ToString();
         initialized = true;
+        onValueChange.Invoke();
     }
 
     public object GetField()
