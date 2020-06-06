@@ -9,6 +9,6 @@ I have tried many different networking systems for Unity. None have come to my l
 - Packet Sending Backbone (Complete)
 - Instantiating/Destroying GameObjects over the network (Complete)
 - Player authority over an object. (Complete)
-- Network Fields, automatically get synced. (Almost Done)
+- Network Fields, automatically get synced. (Complete)
 - RPC (Next To Do)
 - Steamworks Integration (Soon)
