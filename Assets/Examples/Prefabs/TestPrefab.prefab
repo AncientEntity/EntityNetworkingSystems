@@ -48,6 +48,7 @@ SpriteRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -72,12 +73,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 50
-  m_Sprite: {fileID: 21300042, guid: 0a81928507c3e3f4a82fc735d6dbfe4f, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 5e70189c79521f44db2e0d34c9dae5a9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1.3125, y: 0.875}
+  m_Size: {x: 0.875, y: 0.875}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -95,10 +96,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b68817bb681ee0469d772173dec3ef5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  initialized: 0
   networkID: -1
   ownerID: -1
   fields:
   - fieldName: position
+    defaultValue: 6
+    onValueChange:
+      m_PersistentCalls:
+        m_Calls: []
+  rpcs: []
+  onNetworkStart:
+    m_PersistentCalls:
+      m_Calls: []
   prefabID: -1
   prefabDomainID: -1
 --- !u!114 &-7292164649192616921
@@ -130,8 +140,8 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1.3125, y: 0.875}
-    newSize: {x: 1.3125, y: 0.875}
+    oldSize: {x: 0.875, y: 0.875}
+    newSize: {x: 0.875, y: 0.875}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
