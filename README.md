@@ -4,6 +4,7 @@
 
 I have tried many different networking systems for Unity. None have come to my liking so I will be coming together, to make one that seems to work.
 
+I am mainly using this for my project at https://epocria.net
 
 ## Important Features
 - Packet Sending Backbone (Complete)
@@ -16,3 +17,4 @@ I have tried many different networking systems for Unity. None have come to my l
 
 ## Extras
 - Buffered Packet Culling (Soon)
+- Documentation & Videos (Soon)
