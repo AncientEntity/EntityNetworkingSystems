@@ -12,3 +12,4 @@ I have tried many different networking systems for Unity. None have come to my l
 - Network Fields, automatically get synced. (Complete)
 - RPC (Next To Do)
 - Steamworks Integration (Soon)
+- Namespaces & Unity Package Release (Last)
