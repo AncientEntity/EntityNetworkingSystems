@@ -18,3 +18,6 @@ I am mainly using this for my project at https://epocria.net
 ## Extras
 - Buffered Packet Culling (Soon)
 - Documentation & Videos (Soon)
+
+## Requirements
+- Unity 2019 or above. (It hasn't been tested on Unity 2018, but I assume it should be fine)
