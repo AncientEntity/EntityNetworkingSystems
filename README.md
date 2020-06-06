@@ -13,3 +13,6 @@ I have tried many different networking systems for Unity. None have come to my l
 - RPC (Next To Do)
 - Steamworks Integration (Soon)
 - Namespaces & Unity Package Release (Last)
+
+## Extras
+- Buffered Packet Culling (Soon)
