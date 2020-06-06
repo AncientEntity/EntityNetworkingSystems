@@ -36,6 +36,11 @@ public class NetworkObject : MonoBehaviour
             allNetObjs.Add(this);
         }
         //onNetworkStart.Invoke(); //Invokes inside of UnityPacketHandler
+        
+        foreach(NetworkField field in fields)
+        {
+            field.InitializeDefaultValue(networkID);
+        }
 
     }
 
@@ -129,10 +134,44 @@ public class NetworkObject : MonoBehaviour
 public class NetworkField
 {
     public string fieldName;
+    public enum valueInitializer {
+        INT,
+        FLOAT,
+        DOUBLE,
+        serializableVector,
+        BYTE,
+        BYTE_ARRAY,
+        None,
+    };
+    public valueInitializer defaultValue = valueInitializer.None;
     private string jsonData = "notinitialized";
     private string jsonDataTypeName = "notinitialized";
     private bool initialized = false;
 
+    public void InitializeDefaultValue(int netID)
+    {
+        switch (defaultValue)
+        {
+            case valueInitializer.INT:
+                UpdateField(0, netID, true);
+                break;
+            case valueInitializer.FLOAT:
+                UpdateField(0.0f, netID, true);
+                break;
+            case valueInitializer.DOUBLE:
+                UpdateField(0.0, netID, true);
+                break;
+            case valueInitializer.serializableVector:
+                UpdateField(new SerializableVector(0,0,0), netID, true);
+                break;
+            case valueInitializer.BYTE:
+                UpdateField(new byte(), netID, true);
+                break;
+            case valueInitializer.BYTE_ARRAY:
+                UpdateField(new byte[0], netID, true);
+                break;
+        }
+    }
     public void UpdateField(object newValue, NetworkObject netObj)
     {
         UpdateField(newValue, netObj.networkID);
