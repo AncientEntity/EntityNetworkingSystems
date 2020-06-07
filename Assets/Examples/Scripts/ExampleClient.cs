@@ -7,12 +7,19 @@ public class ExampleClient : MonoBehaviour
     public NetClient netClient;
     public List<NetworkObject> owned = new List<NetworkObject>();
 
+    public string ip;
+    public int port;
+
     public void ConnectToServer()
     {
-        netClient = new NetClient();
         netClient.Initialize();
-        netClient.ConnectToServer();
+        netClient.ConnectToServer(ip,port);
         NetTools.onJoinServer.AddListener(delegate { InitializePlayer(); });
+    }
+
+    public void Disconnect()
+    {
+        netClient.DisconnectFromServer();
     }
 
 
@@ -54,6 +61,12 @@ public class ExampleClient : MonoBehaviour
         {
             Screen.fullScreen = !Screen.fullScreen;
         }
+    }
+
+
+    void OnDestroy()
+    {
+        netClient.DisconnectFromServer();
     }
 
 }

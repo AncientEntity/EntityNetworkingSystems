@@ -143,6 +143,17 @@ public class NetworkObject : MonoBehaviour
         return fieldPackets;
     }
 
+    public void CallRPC(string rpcName,Packet.sendType sendType = Packet.sendType.buffered, params object[] list)
+    {
+        foreach(RPC rpc in rpcs)
+        {
+            if(rpc.rpcName == rpcName)
+            {
+                rpc.CallRPC(sendType, list: list);
+            }
+        }
+    }
+
 
 }
 

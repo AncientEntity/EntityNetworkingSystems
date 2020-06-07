@@ -8,6 +8,7 @@ using System.Text;
 using System;
 using UnityEngine.Events;
 using System.Runtime.Serialization.Formatters.Binary;
+using Steamworks;
 
 [System.Serializable]
 public class NetClient
@@ -20,6 +21,9 @@ public class NetClient
     Thread connectionHandler = null;
     [Space]
     public int clientID = -1;
+
+    public bool useSteamworks = false;
+    public int steamAppID = -1; //If -1 it wont initialize and you'll need to do it somewhere else :)
 
     public void Initialize()
     {
@@ -37,6 +41,18 @@ public class NetClient
 
         client = new TcpClient();
         NetTools.isClient = true;
+
+        if (useSteamworks)
+        {
+            if(SteamInteraction.instance == null)
+            {
+                GameObject steamIntegration = new GameObject("Steam Integration Handler");
+                steamIntegration.AddComponent<SteamInteraction>();
+                steamIntegration.GetComponent<SteamInteraction>().Initialize();
+                steamIntegration.GetComponent<SteamInteraction>().StartServer();
+                GameObject.DontDestroyOnLoad(steamIntegration);
+            }
+        }
 
 
         if (UnityPacketHandler.instance == null)
@@ -71,6 +87,22 @@ public class NetClient
         Debug.Log("Connection Accepted");
         netStream = client.GetStream();
         UnityPacketHandler.instance.StartHandler();
+
+        if (useSteamworks)
+        {
+            SteamInteraction.instance.StartClient();
+
+            SteamInteraction.instance.clientAuth = SteamUser.GetAuthSessionTicket();
+            //SteamInteraction.instance.clientAuth = ticket;
+
+            //Debug.Log(SteamClient.SteamId.Value + " "+ SteamClient.SteamId.AccountId);
+            //SteamUser.BeginAuthSession(ticket.Data, SteamClient.SteamId.Value);
+
+            Packet authPacket = new Packet(Packet.pType.steamAuth, Packet.sendType.nonbuffered, new SteamAuthPacket(SteamInteraction.instance.clientAuth.Data,SteamClient.SteamId.Value));
+            authPacket.sendToAll = false;
+            SendPacket(authPacket);
+        }
+
         connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
         connectionHandler.Start();
     }
@@ -85,6 +117,10 @@ public class NetClient
             client = null;
             NetClient.instanceClient = null;
             connectionHandler.Abort();
+            if(useSteamworks)
+            {
+                SteamInteraction.instance.StopClient();
+            }
         }
     }
 
@@ -128,9 +164,9 @@ public class NetClient
     //    return message;
     //}
 
-    void OnDestroy()
-    {
-        DisconnectFromServer();
-    }
+    //void OnDestroy()
+    //{
+    //    DisconnectFromServer();
+    //}
 
 }

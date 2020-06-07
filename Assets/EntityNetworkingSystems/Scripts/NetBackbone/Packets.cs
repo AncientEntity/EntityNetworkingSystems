@@ -30,6 +30,7 @@ public class Packet
         multiPacket,
         loginInfo,
         netObjNetStartInvoke,
+        steamAuth,
     }
     public pType packetType = pType.unassigned;
 
@@ -75,6 +76,7 @@ public class Packet
     public object GetPacketData()
     {
         System.Type t = System.Type.GetType(jsonDataTypeName);
+        //Debug.Log(t);
         if (t.ToString() == "IntPacket")
         {
             //If integer you must first convert it out of a IntPacket.
@@ -246,5 +248,18 @@ public class FloatPacket
     public FloatPacket(float val)
     {
         value = val;
+    }
+}
+
+[System.Serializable]
+public class SteamAuthPacket
+{
+    public byte[] authData;
+    public ulong steamID;
+
+    public SteamAuthPacket(byte[] data, ulong sID)
+    {
+        authData = data;
+        steamID = sID;
     }
 }

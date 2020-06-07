@@ -46,10 +46,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   netServer:
-    hostAddress: 127.0.0.1
+    hostAddress: Any
     hostPort: 44594
     maxConnections: 8
-    localObjectTag: localOnly
+    useSteamworks: 1
+    steamAppID: 480
+    modDir: spacewar
+    gameDesc: spacewar
+    mapName: world1
     bufferedPackets: []
 --- !u!114 &7745350244653862989
 MonoBehaviour:
@@ -66,7 +70,11 @@ MonoBehaviour:
   netClient:
     connectedToServer: 0
     clientID: -1
+    useSteamworks: 1
+    steamAppID: 480
   owned: []
+  ip: 127.0.0.1
+  port: 44594
 --- !u!114 &7745350244653862978
 MonoBehaviour:
   m_ObjectHideFlags: 0

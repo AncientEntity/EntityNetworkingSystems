@@ -39,7 +39,13 @@ public class UnityPacketHandler : MonoBehaviour
             if (packetQueue.Count > 0)
             {
                 Packet curPacket = packetQueue[0];
-                packetQueue.RemoveAt(0);
+                try
+                {
+                    packetQueue.RemoveAt(0);
+                } catch
+                {
+                    //For some reason the packetQueue already had nothing.
+                }
 
                 if (curPacket == null)
                 {

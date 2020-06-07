@@ -7,6 +7,7 @@ using System.Threading;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
 using System.Text;
+using Steamworks;
 
 [System.Serializable]
 public class NetServer
@@ -17,7 +18,12 @@ public class NetServer
     public int hostPort=44594;
     public int maxConnections = 8;
     [Space]
-    public string localObjectTag = "localOnly";
+    public bool useSteamworks = false; //Requires Facepunch.Steamworks to be within the project.
+    public int steamAppID = -1; //If -1 it won't initialize, meaning you must on your own.
+    public string modDir = "spacewar";
+    public string gameDesc = "spacewar";
+    public string mapName = "world1";
+
 
     TcpListener server = null;
     List<NetworkPlayer> connections = new List<NetworkPlayer>();
@@ -44,7 +50,7 @@ public class NetServer
             return;
         }
 
-        if (hostAddress == "")
+        if (hostAddress == "" || hostAddress == "Any")
         {
             //If no ip given, use 0.0.0.0
             hostAddress = IPAddress.Any.ToString();
@@ -60,12 +66,26 @@ public class NetServer
             uPH.AddComponent<UnityPacketHandler>();
             GameObject.DontDestroyOnLoad(uPH);
         }
-        if(NetworkData.instance == null)
+        if(useSteamworks)
+        {
+            GameObject steamIntegration = new GameObject("Steam Integration Handler");
+            steamIntegration.AddComponent<SteamInteraction>();
+            steamIntegration.GetComponent<SteamInteraction>().Initialize();
+            steamIntegration.GetComponent<SteamInteraction>().StartServer();
+            GameObject.DontDestroyOnLoad(steamIntegration);
+        }
+
+        if (NetworkData.instance == null)
         {
             Debug.LogWarning("NetworkData object not found.");
         }
 
+    }
+
+    public void StartServer()
+    {
         //Create server
+        Debug.Log(IPAddress.Parse(hostAddress));
         server = new TcpListener(IPAddress.Any, hostPort);
         server.Start();
         Debug.Log("Server started successfully.");
@@ -75,6 +95,7 @@ public class NetServer
 
         connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
         connectionHandler.Start();
+
 
     }
 
@@ -89,6 +110,12 @@ public class NetServer
             server.Stop();
             server = null;
             NetServer.serverInstance = null;
+
+            if(useSteamworks)
+            {
+                SteamInteraction.instance.ShutdownServer();
+            }
+
         }
     }
 
@@ -126,6 +153,43 @@ public class NetServer
 
     public void ClientHandler(NetworkPlayer client)
     {
+        if(useSteamworks)
+        {
+            //VERIFY AUTH TICKET FIRST.
+            SteamAuthPacket clientSteamAuthTicket;
+            Packet p = RecvPacket(client);
+            if (p.packetType == Packet.pType.steamAuth)
+            {
+                //Debug.Log(p.jsonData);
+                clientSteamAuthTicket = (SteamAuthPacket)p.GetPacketData();
+
+
+                Thread.Sleep(1500); //Wait for steam to authenticate it. Will take around this time. Probably should add x attempts over a few seconds.
+
+                BeginAuthResult bAR = SteamUser.BeginAuthSession(clientSteamAuthTicket.authData, clientSteamAuthTicket.steamID);
+                
+
+                if (bAR != BeginAuthResult.OK)
+                {
+                    client.tcpClient.Close();
+                    Debug.Log(bAR);
+                    //Debug.Log("Invalid auth ticket from: " + clientSteamAuthTicket.steamID);
+                    SteamUser.EndAuthSession(clientSteamAuthTicket.steamID);
+                    SteamServer.EndSession(clientSteamAuthTicket.steamID);
+                    return; //Invalid ticket cancel connection.
+                }
+                else
+                {
+                    SteamServer.UpdatePlayer(clientSteamAuthTicket.steamID,"Player 1", 0);
+                    //Debug.Log("Recieved Valid Client Auth Ticket.");
+                    SteamInteraction.instance.connectedSteamIDs.Add(clientSteamAuthTicket.steamID);
+
+                    SteamServer.ForceHeartbeat();
+                }
+            }
+        }
+
+
         //Thread.Sleep(100);
         //Send login info
         PlayerLoginData pLD = new PlayerLoginData();
@@ -254,10 +318,10 @@ public class NetServer
         return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
     }
 
-    void OnDestroy()
-    {
-        StopServer();
-    }
+    //void OnDestroy()
+    //{
+    //    StopServer();
+    //}
 
     //public void SendMessage(NetworkPlayer client, byte[] message)
     //{

@@ -4,12 +4,21 @@ using UnityEngine;
 
 public class ExampleHost : MonoBehaviour
 {
+    public bool isServerBuild = false;
     public NetServer netServer;
+
+    void Start()
+    {
+        if(isServerBuild)
+        {
+            StartServer();
+        }
+    }
 
     public void StartServer()
     {
-        netServer = new NetServer();
         netServer.Initialize();
+        netServer.StartServer();
 
         InvokeRepeating("RpcFunOrSomething", 0, 1f);
     }
@@ -23,4 +32,8 @@ public class ExampleHost : MonoBehaviour
         }
     }
 
+    void OnDestroy()
+    {
+        netServer.StopServer();
+    }
 }
