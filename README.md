@@ -20,6 +20,6 @@ I am mainly using this for my project at https://epocria.net
 - Buffered Packet Culling (Soon)
 - Documentation & Videos (Soon)
 
-## Requirements
+## Requirements & License
 - Unity 2019 or above. (It hasn't been tested on Unity 2018, but I assume it should be fine)
 - If using Steamworks you need Facepunch.Steamworks avaliable here: https://github.com/Facepunch/Facepunch.Steamworks and under the MIT license as well.
