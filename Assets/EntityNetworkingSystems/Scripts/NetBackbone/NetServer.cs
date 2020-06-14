@@ -38,6 +38,10 @@ public class NetServer
 
     public void Initialize()
     {
+        if(IsInitialized())
+        {
+            return;
+        }
 
         if (serverInstance == null)
         {
@@ -267,6 +271,8 @@ public class NetServer
             {
                 //Something went wrong with packet deserialization or connection closed.
                 Debug.LogError(e);
+                server = null;
+                client = null;
             }
         }
         Debug.Log("NetServer.ClientHandler() thread has successfully finished.");

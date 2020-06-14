@@ -31,5 +31,6 @@ public class NetworkData : MonoBehaviour
 [System.Serializable]
 public class GameObjectList
 {
+    public string domainName;
     public GameObject[] prefabList;
 }

@@ -49,7 +49,7 @@ public class NetClient
                 GameObject steamIntegration = new GameObject("Steam Integration Handler");
                 steamIntegration.AddComponent<SteamInteraction>();
                 steamIntegration.GetComponent<SteamInteraction>().Initialize();
-                steamIntegration.GetComponent<SteamInteraction>().StartServer();
+                //steamIntegration.GetComponent<SteamInteraction>().StartServer();
                 GameObject.DontDestroyOnLoad(steamIntegration);
             }
         }

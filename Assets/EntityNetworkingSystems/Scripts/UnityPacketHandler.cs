@@ -70,6 +70,7 @@ public class UnityPacketHandler : MonoBehaviour
                         nObj.prefabDomainID = gOID.prefabDomainID;
                         nObj.prefabID = gOID.prefabID;
                         nObj.networkID = gOID.netObjID;
+                        nObj.sharedObject = gOID.isShared;
 
                         nObj.Initialize();
                         nObj.onNetworkStart.Invoke();
@@ -101,11 +102,13 @@ public class UnityPacketHandler : MonoBehaviour
                     NetClient.instanceClient.clientID = NetTools.clientID;
 
                     NetTools.onJoinServer.Invoke();
+
+                    print("Test");
                 } else if (curPacket.packetType == Packet.pType.netVarEdit)
                 {
                     NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.GetPacketData();
                     NetworkObject netObj = NetworkObject.NetObjFromNetID(nFP.networkObjID);
-                    if(netObj == null || (netObj.ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority))
+                    if(netObj == null || (netObj.ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !netObj.sharedObject))
                     {
                         continue; //Probably was instantiated on client but not server or vice versa.
                     }
@@ -116,7 +119,7 @@ public class UnityPacketHandler : MonoBehaviour
                     //Debug.Log(curPacket.jsonData);
                     RPCPacketData rPD = (RPCPacketData)curPacket.GetPacketData();
                     NetworkObject nObj = NetworkObject.NetObjFromNetID(rPD.networkObjectID);
-                    if(nObj.rpcs[rPD.rpcIndex].serverAuthorityRequired && !curPacket.serverAuthority)
+                    if(nObj == null || (nObj.rpcs[rPD.rpcIndex].serverAuthorityRequired && !curPacket.serverAuthority) || (nObj.ownerID != curPacket.packetOwnerID && !nObj.sharedObject))
                     {
                         continue; //Means only server can run it.
                     }

@@ -11,17 +11,17 @@ public class NetTools : MonoBehaviour
 
     public static UnityEvent onJoinServer = new UnityEvent(); //Gets ran when the login packet finishes :D
 
-    public static GameObject NetInstantiate(int prefabDomain, int prefabID, Vector3 position,Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered)
+    public static GameObject NetInstantiate(int prefabDomain, int prefabID, Vector3 position,Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false)
     {
         SerializableVector finalVector = new SerializableVector(position);
         SerializableQuaternion finalQuat = new SerializableQuaternion(rotation);
-
 
         GameObjectInstantiateData gOID = new GameObjectInstantiateData();
         gOID.position = finalVector;
         gOID.rotation = finalQuat;
         gOID.prefabDomainID = prefabDomain;
         gOID.prefabID = prefabID;
+        gOID.isShared = isSharedObject;
         gOID.netObjID = GenerateNetworkObjectID();
 
 
@@ -34,8 +34,10 @@ public class NetTools : MonoBehaviour
         //{
         //    NetServer.serverInstance.bufferedPackets.Add(p);
         //}
-
-        NetClient.instanceClient.SendPacket(p);
+        if (NetTools.IsMultiplayerGame())
+        {
+            NetClient.instanceClient.SendPacket(p);
+        }
 
         GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), rotation);
         NetworkObject nObj = g.GetComponent<NetworkObject>();
@@ -47,6 +49,7 @@ public class NetTools : MonoBehaviour
         nObj.prefabDomainID = gOID.prefabDomainID;
         nObj.prefabID = gOID.prefabID;
         nObj.networkID = gOID.netObjID;
+        nObj.sharedObject = gOID.isShared;
 
         nObj.Initialize();
         nObj.onNetworkStart.Invoke();
@@ -124,6 +127,11 @@ public class NetTools : MonoBehaviour
             }
         }
         return Random.Range(0, int.MaxValue);
+    }
+
+    public static bool IsMultiplayerGame()
+    {
+        return isServer || isClient;
     }
 
 }

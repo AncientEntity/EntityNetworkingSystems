@@ -40,26 +40,29 @@ public class SteamInteraction : MonoBehaviour
             instance = this;
         }
 
-        try
+        if ((NetServer.serverInstance != null && NetServer.serverInstance.steamAppID != -1) || (NetClient.instanceClient != null && NetClient.instanceClient.steamAppID != -1))
         {
-            //Debug.Log("Steamworks Initialized");
-            if (NetServer.serverInstance != null)
+            try
+            {
+                //Debug.Log("Steamworks Initialized");
+                if (NetServer.serverInstance != null)
+                {
+                    //Debug.Log((uint)NetServer.serverInstance.steamAppID);
+                    SteamClient.Init((uint)NetServer.serverInstance.steamAppID, false);
+                }
+                else
+                {
+                    //Debug.Log((uint)NetClient.instanceClient.steamAppID);
+                    SteamClient.Init((uint)NetClient.instanceClient.steamAppID, false);
+                }
+                doCallbacks = true;
+            }
+            catch (Exception e)
             {
                 //Debug.Log((uint)NetServer.serverInstance.steamAppID);
-                SteamClient.Init((uint)NetServer.serverInstance.steamAppID,false);
-            } else
-            {
-                //Debug.Log((uint)NetClient.instanceClient.steamAppID);
-                SteamClient.Init((uint)NetClient.instanceClient.steamAppID,false);
+                Debug.LogError(e);
             }
-            doCallbacks = true;
         }
-        catch (Exception e)
-        {
-            //Debug.Log((uint)NetServer.serverInstance.steamAppID);
-            Debug.LogError(e);
-        }
-
         //SteamFriends.OnGameLobbyJoinRequested += SteamFriends_OnGameLobbyJoinRequested;
 
         initialized = true;

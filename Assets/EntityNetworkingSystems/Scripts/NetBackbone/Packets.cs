@@ -149,6 +149,7 @@ public class GameObjectInstantiateData
     public SerializableQuaternion rotation;
 
     public int netObjID = -1;
+    public bool isShared = false;
 }
 
 [System.Serializable]

@@ -13,14 +13,15 @@ public class NetworkObject : MonoBehaviour
     [Space]
     public int networkID = -1;
     public int ownerID = -1;
+    public bool sharedObject = false; //All clients/server can effect the networkObject.
     public List<NetworkField> fields = new List<NetworkField>();
     public List<RPC> rpcs = new List<RPC>();
     [Space]
     public UnityEvent onNetworkStart;
 
-    [HideInInspector]
+    //[HideInInspector]
     public int prefabID = -1;
-    [HideInInspector]
+    //[HideInInspector]
     public int prefabDomainID = -1;
     
 
@@ -29,6 +30,23 @@ public class NetworkObject : MonoBehaviour
     {
         //onNetworkStart.Invoke(); //Invokes inside of UnityPacketHandler
 
+    }
+
+    void Start()
+    {
+        foreach (NetworkField field in fields)
+        {
+            if (field.IsInitialized() == false)
+            {
+                field.InitializeDefaultValue(networkID);
+            }
+        }
+        int index = 0;
+        foreach (RPC rpc in rpcs)
+        {
+            rpc.SetParentNetworkObject(this, index);
+            index += 1;
+        }
     }
 
     public void Initialize()
@@ -47,21 +65,12 @@ public class NetworkObject : MonoBehaviour
         {
             allNetObjs.Add(this);
         }
-        foreach (NetworkField field in fields)
-        {
-            field.InitializeDefaultValue(networkID);
-        }
-        int index = 0;
-        foreach(RPC rpc in rpcs)
-        {
-            rpc.SetParentNetworkObject(this,index);
-            index += 1;
-        }
         initialized = true;
     }
 
     public bool IsOwner()
     {
+        //print(ownerID + " " + NetTools.clientID);
         if(ownerID == NetTools.clientID)
         {
             return true;
