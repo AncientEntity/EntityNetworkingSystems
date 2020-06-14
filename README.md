@@ -12,7 +12,7 @@ I am mainly using this for my project at https://epocria.net
 - Player authority over an object. (Complete)
 - Network Fields, automatically get synced. (Complete)
 - RPC with Arguments (Complete)
-- Steamworks Integration (Inprogress)
+- Steamworks Integration (Sort Of/In Progress)
 - Higher Level Methods. Kicking/Banning/Etc. (Soon)
 - Namespaces & Unity Package Release (Last)
 
@@ -20,5 +20,6 @@ I am mainly using this for my project at https://epocria.net
 - Buffered Packet Culling (Soon)
 - Documentation & Videos (Soon)
 
-## Requirements
+## Requirements & License
 - Unity 2019 or above. (It hasn't been tested on Unity 2018, but I assume it should be fine)
+- If using Steamworks you need Facepunch.Steamworks avaliable here: https://github.com/Facepunch/Facepunch.Steamworks and under the MIT license as well.
