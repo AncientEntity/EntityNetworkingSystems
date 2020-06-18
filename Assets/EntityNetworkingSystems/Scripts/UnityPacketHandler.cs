@@ -9,6 +9,8 @@ public class UnityPacketHandler : MonoBehaviour
     public List<Packet> packetQueue = new List<Packet>();
     public int amountPerUpdate = 100;
 
+    bool syncingBuffered = false;
+
     void Awake()
     {
         if(instance == null)
@@ -73,7 +75,10 @@ public class UnityPacketHandler : MonoBehaviour
                         nObj.sharedObject = gOID.isShared;
 
                         nObj.Initialize();
-                        nObj.onNetworkStart.Invoke();
+                        if (nObj.onNetworkStart != null)
+                        {
+                            nObj.onNetworkStart.Invoke();
+                        }
                     }
 
 
@@ -94,6 +99,8 @@ public class UnityPacketHandler : MonoBehaviour
                     //Debug.Log("Recieved buffered packets.");
                     List<Packet> packetInfo = ((PacketListPacket)curPacket.GetPacketData()).packets;
                     packetQueue.AddRange(packetInfo);
+
+                    syncingBuffered = true;
                 }
                 else if (curPacket.packetType == Packet.pType.loginInfo)
                 {
@@ -103,7 +110,7 @@ public class UnityPacketHandler : MonoBehaviour
 
                     NetTools.onJoinServer.Invoke();
 
-                    print("Test");
+                    //print("Test");
                 } else if (curPacket.packetType == Packet.pType.netVarEdit)
                 {
                     NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.GetPacketData();
@@ -138,6 +145,16 @@ public class UnityPacketHandler : MonoBehaviour
             }
             else
             {
+                if(syncingBuffered)
+                {
+                    //Means all packets have been synced
+                    if (NetTools.onBufferedCompletion != null)
+                    {
+                        NetTools.onBufferedCompletion.Invoke();
+                    }
+                    syncingBuffered = false;
+                }
+
                 yield return new WaitForFixedUpdate();
             }
         }

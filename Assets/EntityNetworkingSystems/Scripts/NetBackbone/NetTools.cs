@@ -10,7 +10,7 @@ public class NetTools : MonoBehaviour
     public static bool isClient = false;
 
     public static UnityEvent onJoinServer = new UnityEvent(); //Gets ran when the login packet finishes :D
-
+    public static UnityEvent onBufferedCompletion = new UnityEvent(); //Gets ran when the buffered packets complete.
     public static GameObject NetInstantiate(int prefabDomain, int prefabID, Vector3 position,Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false)
     {
         SerializableVector finalVector = new SerializableVector(position);
@@ -52,7 +52,10 @@ public class NetTools : MonoBehaviour
         nObj.sharedObject = gOID.isShared;
 
         nObj.Initialize();
-        nObj.onNetworkStart.Invoke();
+        if (nObj.onNetworkStart != null)
+        {
+            nObj.onNetworkStart.Invoke();
+        }
         //nObj.initialized = true;
 
         return g;

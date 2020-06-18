@@ -271,8 +271,6 @@ public class NetServer
             {
                 //Something went wrong with packet deserialization or connection closed.
                 Debug.LogError(e);
-                server = null;
-                client = null;
             }
         }
         Debug.Log("NetServer.ClientHandler() thread has successfully finished.");
@@ -298,7 +296,7 @@ public class NetServer
 
     public void SendPacket(NetworkPlayer player, Packet packet)
     {
-        byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
+        byte[] array = Encoding.Unicode.GetBytes(Packet.JsonifyPacket(packet));
 
         //First send packet size
         byte[] arraySize = new byte[4];
@@ -321,7 +319,7 @@ public class NetServer
         //Get packet
         byte[] byteMessage = new byte[pSize];
         player.netStream.Read(byteMessage, 0, byteMessage.Length);
-        return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
+        return Packet.DeJsonifyPacket(Encoding.Unicode.GetString(byteMessage));
     }
 
     //void OnDestroy()

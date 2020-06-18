@@ -89,9 +89,14 @@ public class Packet
     }
 
     public static Packet DeJsonifyPacket(string jsonPacket)
-    {
-        //Debug.Log(jsonPacket);
-        return JsonUtility.FromJson<Packet>(jsonPacket);
+    { try {
+            //Debug.Log(jsonPacket);
+            return JsonUtility.FromJson<Packet>(jsonPacket);
+        } catch
+        {
+            Debug.LogError("Error Dejsonify: " + jsonPacket);
+            return null;
+        }
     }
 
     public static string JsonifyPacket(Packet packet)
