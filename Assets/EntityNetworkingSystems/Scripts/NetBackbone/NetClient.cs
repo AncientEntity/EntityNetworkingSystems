@@ -126,7 +126,7 @@ public class NetClient
 
     public void SendPacket(Packet packet)
     {
-        byte[] array = Encoding.Unicode.GetBytes(Packet.JsonifyPacket(packet));
+        byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
 
         //First send packet size
         byte[] arraySize = new byte[4];
@@ -150,7 +150,7 @@ public class NetClient
         byte[] byteMessage = new byte[pSize];
         netStream.Read(byteMessage, 0, byteMessage.Length);
         //Debug.Log(Encoding.ASCII.GetString(byteMessage));
-        return Packet.DeJsonifyPacket(Encoding.Unicode.GetString(byteMessage));
+        return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
     }
 
     //public void SendMessage(byte[] message)

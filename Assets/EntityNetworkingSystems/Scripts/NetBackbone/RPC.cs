@@ -12,10 +12,20 @@ public class RPC
     private NetworkObject net; //Gets auto set by NetworkObject in Initialize
     private int rpcIndex = -1; //Gets auto set by NetworkObject in Initialize
 
+    //Gets queued if the networkObject has not been initialized yet. When initialized NetworKObject checks if anything needs to be run on the RPCs
+    public Dictionary<Packet.sendType, object[]> queued = new Dictionary<Packet.sendType, object[]>(); 
 
     public void CallRPC(Packet.sendType sendType = Packet.sendType.buffered, params object[] list)
     {
+        if (net == null || !net.initialized)
+        {
+            queued.Add(sendType, list);
+            //Debug.Log("Rpc called before initialization. Adding to queue");
+            return;
+        }
+
         Packet p = GenerateRPCPacket(sendType,list);
+
         NetClient.instanceClient.SendPacket(p);
     }
 

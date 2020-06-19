@@ -34,6 +34,11 @@ public class NetworkObject : MonoBehaviour
 
     void Start()
     {
+        DoRpcFieldInitialization();
+    }
+
+    void DoRpcFieldInitialization()
+    {
         foreach (NetworkField field in fields)
         {
             if (field.IsInitialized() == false)
@@ -66,6 +71,18 @@ public class NetworkObject : MonoBehaviour
             allNetObjs.Add(this);
         }
         initialized = true;
+
+        DoRpcFieldInitialization();
+
+        foreach (RPC r in rpcs)
+        {
+            //Debug.Log(r.queued.Count);
+            foreach (KeyValuePair<Packet.sendType, object[]> call in r.queued)
+            {
+                NetClient.instanceClient.SendPacket(r.GenerateRPCPacket(call.Key, call.Value)); //Send any RPCs requested before the netObj was initialized.
+            }
+            r.queued = new Dictionary<Packet.sendType, object[]>(); //Clear it afterwards.
+        }
     }
 
     public bool IsOwner()
