@@ -6,6 +6,8 @@ I have tried many different networking systems for Unity. None have come to my l
 
 I am mainly using this for my project at https://epocria.net
 
+[Documentation](https://github.com/AncientEntity/EntityNetworkingSystems/wiki)
+
 ## Important Features
 - Packet Sending Backbone (Complete)
 - Instantiating/Destroying GameObjects over the network (Complete)
@@ -18,10 +20,11 @@ I am mainly using this for my project at https://epocria.net
 
 ## Extras
 - Buffered Packet Culling (Soon)
-- Documentation & Videos (Soon)
+- Documentation & Videos (In Progress)
 - Prefab Domain Templates (Complete)
+- Generic Type Parameters for NetworkFields (In Testing)
 
-## Contributing
+## Contributing & Discord
 Contributing in anyway possible means a lot. If you see something you can improve, something you want added, or just want to do some documentation make a branch then let me know through GitHub when it is ready! As well as if you want to communicate with me, I am using this for my game "Epocria" which has a Discord server I can be contacted through: https://discord.gg/vkxmjrx
 
 ## Requirements & License
