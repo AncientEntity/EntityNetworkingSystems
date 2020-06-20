@@ -33,4 +33,8 @@ public class GameObjectList
 {
     public string domainName;
     public GameObject[] prefabList;
+    [Space]
+    //These will automatically get applied to objects in this certain prefab domain when created, and if it doesn't have a netobj on it already.
+    public NetworkField[] defaultFields;
+    public RPC[] defaultRpcs;
 }

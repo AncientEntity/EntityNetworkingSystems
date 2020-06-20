@@ -115,6 +115,39 @@ public class NetworkObject : MonoBehaviour
         return null;
     }
 
+    public bool FieldExists(string fieldName)
+    {
+        foreach(NetworkField f in fields)
+        {
+            if(f.fieldName == fieldName)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void CreateField(string fieldName,object value=null, NetworkField.valueInitializer init = NetworkField.valueInitializer.None)
+    {
+        if(FieldExists(fieldName) == false)
+        {
+            NetworkField newField = new NetworkField();
+            newField.fieldName = fieldName;
+            newField.defaultValue = init;
+            if (value != null)
+            {
+                newField.UpdateField(value, this);
+            } else
+            {
+                if (newField.IsInitialized() == false)
+                {
+                    newField.InitializeDefaultValue(networkID);
+                }
+            }
+            fields.Add(newField);
+        }
+    }
+
     public void UpdateField(string fieldName, object data,bool immediateOnSelf=false)
     {
         for (int i = 0; i < fields.Count; i++)
@@ -195,6 +228,7 @@ public class NetworkField
         BYTE,
         BYTE_ARRAY,
         None,
+        String,
     };
     public valueInitializer defaultValue = valueInitializer.None;
     public UnityEvent onValueChange;
@@ -228,6 +262,9 @@ public class NetworkField
                 break;
             case valueInitializer.BYTE_ARRAY:
                 UpdateField(new byte[0], netID, true);
+                break;
+            case valueInitializer.String:
+                UpdateField("", netID, true);
                 break;
         }
     }

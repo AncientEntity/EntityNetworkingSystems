@@ -11,6 +11,23 @@ public class NetTools : MonoBehaviour
 
     public static UnityEvent onJoinServer = new UnityEvent(); //Gets ran when the login packet finishes :D
     public static UnityEvent onBufferedCompletion = new UnityEvent(); //Gets ran when the buffered packets complete.
+
+    
+    //Useless cause NetInstantiate should check, but still here!
+    public static GameObject ManagedInstantiate(int prefabDomain, int prefabID, Vector3 position, Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false)
+    {
+        //For if you aren't sure if it is a multiplayer or singleplayer game.
+
+        if(isServer || isClient)
+        {
+            return NetInstantiate(prefabDomain, prefabID, position, rotation, sT, isSharedObject);
+        } else
+        {
+            return Instantiate(NetworkData.instance.networkPrefabList[prefabDomain].prefabList[prefabID], position, rotation);
+        }
+
+    }
+
     public static GameObject NetInstantiate(int prefabDomain, int prefabID, Vector3 position,Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false)
     {
         SerializableVector finalVector = new SerializableVector(position);
@@ -44,7 +61,17 @@ public class NetTools : MonoBehaviour
         if (nObj == null)
         {
             nObj = g.AddComponent<NetworkObject>();
-        }
+
+            foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultFields)
+            {
+                nObj.fields.Add(defaultField);
+            }
+            foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultRpcs)
+            {
+                nObj.rpcs.Add(defaultRPC);
+            }
+        } 
+
         nObj.ownerID = NetTools.clientID;
         nObj.prefabDomainID = gOID.prefabDomainID;
         nObj.prefabID = gOID.prefabID;

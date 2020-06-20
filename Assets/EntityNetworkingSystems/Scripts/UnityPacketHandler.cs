@@ -67,7 +67,17 @@ public class UnityPacketHandler : MonoBehaviour
                         if (nObj == null)
                         {
                             nObj = g.AddComponent<NetworkObject>();
+
+                            foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultFields)
+                            {
+                                nObj.fields.Add(defaultField);
+                            }
+                            foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultRpcs)
+                            {
+                                nObj.rpcs.Add(defaultRPC);
+                            }
                         }
+
                         nObj.ownerID = curPacket.packetOwnerID;
                         nObj.prefabDomainID = gOID.prefabDomainID;
                         nObj.prefabID = gOID.prefabID;

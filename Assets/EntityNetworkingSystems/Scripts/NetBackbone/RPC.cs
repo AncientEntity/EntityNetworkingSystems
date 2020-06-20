@@ -17,6 +17,12 @@ public class RPC
 
     public void CallRPC(Packet.sendType sendType = Packet.sendType.buffered, params object[] list)
     {
+        if(NetTools.IsMultiplayerGame() == false)
+        {
+            return;
+        }
+
+
         if (net == null || !net.initialized)
         {
             queued.Add(sendType, list);
