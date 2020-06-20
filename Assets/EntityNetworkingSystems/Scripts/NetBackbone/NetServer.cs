@@ -9,355 +9,362 @@ using System.IO;
 using System.Text;
 using Steamworks;
 
-[System.Serializable]
-public class NetServer
+namespace EntityNetworkingSystems
 {
-    public static NetServer serverInstance = null;
 
-    public string hostAddress;
-    public int hostPort=44594;
-    public int maxConnections = 8;
-    [Space]
-    public bool useSteamworks = false; //Requires Facepunch.Steamworks to be within the project.
-    public int steamAppID = -1; //If -1 it won't initialize, meaning you must on your own.
-    public string modDir = "spacewar";
-    public string gameDesc = "spacewar";
-    public string mapName = "world1";
-
-
-    TcpListener server = null;
-    List<NetworkPlayer> connections = new List<NetworkPlayer>();
-    List<Thread> connThreads = new List<Thread>();
-    Thread connectionHandler = null;
-
-    public List<Packet> bufferedPackets = new List<Packet>();
-
-    int lastPlayerID = -1;
-
-
-
-    public void Initialize()
+    [System.Serializable]
+    public class NetServer
     {
-        if(IsInitialized())
+        public static NetServer serverInstance = null;
+
+        public string hostAddress;
+        public int hostPort = 44594;
+        public int maxConnections = 8;
+        [Space]
+        public bool useSteamworks = false; //Requires Facepunch.Steamworks to be within the project.
+        public int steamAppID = -1; //If -1 it won't initialize, meaning you must on your own.
+        public string modDir = "spacewar";
+        public string gameDesc = "spacewar";
+        public string mapName = "world1";
+
+
+        TcpListener server = null;
+        List<NetworkPlayer> connections = new List<NetworkPlayer>();
+        List<Thread> connThreads = new List<Thread>();
+        Thread connectionHandler = null;
+
+        public List<Packet> bufferedPackets = new List<Packet>();
+
+        int lastPlayerID = -1;
+
+
+
+        public void Initialize()
         {
-            return;
-        }
-
-        if (serverInstance == null)
-        {
-            serverInstance = this;
-        }
-
-        if (server != null)
-        {
-            Debug.LogError("Trying to initial NetServer when it has already been initialized.");
-            return;
-        }
-
-        if (hostAddress == "" || hostAddress == "Any")
-        {
-            //If no ip given, use 0.0.0.0
-            hostAddress = IPAddress.Any.ToString();
-        }
-        if(hostPort == 0)
-        {
-            hostPort = 44594;
-        }
-
-        if (UnityPacketHandler.instance == null)
-        {
-            GameObject uPH = new GameObject("Unity Packet Handler");
-            uPH.AddComponent<UnityPacketHandler>();
-            GameObject.DontDestroyOnLoad(uPH);
-        }
-        if(useSteamworks)
-        {
-            GameObject steamIntegration = new GameObject("Steam Integration Handler");
-            steamIntegration.AddComponent<SteamInteraction>();
-            steamIntegration.GetComponent<SteamInteraction>().Initialize();
-            steamIntegration.GetComponent<SteamInteraction>().StartServer();
-            GameObject.DontDestroyOnLoad(steamIntegration);
-        }
-
-        if (NetworkData.instance == null)
-        {
-            Debug.LogWarning("NetworkData object not found.");
-        }
-
-    }
-
-    public void StartServer()
-    {
-        //Create server
-        Debug.Log(IPAddress.Parse(hostAddress));
-        server = new TcpListener(IPAddress.Any, hostPort);
-        server.Start();
-        Debug.Log("Server started successfully.");
-        NetTools.isServer = true;
-
-        UnityPacketHandler.instance.StartHandler();
-
-        connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
-        connectionHandler.Start();
-
-
-    }
-
-    public void StopServer()
-    {
-        if(server != null)
-        {
-            foreach(NetworkPlayer client in connections)
+            if (IsInitialized())
             {
-                client.tcpClient.Close();
+                return;
             }
-            server.Stop();
-            server = null;
-            NetServer.serverInstance = null;
 
-            if(useSteamworks)
+            if (serverInstance == null)
             {
-                SteamInteraction.instance.ShutdownServer();
+                serverInstance = this;
+            }
+
+            if (server != null)
+            {
+                Debug.LogError("Trying to initial NetServer when it has already been initialized.");
+                return;
+            }
+
+            if (hostAddress == "" || hostAddress == "Any")
+            {
+                //If no ip given, use 0.0.0.0
+                hostAddress = IPAddress.Any.ToString();
+            }
+            if (hostPort == 0)
+            {
+                hostPort = 44594;
+            }
+
+            if (UnityPacketHandler.instance == null)
+            {
+                GameObject uPH = new GameObject("Unity Packet Handler");
+                uPH.AddComponent<UnityPacketHandler>();
+                GameObject.DontDestroyOnLoad(uPH);
+            }
+            if (useSteamworks)
+            {
+                GameObject steamIntegration = new GameObject("Steam Integration Handler");
+                steamIntegration.AddComponent<SteamInteraction>();
+                steamIntegration.GetComponent<SteamInteraction>().Initialize();
+                steamIntegration.GetComponent<SteamInteraction>().StartServer();
+                GameObject.DontDestroyOnLoad(steamIntegration);
+            }
+
+            if (NetworkData.instance == null)
+            {
+                Debug.LogWarning("NetworkData object not found.");
             }
 
         }
-    }
 
-    public void ConnectionHandler()
-    {
-        if (!IsInitialized())
+        public void StartServer()
         {
-            Debug.Log("Server not initialized. Please run Initialize() first.");
-            return;
+            //Create server
+            Debug.Log(IPAddress.Parse(hostAddress));
+            server = new TcpListener(IPAddress.Any, hostPort);
+            server.Start();
+            Debug.Log("Server started successfully.");
+            NetTools.isServer = true;
+
+            UnityPacketHandler.instance.StartHandler();
+
+            connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
+            connectionHandler.Start();
+
+
         }
 
-        while (server != null)
+        public void StopServer()
         {
-            while (CurrentConnectionCount() >= maxConnections)
+            if (server != null)
             {
-                Thread.Sleep(1000);
-            }
-            Debug.Log("Awaiting Client Connection...");
-
-
-            TcpClient tcpClient = server.AcceptTcpClient();
-            NetworkPlayer netClient = new NetworkPlayer(tcpClient);
-            netClient.clientID = lastPlayerID + 1;
-            lastPlayerID += 1;
-            connections.Add(netClient);
-            Debug.Log("New Client Connected Successfully.");
-
-            Thread connThread = new Thread(() => ClientHandler(netClient));
-            connThread.Start();
-
-            //onPlayerConnect.Invoke(netClient);
-        }
-        Debug.Log("NetServer.ConnectionHandler() thread has successfully finished.");
-    }
-
-    public void ClientHandler(NetworkPlayer client)
-    {
-        if(useSteamworks)
-        {
-            //VERIFY AUTH TICKET FIRST.
-            SteamAuthPacket clientSteamAuthTicket;
-            Packet p = RecvPacket(client);
-            if (p.packetType == Packet.pType.steamAuth)
-            {
-                //Debug.Log(p.jsonData);
-                clientSteamAuthTicket = (SteamAuthPacket)p.GetPacketData();
-
-
-                Thread.Sleep(1500); //Wait for steam to authenticate it. Will take around this time. Probably should add x attempts over a few seconds.
-
-                BeginAuthResult bAR = SteamUser.BeginAuthSession(clientSteamAuthTicket.authData, clientSteamAuthTicket.steamID);
-                
-
-                if (bAR != BeginAuthResult.OK)
+                foreach (NetworkPlayer client in connections)
                 {
                     client.tcpClient.Close();
-                    Debug.Log(bAR);
-                    //Debug.Log("Invalid auth ticket from: " + clientSteamAuthTicket.steamID);
-                    SteamUser.EndAuthSession(clientSteamAuthTicket.steamID);
-                    SteamServer.EndSession(clientSteamAuthTicket.steamID);
-                    return; //Invalid ticket cancel connection.
                 }
-                else
-                {
-                    SteamServer.UpdatePlayer(clientSteamAuthTicket.steamID,"Player 1", 0);
-                    //Debug.Log("Recieved Valid Client Auth Ticket.");
-                    SteamInteraction.instance.connectedSteamIDs.Add(clientSteamAuthTicket.steamID);
+                server.Stop();
+                server = null;
+                NetServer.serverInstance = null;
 
-                    SteamServer.ForceHeartbeat();
+                if (useSteamworks)
+                {
+                    SteamInteraction.instance.ShutdownServer();
                 }
+
             }
         }
 
-
-        //Thread.Sleep(100);
-        //Send login info
-        PlayerLoginData pLD = new PlayerLoginData();
-        pLD.playerNetworkID = client.clientID;
-        Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, pLD);
-        loginPacket.packetOwnerID = -1;
-        loginPacket.sendToAll = false;
-        SendPacket(client, loginPacket);
-
-
-        //Thread.Sleep(50); //Prevents a memory error on the client side? bruh.
-        //Send buffered packets
-        if (bufferedPackets.Count > 0)
+        public void ConnectionHandler()
         {
-            List<Packet> packetsToSend = new List<Packet>(); //Will contain buffered packets and all network fields to be updated.
-            packetsToSend.AddRange(bufferedPackets);
-            //Debug.Log(packetsToSend.Count);
-            foreach (NetworkObject netObj in NetworkObject.allNetObjs)
+            if (!IsInitialized())
             {
-                if (netObj.fields.Count > 0)
-                {
-                    List<Packet> temp = netObj.GeneratePacketListForFields();
-                    packetsToSend.AddRange(temp);
-                }
+                Debug.Log("Server not initialized. Please run Initialize() first.");
+                return;
             }
-            //Debug.Log(packetsToSend.Count);
-            Packet bpacket = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(packetsToSend));
-            bpacket.sendToAll = false;
-            SendPacket(client, bpacket);
+
+            while (server != null)
+            {
+                while (CurrentConnectionCount() >= maxConnections)
+                {
+                    Thread.Sleep(1000);
+                }
+                Debug.Log("Awaiting Client Connection...");
+
+
+                TcpClient tcpClient = server.AcceptTcpClient();
+                NetworkPlayer netClient = new NetworkPlayer(tcpClient);
+                netClient.clientID = lastPlayerID + 1;
+                lastPlayerID += 1;
+                connections.Add(netClient);
+                Debug.Log("New Client Connected Successfully.");
+
+                Thread connThread = new Thread(() => ClientHandler(netClient));
+                connThread.Start();
+
+                //onPlayerConnect.Invoke(netClient);
+            }
+            Debug.Log("NetServer.ConnectionHandler() thread has successfully finished.");
         }
 
-        bool clientRunning = true;
-
-        while (client != null && server != null && clientRunning)
+        public void ClientHandler(NetworkPlayer client)
         {
-            try
+            if (useSteamworks)
             {
-                //Thread.Sleep(50);
-                Packet pack = RecvPacket(client);
-                if (pack.packetOwnerID != client.clientID)// && client.tcpClient == NetClient.instanceClient.client) //if server dont change cause if it is -1 it has all authority.
+                //VERIFY AUTH TICKET FIRST.
+                SteamAuthPacket clientSteamAuthTicket;
+                Packet p = RecvPacket(client);
+                if (p.packetType == Packet.pType.steamAuth)
                 {
-                    pack.packetOwnerID = client.clientID;
-                }
-                if(client.clientID == NetClient.instanceClient.clientID) //Setup server authority.
-                {
-                    pack.serverAuthority = true;
-                } else
-                {
-                    pack.serverAuthority = false;
-                }
+                    //Debug.Log(p.jsonData);
+                    clientSteamAuthTicket = (SteamAuthPacket)p.GetPacketData();
 
-                if (pack.packetSendType == Packet.sendType.buffered)
-                {
-                    //Debug.Log("Buffered Packet");
-                    bufferedPackets.Add(pack);
-                }
 
-                UnityPacketHandler.instance.QueuePacket(pack);
-                if (pack.sendToAll || pack.usersToRecieve.Count > 0)
-                {
-                    foreach (NetworkPlayer player in connections.ToArray())
+                    Thread.Sleep(1500); //Wait for steam to authenticate it. Will take around this time. Probably should add x attempts over a few seconds.
+
+                    BeginAuthResult bAR = SteamUser.BeginAuthSession(clientSteamAuthTicket.authData, clientSteamAuthTicket.steamID);
+
+
+                    if (bAR != BeginAuthResult.OK)
                     {
-                        //Debug.Log(player.clientID + " " + NetTools.clientID);
-                        if (player == null || player.tcpClient == null || (player.clientID == NetTools.clientID))
-                        {
-                            continue;
-                        }
+                        client.tcpClient.Close();
+                        Debug.Log(bAR);
+                        //Debug.Log("Invalid auth ticket from: " + clientSteamAuthTicket.steamID);
+                        SteamUser.EndAuthSession(clientSteamAuthTicket.steamID);
+                        SteamServer.EndSession(clientSteamAuthTicket.steamID);
+                        return; //Invalid ticket cancel connection.
+                    }
+                    else
+                    {
+                        SteamServer.UpdatePlayer(clientSteamAuthTicket.steamID, "Player 1", 0);
+                        //Debug.Log("Recieved Valid Client Auth Ticket.");
+                        SteamInteraction.instance.connectedSteamIDs.Add(clientSteamAuthTicket.steamID);
 
-                        if (pack.sendToAll == true || pack.usersToRecieve.Contains(player.clientID))
-                        {
-                            SendPacket(player, pack);
-                        }
-
+                        SteamServer.ForceHeartbeat();
                     }
                 }
-            }catch (System.Exception e)
-            {
-                //Something went wrong with packet deserialization or connection closed.
-                //Debug.LogError(e);
-                clientRunning = false; //Basically end the thread.
+            }
 
+
+            //Thread.Sleep(100);
+            //Send login info
+            PlayerLoginData pLD = new PlayerLoginData();
+            pLD.playerNetworkID = client.clientID;
+            Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, pLD);
+            loginPacket.packetOwnerID = -1;
+            loginPacket.sendToAll = false;
+            SendPacket(client, loginPacket);
+
+
+            //Thread.Sleep(50); //Prevents a memory error on the client side? bruh.
+            //Send buffered packets
+            if (bufferedPackets.Count > 0)
+            {
+                List<Packet> packetsToSend = new List<Packet>(); //Will contain buffered packets and all network fields to be updated.
+                packetsToSend.AddRange(bufferedPackets);
+                //Debug.Log(packetsToSend.Count);
+                foreach (NetworkObject netObj in NetworkObject.allNetObjs)
+                {
+                    if (netObj.fields.Count > 0)
+                    {
+                        List<Packet> temp = netObj.GeneratePacketListForFields();
+                        packetsToSend.AddRange(temp);
+                    }
+                }
+                //Debug.Log(packetsToSend.Count);
+                Packet bpacket = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(packetsToSend));
+                bpacket.sendToAll = false;
+                SendPacket(client, bpacket);
+            }
+
+            bool clientRunning = true;
+
+            while (client != null && server != null && clientRunning)
+            {
+                try
+                {
+                    //Thread.Sleep(50);
+                    Packet pack = RecvPacket(client);
+                    if (pack.packetOwnerID != client.clientID)// && client.tcpClient == NetClient.instanceClient.client) //if server dont change cause if it is -1 it has all authority.
+                    {
+                        pack.packetOwnerID = client.clientID;
+                    }
+                    if (client.clientID == NetClient.instanceClient.clientID) //Setup server authority.
+                    {
+                        pack.serverAuthority = true;
+                    }
+                    else
+                    {
+                        pack.serverAuthority = false;
+                    }
+
+                    if (pack.packetSendType == Packet.sendType.buffered)
+                    {
+                        //Debug.Log("Buffered Packet");
+                        bufferedPackets.Add(pack);
+                    }
+
+                    UnityPacketHandler.instance.QueuePacket(pack);
+                    if (pack.sendToAll || pack.usersToRecieve.Count > 0)
+                    {
+                        foreach (NetworkPlayer player in connections.ToArray())
+                        {
+                            //Debug.Log(player.clientID + " " + NetTools.clientID);
+                            if (player == null || player.tcpClient == null || (player.clientID == NetTools.clientID))
+                            {
+                                continue;
+                            }
+
+                            if (pack.sendToAll == true || pack.usersToRecieve.Contains(player.clientID))
+                            {
+                                SendPacket(player, pack);
+                            }
+
+                        }
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    //Something went wrong with packet deserialization or connection closed.
+                    //Debug.LogError(e);
+                    clientRunning = false; //Basically end the thread.
+
+                }
+            }
+            Debug.Log("NetServer.ClientHandler() thread has successfully finished.");
+        }
+
+        public bool IsInitialized()
+        {
+            if (server == null)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
             }
         }
-        Debug.Log("NetServer.ClientHandler() thread has successfully finished.");
-    }
 
-    public bool IsInitialized()
-    {
-        if (server == null)
+        public int CurrentConnectionCount()
         {
-            return false;
+            return connections.Count;
         }
-        else
+
+
+        public void SendPacket(NetworkPlayer player, Packet packet)
         {
-            return true;
+            byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
+
+            //First send packet size
+            byte[] arraySize = new byte[4];
+            arraySize = System.BitConverter.GetBytes(array.Length);
+            //Debug.Log("Length: " + arraySize.Length);
+            player.netStream.Write(arraySize, 0, arraySize.Length);
+
+            //Send packet
+            player.netStream.Write(array, 0, array.Length);
         }
+
+        public Packet RecvPacket(NetworkPlayer player)
+        {
+            //First get packet size
+            byte[] packetSize = new byte[4];
+            player.netStream.Read(packetSize, 0, packetSize.Length);
+            int pSize = System.BitConverter.ToInt32(packetSize, 0);
+            //Debug.Log(pSize);
+
+            //Get packet
+            byte[] byteMessage = new byte[pSize];
+            player.netStream.Read(byteMessage, 0, byteMessage.Length);
+            return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
+        }
+
+        //void OnDestroy()
+        //{
+        //    StopServer();
+        //}
+
+        //public void SendMessage(NetworkPlayer client, byte[] message)
+        //{
+        //    client.netStream.Write(message, 0, message.Length);
+        //}
+        //public byte[] RecvMessage(NetworkPlayer client)
+        //{
+        //    byte[] message = new byte[1024];
+        //    client.netStream.Read(message, 0, message.Length);
+        //    return message;
+        //}
+
+
     }
 
-    public int CurrentConnectionCount()
+    public class NetworkPlayer
     {
-        return connections.Count;
-    }
+        public int clientID = -1;
+        public TcpClient tcpClient;
+        public NetworkStream netStream;
+        public Vector3 proximityPosition = Vector3.zero;
+        public float loadProximity = 10f;
+        public Thread threadHandlingClient;
 
+        public NetworkPlayer(TcpClient client)
+        {
+            this.tcpClient = client;
+            this.netStream = client.GetStream();
+        }
 
-    public void SendPacket(NetworkPlayer player, Packet packet)
-    {
-        byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
-
-        //First send packet size
-        byte[] arraySize = new byte[4];
-        arraySize = System.BitConverter.GetBytes(array.Length);
-        //Debug.Log("Length: " + arraySize.Length);
-        player.netStream.Write(arraySize, 0, arraySize.Length);
-
-        //Send packet
-        player.netStream.Write(array, 0, array.Length);
-    }
-
-    public Packet RecvPacket(NetworkPlayer player)
-    {
-        //First get packet size
-        byte[] packetSize = new byte[4];
-        player.netStream.Read(packetSize, 0, packetSize.Length);
-        int pSize = System.BitConverter.ToInt32(packetSize, 0);
-        //Debug.Log(pSize);
-
-        //Get packet
-        byte[] byteMessage = new byte[pSize];
-        player.netStream.Read(byteMessage, 0, byteMessage.Length);
-        return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
-    }
-
-    //void OnDestroy()
-    //{
-    //    StopServer();
-    //}
-
-    //public void SendMessage(NetworkPlayer client, byte[] message)
-    //{
-    //    client.netStream.Write(message, 0, message.Length);
-    //}
-    //public byte[] RecvMessage(NetworkPlayer client)
-    //{
-    //    byte[] message = new byte[1024];
-    //    client.netStream.Read(message, 0, message.Length);
-    //    return message;
-    //}
-
-
-}
-
-public class NetworkPlayer
-{
-    public int clientID = -1;
-    public TcpClient tcpClient;
-    public NetworkStream netStream;
-    public Vector3 proximityPosition = Vector3.zero;
-    public float loadProximity = 10f;
-    public Thread threadHandlingClient;
-    
-    public NetworkPlayer (TcpClient client)
-    {
-        this.tcpClient = client;
-        this.netStream = client.GetStream();
     }
 
 }
