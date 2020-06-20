@@ -16,7 +16,7 @@ I am mainly using this for my project at https://epocria.net
 - RPC with Arguments (Complete)
 - Steamworks Integration (Sort Of/In Progress)
 - Higher Level Methods. Kicking/Banning/Etc. (Soon)
-- Namespaces & Unity Package Release (Last)
+- EntityNetworkingSystems Namespace (Complete)
 - Documentation (Always being worked on)
 
 ## Extras
@@ -24,6 +24,7 @@ I am mainly using this for my project at https://epocria.net
 - NetworkField's will automatically convert Vectors/Quaternions to Serializable Variants. (Soon)
 - Prefab Domain Templates (Complete)
 - Generic Type Parameters for NetworkFields (Complete)
+- On Unity Asset Store (Last)
 
 ## Contributing & Discord
 Contributing in anyway possible means a lot. If you see something you can improve, something you want added, or just want to do some documentation make a branch then let me know through GitHub when it is ready! As well as if you want to communicate with me, I am using this for my game "Epocria" which has a Discord server I can be contacted through: https://discord.gg/vkxmjrx
