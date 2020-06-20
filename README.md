@@ -20,7 +20,7 @@ I am mainly using this for my project at https://epocria.net
 - Documentation (Always being worked on)
 
 ## Extras
-- Buffered Packet Culling (In Progress)
+- Buffered Packet Culling (Complete)
 - NetworkField's will automatically convert Vectors/Quaternions to Serializable Variants. (Soon)
 - Prefab Domain Templates (Complete)
 - Generic Type Parameters for NetworkFields (Complete)
