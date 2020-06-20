@@ -17,10 +17,11 @@ I am mainly using this for my project at https://epocria.net
 - Steamworks Integration (Sort Of/In Progress)
 - Higher Level Methods. Kicking/Banning/Etc. (Soon)
 - Namespaces & Unity Package Release (Last)
+- Documentation (Always being worked on)
 
 ## Extras
 - Buffered Packet Culling (Soon)
-- Documentation & Videos (In Progress)
+- NetworkField's will automatically convert Vectors/Quaternions to Serializable Variants. (Soon)
 - Prefab Domain Templates (Complete)
 - Generic Type Parameters for NetworkFields (Complete)
 
