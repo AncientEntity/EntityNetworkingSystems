@@ -55,6 +55,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+     <Compile Include="Assets\EntityNetworkingSystems\Examples\Scripts\DestroyOnUseUI.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Examples\Scripts\ExampleClient.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Examples\Scripts\ExampleHost.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Examples\Scripts\ExampleMoving.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Examples\Scripts\ExamplePlayerController.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\ENSUtils.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\NetClient.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\NetServer.cs" />
@@ -65,11 +70,9 @@
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetworkData.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\Steam\SteamInteraction.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\UnityPacketHandler.cs" />
-     <Compile Include="Assets\Examples\Scripts\DestroyOnUseUI.cs" />
-     <Compile Include="Assets\Examples\Scripts\ExampleClient.cs" />
-     <Compile Include="Assets\Examples\Scripts\ExampleHost.cs" />
-     <Compile Include="Assets\Examples\Scripts\ExampleMoving.cs" />
-     <Compile Include="Assets\Examples\Scripts\ExamplePlayerController.cs" />
+     <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Posix.xml" />
+     <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Win64.xml" />
+     <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Win32.xml" />
  <Reference Include="Unity.Timeline.Editor">
  <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
  </Reference>
@@ -281,7 +284,7 @@
  <HintPath>C:/Program Files/Unity/Hub/Editor/2019.3.8f1/Editor/Data/Managed/UnityEngine/UnityEngine.XRModule.dll</HintPath>
  </Reference>
  <Reference Include="Facepunch.Steamworks.Win64">
- <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Assets/Plugins/Facepunch.Steamworks/Facepunch.Steamworks.Win64.dll</HintPath>
+ <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Assets/EntityNetworkingSystems/Plugins/Facepunch.Steamworks/Facepunch.Steamworks.Win64.dll</HintPath>
  </Reference>
  <Reference Include="UnityEditor.iOS.Extensions.Xcode">
  <HintPath>C:/Program Files/Unity/Hub/Editor/2019.3.8f1/Editor/Data/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.Xcode.dll</HintPath>

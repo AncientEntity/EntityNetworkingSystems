@@ -225,7 +225,9 @@ public class NetServer
             SendPacket(client, bpacket);
         }
 
-        while (client != null && server != null)
+        bool clientRunning = true;
+
+        while (client != null && server != null && clientRunning)
         {
             try
             {
@@ -270,7 +272,9 @@ public class NetServer
             }catch (System.Exception e)
             {
                 //Something went wrong with packet deserialization or connection closed.
-                Debug.LogError(e);
+                //Debug.LogError(e);
+                clientRunning = false; //Basically end the thread.
+
             }
         }
         Debug.Log("NetServer.ClientHandler() thread has successfully finished.");

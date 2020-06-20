@@ -39,7 +39,7 @@ public class ExamplePlayerController : MonoBehaviour
         {
             if (net.fields[0].IsInitialized())
             {
-                transform.position = ((SerializableVector)net.GetField("position")).ToVec3();
+                transform.position = (net.GetField<SerializableVector>("position")).ToVec3();
             }
             return;
         }

@@ -1401,6 +1401,11 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 7745350244653862978, guid: 02188897ea456634dbc92f4ced9a9f72,
+        type: 3}
+      propertyPath: networkPrefabList.Array.data[0].domainName
+      value: Essentials
+      objectReference: {fileID: 0}
     - target: {fileID: 7745350244653862979, guid: 02188897ea456634dbc92f4ced9a9f72,
         type: 3}
       propertyPath: m_LocalPosition.x

@@ -5,7 +5,7 @@ using UnityEngine.Events;
 
 public class NetworkObject : MonoBehaviour
 {
-    //NETWORK OBJECT AUTOMATICALLY GETS ADDED TO PREFAB WHEN INSTANTIATED OVER THE NETWORK.
+    //NETWORK OBJECT AUTOMATICALLY GETS ADDED TO PREFAB WHEN INSTANTIATED OVER THE NETWORK IF THE PREFAB DOESN'T ALREADY CONTAIN ONE.
 
     public static List<NetworkObject> allNetObjs = new List<NetworkObject>();
 
@@ -43,7 +43,7 @@ public class NetworkObject : MonoBehaviour
         {
             if (field.IsInitialized() == false)
             {
-                field.InitializeDefaultValue(networkID);
+                //field.InitializeDefaultValue(networkID);
             }
         }
         int index = 0;
@@ -141,14 +141,14 @@ public class NetworkObject : MonoBehaviour
             {
                 if (newField.IsInitialized() == false)
                 {
-                    newField.InitializeDefaultValue(networkID);
+                    //newField.InitializeDefaultValue(networkID);
                 }
             }
             fields.Add(newField);
         }
     }
 
-    public void UpdateField(string fieldName, object data,bool immediateOnSelf=false)
+    public void UpdateField<T>(string fieldName, T data,bool immediateOnSelf=false)
     {
         for (int i = 0; i < fields.Count; i++)
         {
@@ -172,16 +172,21 @@ public class NetworkObject : MonoBehaviour
         }
     }
 
-    public object GetField(string fieldName)
+    public T GetField<T>(string fieldName)
     {
         for (int i = 0; i < fields.Count; i++)
         {
             if (fields[i].fieldName == fieldName)
             {
-                return fields[i].GetField();
+                if(fields[i].IsInitialized() == false)
+                {
+                    //fields[i].InitializeDefaultValue(networkID);
+                }
+
+                return (T)System.Convert.ChangeType(fields[i].GetField(),typeof(T));
             }
         }
-        return null;
+        return default(T);
     }
 
     public List<Packet> GeneratePacketListForFields()
@@ -236,55 +241,59 @@ public class NetworkField
     private string jsonDataTypeName = "notinitialized";
     private bool initialized = false;
 
-    public void InitializeDefaultValue(int netID)
+    public void InitializeDefaultValue<T>(int netID)
     {
         if(initialized)
         {
             return;
         }
 
-        switch (defaultValue)
-        {
-            case valueInitializer.INT:
-                UpdateField(0, netID, true);
-                break;
-            case valueInitializer.FLOAT:
-                UpdateField(0.0f, netID, true);
-                break;
-            case valueInitializer.DOUBLE:
-                UpdateField(0.0, netID, true);
-                break;
-            case valueInitializer.serializableVector:
-                UpdateField(new SerializableVector(0,0,0), netID, true);
-                break;
-            case valueInitializer.BYTE:
-                UpdateField(new byte(), netID, true);
-                break;
-            case valueInitializer.BYTE_ARRAY:
-                UpdateField(new byte[0], netID, true);
-                break;
-            case valueInitializer.String:
-                UpdateField("", netID, true);
-                break;
-        }
+        UpdateField(default(T),netID,true);
+
+        initialized = true;
+
+        //switch (defaultValue)
+        //{
+        //    case valueInitializer.INT:
+        //        UpdateField(0, netID, true);
+        //        break;
+        //    case valueInitializer.FLOAT:
+        //        UpdateField(0.0f, netID, true);
+        //        break;
+        //    case valueInitializer.DOUBLE:
+        //        UpdateField(0.0, netID, true);
+        //        break;
+        //    case valueInitializer.serializableVector:
+        //        UpdateField(new SerializableVector(0,0,0), netID, true);
+        //        break;
+        //    case valueInitializer.BYTE:
+        //        UpdateField(new byte(), netID, true);
+        //        break;
+        //    case valueInitializer.BYTE_ARRAY:
+        //        UpdateField(new byte[0], netID, true);
+        //        break;
+        //    case valueInitializer.String:
+        //        UpdateField("", netID, true);
+        //        break;
+        //}
     }
     public void UpdateField(object newValue, NetworkObject netObj)
     {
         UpdateField(newValue, netObj.networkID);
     }
 
-    public void UpdateField(object newValue,int netObjID, bool immediateOnSelf=false)
+    public void UpdateField<T>(T newValue,int netObjID, bool immediateOnSelf=false)
     {
         Packet packet = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
             new NetworkFieldPacket(netObjID,fieldName,new JsonPacketObject(JsonUtility.ToJson(newValue), newValue.GetType().ToString())));
         NetClient.instanceClient.SendPacket(packet);
         if(immediateOnSelf)
         {
-            LocalFieldSet(newValue);
+            LocalFieldSet<T>(newValue);
         }
     }
 
-    public void LocalFieldSet(object newValue)
+    public void LocalFieldSet<T>(T newValue)
     {
         jsonData = JsonUtility.ToJson(newValue); //This is used in UnityPacketHandler when setting it after packet being recieved. Don't use.
         jsonDataTypeName = newValue.GetType().ToString();
@@ -296,7 +305,7 @@ public class NetworkField
     {
         if(!initialized)
         {
-            return null;
+            return default;
         }
 
         return JsonUtility.FromJson(jsonData,System.Type.GetType(jsonDataTypeName));

@@ -27,6 +27,7 @@ public class ExampleHost : MonoBehaviour
     {
         foreach(ExamplePlayerController ePC in FindObjectsOfType<ExamplePlayerController>())
         {
+            Debug.Log("RPC CALL RANDOM COLOR", ePC);
             ePC.GetComponent<NetworkObject>().rpcs[0].CallRPC(Packet.sendType.buffered,Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
             //Debug.Log("Calling RPC");
         }
