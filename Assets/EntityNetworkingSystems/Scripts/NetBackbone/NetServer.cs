@@ -249,8 +249,37 @@ namespace EntityNetworkingSystems
                         pack.serverAuthority = false;
                     }
 
-                    if (pack.packetSendType == Packet.sendType.buffered)
+                    if (pack.packetSendType == Packet.sendType.buffered || pack.packetSendType == Packet.sendType.culledbuffered)
                     {
+
+                        //If it is a culledbuffered packet, if it is a netVarEdit packet, and it relates to the same netObj and is the RPC.
+                        //Then cull the previous of the same RPC to prevent RPC spam
+                        //This also happens with NetworkFields, even though network fields are generally *not buffered* the logic is here.
+                        //The reason NetworkFields aren't buffered is because the NetServer already syncs them when a client joins.
+                        if(pack.packetSendType == Packet.sendType.culledbuffered && (pack.packetType == Packet.pType.netVarEdit || pack.packetType == Packet.pType.rpc))
+                        {
+                            foreach (Packet buff in bufferedPackets.ToArray())
+                            {
+                                if (buff.relatesToNetObjID == pack.relatesToNetObjID && buff.packetType == pack.packetType)
+                                {
+                                    if (buff.packetType == Packet.pType.netVarEdit)
+                                    {
+
+                                        if (((NetworkFieldPacket)buff.GetPacketData()).fieldName == ((NetworkFieldPacket)pack.GetPacketData()).fieldName)
+                                        {
+                                            bufferedPackets.Remove(buff);
+                                        }
+                                    } else if (buff.packetType == Packet.pType.rpc)
+                                    {
+                                        if(((RPCPacketData)buff.GetPacketData()).rpcIndex == ((RPCPacketData)pack.GetPacketData()).rpcIndex)
+                                        {
+                                            bufferedPackets.Remove(buff);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         //Debug.Log("Buffered Packet");
                         bufferedPackets.Add(pack);
                     }

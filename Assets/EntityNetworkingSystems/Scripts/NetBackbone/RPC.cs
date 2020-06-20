@@ -18,7 +18,7 @@ namespace EntityNetworkingSystems
         //Gets queued if the networkObject has not been initialized yet. When initialized NetworKObject checks if anything needs to be run on the RPCs
         public Dictionary<Packet.sendType, object[]> queued = new Dictionary<Packet.sendType, object[]>();
 
-        public void CallRPC(Packet.sendType sendType = Packet.sendType.buffered, params object[] list)
+        public void CallRPC(Packet.sendType sendType = Packet.sendType.culledbuffered, params object[] list)
         {
             if (NetTools.IsMultiplayerGame() == false)
             {
@@ -38,12 +38,13 @@ namespace EntityNetworkingSystems
             NetClient.instanceClient.SendPacket(p);
         }
 
-        public Packet GenerateRPCPacket(Packet.sendType sendType = Packet.sendType.buffered, params object[] list)
+        public Packet GenerateRPCPacket(Packet.sendType sendType = Packet.sendType.culledbuffered, params object[] list)
         {
             RPCPacketData rpcData = new RPCPacketData(net.networkID, rpcIndex, list);
 
             Packet rpcPacket = new Packet(Packet.pType.rpc, sendType, rpcData);
             rpcPacket.sendToAll = true;
+            rpcPacket.relatesToNetObjID = net.networkID;
 
             return rpcPacket;
         }

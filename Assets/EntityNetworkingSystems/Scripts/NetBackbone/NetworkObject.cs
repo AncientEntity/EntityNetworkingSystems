@@ -210,7 +210,7 @@ namespace EntityNetworkingSystems
             return fieldPackets;
         }
 
-        public void CallRPC(string rpcName, Packet.sendType sendType = Packet.sendType.buffered, params object[] list)
+        public void CallRPC(string rpcName, Packet.sendType sendType = Packet.sendType.culledbuffered, params object[] list)
         {
             foreach (RPC rpc in rpcs)
             {

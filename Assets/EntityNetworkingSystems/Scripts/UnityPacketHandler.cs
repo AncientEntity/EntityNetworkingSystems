@@ -133,6 +133,7 @@ namespace EntityNetworkingSystems
                         NetworkObject netObj = NetworkObject.NetObjFromNetID(nFP.networkObjID);
                         if (netObj == null || (netObj.ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !netObj.sharedObject))
                         {
+                            print("Invalid Ownership on netvar.");
                             continue; //Probably was instantiated on client but not server or vice versa.
                         }
                         //Debug.Log("Seting NetVarEdit.");

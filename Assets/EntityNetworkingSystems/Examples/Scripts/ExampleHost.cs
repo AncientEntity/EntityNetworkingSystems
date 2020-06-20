@@ -21,18 +21,17 @@ public class ExampleHost : MonoBehaviour
         netServer.Initialize();
         netServer.StartServer();
 
-        InvokeRepeating("RpcFunOrSomething", 0, 1f);
+        //InvokeRepeating("RpcFunOrSomething", 0, 1f);
     }
 
-    void RpcFunOrSomething ()
-    {
-        foreach(ExamplePlayerController ePC in FindObjectsOfType<ExamplePlayerController>())
-        {
-            Debug.Log("RPC CALL RANDOM COLOR", ePC);
-            ePC.GetComponent<NetworkObject>().rpcs[0].CallRPC(Packet.sendType.buffered,Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
-            //Debug.Log("Calling RPC");
-        }
-    }
+    //void RpcFunOrSomething ()
+    //{
+    //    foreach(ExamplePlayerController ePC in FindObjectsOfType<ExamplePlayerController>())
+    //    {
+    //        ePC.GetComponent<NetworkObject>().CallRPC("RandomColor",Packet.sendType.buffered,Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
+    //        //Debug.Log("Calling RPC");
+    //    }
+    //}
 
     void OnDestroy()
     {

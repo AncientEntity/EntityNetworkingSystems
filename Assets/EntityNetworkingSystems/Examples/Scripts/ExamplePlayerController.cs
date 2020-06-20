@@ -12,6 +12,8 @@ public class ExamplePlayerController : MonoBehaviour
         sR = GetComponent<SpriteRenderer>();
         net = GetComponent<NetworkObject>();
         net.onNetworkStart.AddListener(OnNetStart);
+
+        InvokeRepeating("SetRandomColor", 0f, 1f);
     }
 
     public void RandomColor(RPCArgs args)
@@ -22,6 +24,11 @@ public class ExamplePlayerController : MonoBehaviour
         float g = args.GetNext<float>();
         float b = args.GetNext<float>();
         sR.color = new Color(r,g, b);
+    }
+
+    void SetRandomColor()
+    {
+        net.CallRPC("RandomColor", Packet.sendType.culledbuffered, Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
     }
 
     void OnNetStart()

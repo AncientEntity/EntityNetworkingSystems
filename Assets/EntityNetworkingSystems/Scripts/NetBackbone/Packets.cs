@@ -18,6 +18,7 @@ namespace EntityNetworkingSystems
         {
             buffered,
             nonbuffered,
+            culledbuffered,
         }
         public sendType packetSendType = sendType.buffered;
 
