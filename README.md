@@ -29,4 +29,4 @@ Contributing in anyway possible means a lot. If you see something you can improv
 
 ## Requirements & License
 - Unity 2019 or above. (It hasn't been tested on Unity 2018, but I assume it should be fine)
-- If using Steamworks you need Facepunch.Steamworks avaliable here: https://github.com/Facepunch/Facepunch.Steamworks and under the MIT license as well. Please check their LICENSE.MD for additional information, or our LICENSE.MD for additional information.
+- If using Steamworks you need Facepunch.Steamworks avaliable here: https://github.com/Facepunch/Facepunch.Steamworks and under their own MIT license as well. Please check their LICENSE.MD for additional information, or our LICENSE.MD for additional information.
