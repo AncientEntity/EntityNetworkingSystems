@@ -20,7 +20,7 @@ I am mainly using this for my project at https://epocria.net
 
 ## Extras
 - Buffered Packet Culling (Soon)
-- Documentation & Videos (Soon)
+- Documentation & Videos (In Progress)
 - Prefab Domain Templates (Complete)
 
 ## Contributing & Discord
