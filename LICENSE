@@ -19,3 +19,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Classes/Namespaces under the Facepunch.Steamworks were taken from project: https://github.com/Facepunch/Facepunch.Steamworks, Copyright (c) 2016 Facepunch Studios LTD. These classes are licensed under the MIT license. See LICENSE.MD in the Facepunch.Steamworks GitHub repository for additional details.
