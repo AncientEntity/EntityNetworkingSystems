@@ -25,6 +25,7 @@ I am mainly using this for my project at https://epocria.net
 - Prefab Domain Templates (Complete)
 - Generic Type Parameters for NetworkFields (Complete)
 - On Unity Asset Store (Last)
+- NetworkField Packets get packed into a multipacket every frame, instead of sending them separately. (Soon)
 
 ## Contributing & Discord
 Contributing in anyway possible means a lot. If you see something you can improve, something you want added, or just want to do some documentation make a branch then let me know through GitHub when it is ready! As well as if you want to communicate with me, I am using this for my game "Epocria" which has a Discord server I can be contacted through: https://discord.gg/vkxmjrx
