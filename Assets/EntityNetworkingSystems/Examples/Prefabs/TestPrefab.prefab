@@ -99,9 +99,15 @@ MonoBehaviour:
   initialized: 0
   networkID: -1
   ownerID: -1
+  sharedObject: 0
   fields:
   - fieldName: position
     defaultValue: 6
+    onValueChange:
+      m_PersistentCalls:
+        m_Calls: []
+  - fieldName: testFloat
+    defaultValue: 1
     onValueChange:
       m_PersistentCalls:
         m_Calls: []

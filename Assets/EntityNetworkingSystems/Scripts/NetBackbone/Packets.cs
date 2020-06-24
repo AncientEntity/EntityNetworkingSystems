@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -11,7 +12,7 @@ namespace EntityNetworkingSystems
     [System.Serializable]
     public class Packet
     {
-        //public static BinaryFormatter bF = null;
+        public static BinaryFormatter bF = null;
 
         [System.Serializable]
         public enum sendType
@@ -29,12 +30,12 @@ namespace EntityNetworkingSystems
             gODestroy,
             netVarEdit,
             rpc,
-            message,
-            unassigned,
+            message, //doesnt go anywhere
+            unassigned, //doesnt go anywhere
             multiPacket,
             loginInfo,
-            netObjNetStartInvoke,
-            steamAuth,
+            netObjNetStartInvoke, 
+            steamAuth, //only is managed when the client first connects with the server. UnityPacketManager has no logic for it.
         }
         public pType packetType = pType.unassigned;
 
@@ -81,7 +82,7 @@ namespace EntityNetworkingSystems
         {
             System.Type t = System.Type.GetType(jsonDataTypeName);
             //Debug.Log(t);
-            if (t.ToString() == "IntPacket")
+            if (t.ToString() == "EntityNetworkingSystems.IntPacket")
             {
                 //If integer you must first convert it out of a IntPacket.
                 return JsonUtility.FromJson<IntPacket>(jsonData).integer;
@@ -99,9 +100,11 @@ namespace EntityNetworkingSystems
                 //Debug.Log(jsonPacket);
                 return JsonUtility.FromJson<Packet>(jsonPacket);
             }
-            catch
+            catch (Exception e)
             {
-                Debug.LogError("Error Dejsonify: " + jsonPacket);
+                Debug.Log(e);
+                //Debug.LogError("Error Dejsonify. Length: "+jsonPacket.Length+": " + jsonPacket);
+                NetworkData.instance.errorJson = jsonPacket;
                 return null;
             }
         }
@@ -111,24 +114,30 @@ namespace EntityNetworkingSystems
             return JsonUtility.ToJson(packet);
         }
 
-        public static Packet DeserializePacket(byte[] serialized)
+        public static object DeserializeObject(byte[] serialized)
         {
-            BinaryFormatter bF = new BinaryFormatter();
+            if (bF == null)
+            {
+                bF = new BinaryFormatter();
+            }
 
             using (MemoryStream ms = new MemoryStream(serialized))
             {
                 //byte[] b = new byte[ms.Length];
                 //ms.Seek(0, SeekOrigin.Begin);
-                Debug.Log(serialized.Length);
+                //Debug.Log(serialized.Length);
                 Packet decoded = (Packet)bF.Deserialize(ms);
                 return decoded;
             }
         }
 
 
-        public static byte[] SerializePacket(Packet packet)
+        public static byte[] SerializeObject(object packet)
         {
-            BinaryFormatter bF = new BinaryFormatter();
+            if (bF == null)
+            {
+                bF = new BinaryFormatter();
+            }
 
             using (MemoryStream ms = new MemoryStream())
             {
@@ -140,9 +149,8 @@ namespace EntityNetworkingSystems
 
         public byte[] SelfSerialize()
         {
-            return SerializePacket(this);
+            return SerializeObject(this);
         }
-
 
     }
 
@@ -227,7 +235,14 @@ namespace EntityNetworkingSystems
 
         public object ToObject()
         {
-            return JsonUtility.FromJson(jsonData, System.Type.GetType(jsonDataTypeName));
+            if (ENSUtils.IsSimple(System.Type.GetType(jsonDataTypeName)))
+            {
+                return System.Convert.ChangeType(jsonData, System.Type.GetType(jsonDataTypeName));
+            }
+            else
+            {
+                return JsonUtility.FromJson(jsonData, System.Type.GetType(jsonDataTypeName));
+            }
         }
 
     }
@@ -243,6 +258,7 @@ namespace EntityNetworkingSystems
             this.packets = packets;
         }
     }
+
 
     [System.Serializable]
     public class IntPacket
@@ -263,6 +279,8 @@ namespace EntityNetworkingSystems
         {
             value = val;
         }
+
+
     }
 
     [System.Serializable]

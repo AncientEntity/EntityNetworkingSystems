@@ -222,7 +222,30 @@ namespace EntityNetworkingSystems
                         packetsToSend.AddRange(temp);
                     }
                 }
-                //Debug.Log(packetsToSend.Count);
+
+                //int packetIndex = 0;
+                //bool breakingUp = true;
+
+                //while (breakingUp)
+                //{
+                //    List<Packet> tempPackets = new List<Packet>();
+
+                //    for (int i = 0; i < 100; i++)
+                //    {
+                //        if (packetIndex + i > packetsToSend.Count)
+                //        {
+                //            breakingUp = false;
+                //            break;
+                //        }
+                //        tempPackets.Add(packetsToSend[packetIndex + i]);
+                //        packetIndex++;
+                //    }
+                //    Packet bpacket = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(tempPackets));
+                //    bpacket.sendToAll = false;
+                //    SendPacket(client, bpacket);
+
+                //}
+                Debug.Log(packetsToSend.Count);
                 Packet bpacket = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(packetsToSend));
                 bpacket.sendToAll = false;
                 SendPacket(client, bpacket);
@@ -256,7 +279,7 @@ namespace EntityNetworkingSystems
                         //Then cull the previous of the same RPC to prevent RPC spam
                         //This also happens with NetworkFields, even though network fields are generally *not buffered* the logic is here.
                         //The reason NetworkFields aren't buffered is because the NetServer already syncs them when a client joins.
-                        if(pack.packetSendType == Packet.sendType.culledbuffered && (pack.packetType == Packet.pType.netVarEdit || pack.packetType == Packet.pType.rpc))
+                        if (pack.packetSendType == Packet.sendType.culledbuffered && (pack.packetType == Packet.pType.netVarEdit || pack.packetType == Packet.pType.rpc))
                         {
                             foreach (Packet buff in bufferedPackets.ToArray())
                             {
@@ -269,9 +292,10 @@ namespace EntityNetworkingSystems
                                         {
                                             bufferedPackets.Remove(buff);
                                         }
-                                    } else if (buff.packetType == Packet.pType.rpc)
+                                    }
+                                    else if (buff.packetType == Packet.pType.rpc)
                                     {
-                                        if(((RPCPacketData)buff.GetPacketData()).rpcIndex == ((RPCPacketData)pack.GetPacketData()).rpcIndex)
+                                        if (((RPCPacketData)buff.GetPacketData()).rpcIndex == ((RPCPacketData)pack.GetPacketData()).rpcIndex)
                                         {
                                             bufferedPackets.Remove(buff);
                                         }
@@ -334,7 +358,7 @@ namespace EntityNetworkingSystems
 
         public void SendPacket(NetworkPlayer player, Packet packet)
         {
-            byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
+            byte[] array = Packet.SerializeObject(packet);//Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
 
             //First send packet size
             byte[] arraySize = new byte[4];
@@ -357,7 +381,7 @@ namespace EntityNetworkingSystems
             //Get packet
             byte[] byteMessage = new byte[pSize];
             player.netStream.Read(byteMessage, 0, byteMessage.Length);
-            return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
+            return (Packet)Packet.DeserializeObject(byteMessage);//Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
         }
 
         //void OnDestroy()

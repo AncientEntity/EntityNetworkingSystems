@@ -129,7 +129,7 @@ namespace EntityNetworkingSystems
 
         public void SendPacket(Packet packet)
         {
-            byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
+            byte[] array = Packet.SerializeObject(packet);//Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
 
             //First send packet size
             byte[] arraySize = new byte[4];
@@ -153,8 +153,9 @@ namespace EntityNetworkingSystems
             byte[] byteMessage = new byte[pSize];
             netStream.Read(byteMessage, 0, byteMessage.Length);
             //Debug.Log(Encoding.ASCII.GetString(byteMessage));
-            return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
+            return (Packet)Packet.DeserializeObject(byteMessage);//Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
         }
+
 
         //public void SendMessage(byte[] message)
         //{

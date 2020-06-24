@@ -202,8 +202,21 @@ namespace EntityNetworkingSystems
                     continue;
                 }
 
+                JsonPacketObject jPO;
+
+                System.Convert.ChangeType(netField.GetField(), netField.GetField().GetType());
+
+                if (!ENSUtils.IsSimple(netField.GetField().GetType()))
+                {
+                    jPO = new JsonPacketObject(JsonUtility.ToJson(System.Convert.ChangeType(netField.GetField(), netField.GetField().GetType())), netField.GetField().GetType().ToString());
+                }
+                else
+                {
+                    jPO = new JsonPacketObject("" + netField.GetField(), netField.GetField().GetType().ToString());
+                }
+
                 Packet packet = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
-                    new NetworkFieldPacket(networkID, netField.fieldName, new JsonPacketObject(JsonUtility.ToJson(netField.GetField()), netField.GetField().GetType().ToString())));
+                    new NetworkFieldPacket(networkID, netField.fieldName,jPO));
                 fieldPackets.Add(packet);
                 //print("Adding netfield: " + netField.fieldName);
             }
@@ -289,19 +302,36 @@ namespace EntityNetworkingSystems
 
         public void UpdateField<T>(T newValue, int netObjID, bool immediateOnSelf = false)
         {
-            Packet packet = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
-                new NetworkFieldPacket(netObjID, fieldName, new JsonPacketObject(JsonUtility.ToJson(newValue), newValue.GetType().ToString())));
-            NetClient.instanceClient.SendPacket(packet);
+            JsonPacketObject jPO;
+
+            if (!ENSUtils.IsSimple(newValue.GetType())) {
+               jPO = new JsonPacketObject(JsonUtility.ToJson(newValue), newValue.GetType().ToString());
+            } else
+            {
+                jPO = new JsonPacketObject(""+newValue, newValue.GetType().ToString());
+            }
+
+            Packet pack = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
+                new NetworkFieldPacket(netObjID, fieldName, jPO));
+            NetClient.instanceClient.SendPacket(pack);
             if (immediateOnSelf)
             {
-                LocalFieldSet<T>(newValue);
+                LocalFieldSet(newValue);
             }
         }
 
         public void LocalFieldSet<T>(T newValue)
         {
-            jsonData = JsonUtility.ToJson(newValue); //This is used in UnityPacketHandler when setting it after packet being recieved. Don't use.
+            if (ENSUtils.IsSimple(newValue.GetType()))
+            {
+                jsonData = "" + newValue;
+            }
+            else
+            {
+                jsonData = JsonUtility.ToJson(newValue); //This is used in UnityPacketHandler when setting it after packet being recieved. Don't use.
+            }
             jsonDataTypeName = newValue.GetType().ToString();
+
             initialized = true;
             onValueChange.Invoke();
         }
@@ -312,14 +342,33 @@ namespace EntityNetworkingSystems
             {
                 return default;
             }
-
-            return JsonUtility.FromJson(jsonData, System.Type.GetType(jsonDataTypeName));
+            if (ENSUtils.IsSimple(System.Type.GetType(jsonDataTypeName)))
+            {
+                return System.Convert.ChangeType(jsonData, System.Type.GetType(jsonDataTypeName));
+            }
+            else
+            {
+                return JsonUtility.FromJson(jsonData, System.Type.GetType(jsonDataTypeName));
+            }
         }
 
         public bool IsInitialized()
         {
             return initialized;
         }
+
+        public NetworkField Clone()
+        {
+            NetworkField newField = new NetworkField();
+            newField.fieldName = fieldName;
+            newField.defaultValue = defaultValue;
+            newField.onValueChange = onValueChange;
+            newField.jsonData = jsonData;
+            newField.jsonDataTypeName = jsonDataTypeName;
+            newField.initialized = initialized;
+            return newField;
+        }
+
     }
 
     [System.Serializable]

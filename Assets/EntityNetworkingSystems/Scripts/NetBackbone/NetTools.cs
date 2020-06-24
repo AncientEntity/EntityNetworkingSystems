@@ -68,11 +68,11 @@ namespace EntityNetworkingSystems
 
                 foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultFields)
                 {
-                    nObj.fields.Add(defaultField);
+                    nObj.fields.Add(defaultField.Clone());
                 }
                 foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultRpcs)
                 {
-                    nObj.rpcs.Add(defaultRPC);
+                    nObj.rpcs.Add(defaultRPC.Clone());
                 }
             }
 
@@ -109,7 +109,7 @@ namespace EntityNetworkingSystems
                 return;
             }
 
-            if (clientID == netObj.ownerID || isServer)
+            if (clientID == netObj.ownerID || isServer || netObj.sharedObject)
             {
                 //Destroy(netObj.gameObject);
 

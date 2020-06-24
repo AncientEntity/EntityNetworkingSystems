@@ -60,6 +60,15 @@ namespace EntityNetworkingSystems
             onRpc.Invoke(args);
         }
 
+        public RPC Clone()
+        {
+            RPC newRPC = new RPC();
+            newRPC.rpcName = rpcName;
+            newRPC.serverAuthorityRequired = serverAuthorityRequired;
+            newRPC.onRpc = onRpc;
+            return newRPC;
+        }
+
     }
 
     [System.Serializable]

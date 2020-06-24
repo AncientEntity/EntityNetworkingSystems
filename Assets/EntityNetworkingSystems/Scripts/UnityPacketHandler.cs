@@ -14,6 +14,8 @@ namespace EntityNetworkingSystems
 
         bool syncingBuffered = false;
 
+        Coroutine runningHandler = null;
+
         void Awake()
         {
             if (instance == null)
@@ -26,13 +28,23 @@ namespace EntityNetworkingSystems
             }
         }
 
+        void CheckForHandlerCrash()
+        {
+            if(runningHandler == null)
+            {
+                runningHandler = StartCoroutine(HandleThreads());
+                Debug.LogError("UnityPacketHandler crashed. It has been restarted.");
+            }
+        }
+
         public void StartHandler()
         {
             if (handlerRunning == true)
             {
                 return; //Prevent multiple handlers.
             }
-            StartCoroutine(HandleThreads());
+            runningHandler = StartCoroutine(HandleThreads());
+            InvokeRepeating("CheckForHandlerCrash", 0f, 5f);
         }
 
         public IEnumerator HandleThreads()
@@ -75,11 +87,11 @@ namespace EntityNetworkingSystems
 
                                 foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultFields)
                                 {
-                                    nObj.fields.Add(defaultField);
+                                    nObj.fields.Add(defaultField.Clone());
                                 }
                                 foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultRpcs)
                                 {
-                                    nObj.rpcs.Add(defaultRPC);
+                                    nObj.rpcs.Add(defaultRPC.Clone());
                                 }
                             }
 
@@ -104,7 +116,7 @@ namespace EntityNetworkingSystems
                         //Debug.Log(curPacket.jsonData);
                         //Debug.Log(curPacket.GetPacketData());
                         NetworkObject found = NetworkObject.NetObjFromNetID((int)curPacket.GetPacketData());
-                        if (found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.serverAuthority))
+                        if (found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.serverAuthority || found.sharedObject))
                         {
                             Destroy(found.gameObject);
                         }
@@ -133,7 +145,7 @@ namespace EntityNetworkingSystems
                         NetworkObject netObj = NetworkObject.NetObjFromNetID(nFP.networkObjID);
                         if (netObj == null || (netObj.ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !netObj.sharedObject))
                         {
-                            print("Invalid Ownership on netvar.");
+                            Debug.LogError("Invalid Ownership on netvar",netObj);
                             continue; //Probably was instantiated on client but not server or vice versa.
                         }
                         //Debug.Log("Seting NetVarEdit.");

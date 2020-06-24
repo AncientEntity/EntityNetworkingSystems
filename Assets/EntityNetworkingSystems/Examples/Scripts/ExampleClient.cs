@@ -38,8 +38,11 @@ public class ExampleClient : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            GameObject g = NetTools.NetInstantiate(0, 0, new Vector3(Random.Range(-4.0f, 4.0f), Random.Range(-4.0f, 4.0f), 0),Quaternion.identity);
-            owned.Add(g.GetComponent<NetworkObject>());
+            for (int i = 0; i < 50; i++)
+            {
+                GameObject g = NetTools.NetInstantiate(0, 0, new Vector3(Random.Range(-4.0f, 4.0f), Random.Range(-4.0f, 4.0f), 0), Quaternion.identity);
+                owned.Add(g.GetComponent<NetworkObject>());
+            }
         }
         if (Input.GetKeyDown(KeyCode.F1))
         {

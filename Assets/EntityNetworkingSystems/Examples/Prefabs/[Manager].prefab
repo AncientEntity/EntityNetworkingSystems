@@ -93,5 +93,10 @@ MonoBehaviour:
     prefabList:
     - {fileID: 9011985434738064851, guid: 70452bd0dea00604286d02a40203d350, type: 3}
     - {fileID: 4803165501484243487, guid: dd0284277d85d674285e3c5399970144, type: 3}
-    defaultFields: []
+    defaultFields:
+    - fieldName: testFloat
+      defaultValue: 1
+      onValueChange:
+        m_PersistentCalls:
+          m_Calls: []
     defaultRpcs: []
