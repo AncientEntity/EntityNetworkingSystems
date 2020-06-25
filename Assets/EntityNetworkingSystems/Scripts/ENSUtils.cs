@@ -4,6 +4,7 @@ using UnityEngine;
 using System.Xml.Serialization;
 using System.IO;
 using System.Text;
+using System.Linq;
 
 namespace EntityNetworkingSystems
 {
@@ -33,13 +34,27 @@ namespace EntityNetworkingSystems
             return Encoding.ASCII.GetBytes(str);
 
             //List<byte> byteList = new List<byte>();
-            
+
             //foreach(char c in str)
             //{
             //    byteList.Add(System.Convert.ToByte(c));
             //}
             //return byteList.ToArray();
         }
+
+        //public static Dictionary<T0, T1> CloneDictionary<T0,T1>(Dictionary<T0,T1> toBeCloned) {
+        //    Dictionary<T0, T1> newDictionary = new Dictionary<T0, T1>();
+
+        //    List<T0> keys = newDictionary.Keys.ToList();
+        //    List<T1> values = newDictionary.Values.ToList();
+
+        //    for(int i = 0; i < keys.Count; i++)
+        //    {
+        //        newDictionary.Add(keys[i], values[i]);
+        //    }
+        //    return newDictionary;
+        //}
+
 
     }
 

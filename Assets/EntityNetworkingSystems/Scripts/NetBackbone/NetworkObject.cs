@@ -26,6 +26,8 @@ namespace EntityNetworkingSystems
         //[HideInInspector]
         public int prefabDomainID = -1;
 
+        [HideInInspector]
+        public List<Packet> queuedNetworkPackets = new List<Packet>();
 
 
         void Awake()
@@ -85,7 +87,32 @@ namespace EntityNetworkingSystems
                 }
                 r.queued = new Dictionary<Packet.sendType, object[]>(); //Clear it afterwards.
             }
+
+            StartCoroutine(NetworkFieldPacketHandler());
         }
+
+        public IEnumerator NetworkFieldPacketHandler ()
+        {
+            yield return new WaitUntil(() => initialized);
+            while(initialized)
+            {
+                yield return new WaitUntil(() => queuedNetworkPackets.Count > 0);
+
+                Packet curPacket = queuedNetworkPackets[0];
+                NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.GetPacketData();
+
+                if ((ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !sharedObject))
+                {
+                    queuedNetworkPackets.RemoveAt(0);
+                    continue;
+                }
+
+                SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
+                queuedNetworkPackets.RemoveAt(0);
+
+            }
+        }
+
 
         public bool IsOwner()
         {

@@ -106,17 +106,13 @@ MonoBehaviour:
     onValueChange:
       m_PersistentCalls:
         m_Calls: []
-  - fieldName: testFloat
-    defaultValue: 1
-    onValueChange:
-      m_PersistentCalls:
-        m_Calls: []
   rpcs: []
   onNetworkStart:
     m_PersistentCalls:
       m_Calls: []
   prefabID: -1
   prefabDomainID: -1
+  queuedNetworkPackets: []
 --- !u!114 &-7292164649192616921
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using UnityEngine;
 
 namespace EntityNetworkingSystems
@@ -76,7 +77,7 @@ namespace EntityNetworkingSystems
                         NetworkObject nObj = null;
                         GameObjectInstantiateData gOID = (GameObjectInstantiateData)JsonUtility.FromJson<GameObjectInstantiateData>(curPacket.jsonData);
 
-                        if (NetTools.clientID != curPacket.packetOwnerID)
+                        if (NetTools.clientID != curPacket.packetOwnerID || NetworkObject.NetObjFromNetID(gOID.netObjID) == null)
                         {
                             //GameObjectInstantiateData gOID = (GameObjectInstantiateData)curPacket.GetPacketData();
                             GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), gOID.rotation.ToQuaternion());
@@ -131,7 +132,7 @@ namespace EntityNetworkingSystems
                     }
                     else if (curPacket.packetType == Packet.pType.loginInfo)
                     {
-                        //Debug.Log("Login Info Packet Recieved.");
+                        Debug.Log("Login Info Packet Recieved.");
                         NetTools.clientID = ((PlayerLoginData)curPacket.GetPacketData()).playerNetworkID;
                         NetClient.instanceClient.clientID = NetTools.clientID;
 
@@ -141,15 +142,21 @@ namespace EntityNetworkingSystems
                     }
                     else if (curPacket.packetType == Packet.pType.netVarEdit)
                     {
+                        //As of 2020-06-24 netVar's are handled in NetworkObject, but queued from here. This prevents preinitialized packets from getting through.
+
                         NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.GetPacketData();
                         NetworkObject netObj = NetworkObject.NetObjFromNetID(nFP.networkObjID);
-                        if (netObj == null || (netObj.ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !netObj.sharedObject))
+                        if (netObj == null)
                         {
-                            Debug.LogError("Invalid Ownership on netvar",netObj);
+                            //Debug.LogError("Invalid Ownership on netvar",netObj);
                             continue; //Probably was instantiated on client but not server or vice versa.
                         }
                         //Debug.Log("Seting NetVarEdit.");
-                        netObj.SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
+
+                        netObj.queuedNetworkPackets.Add(curPacket);
+
+                        //NetworkObject's now manually handle network fields.
+                        //netObj.SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
                     }
                     else if (curPacket.packetType == Packet.pType.rpc)
                     {
@@ -229,10 +236,13 @@ namespace EntityNetworkingSystems
         //    }
         //}
 
+
         public void QueuePacket(Packet packet)
         {
             packetQueue.Add(packet);
         }
+
+
 
     }
 

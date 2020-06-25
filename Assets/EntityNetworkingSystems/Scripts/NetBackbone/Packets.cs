@@ -12,7 +12,7 @@ namespace EntityNetworkingSystems
     [System.Serializable]
     public class Packet
     {
-        public static BinaryFormatter bF = null;
+        //public static BinaryFormatter bF = null;
 
         [System.Serializable]
         public enum sendType
@@ -95,6 +95,10 @@ namespace EntityNetworkingSystems
 
         public static Packet DeJsonifyPacket(string jsonPacket)
         {
+            //int lastJsonIndex = jsonPacket.LastIndexOf("}");
+            //jsonPacket = jsonPacket.Substring(0, lastJsonIndex);
+
+
             try
             {
                 //Debug.Log(jsonPacket);
@@ -102,7 +106,7 @@ namespace EntityNetworkingSystems
             }
             catch (Exception e)
             {
-                Debug.Log(e);
+                Debug.LogError(e);
                 //Debug.LogError("Error Dejsonify. Length: "+jsonPacket.Length+": " + jsonPacket);
                 NetworkData.instance.errorJson = jsonPacket;
                 return null;
@@ -116,10 +120,11 @@ namespace EntityNetworkingSystems
 
         public static object DeserializeObject(byte[] serialized)
         {
-            if (bF == null)
-            {
-                bF = new BinaryFormatter();
-            }
+            BinaryFormatter bF = new BinaryFormatter();
+            //if (bF == null)
+            //{
+            //    bF = new BinaryFormatter();
+            //}
 
             using (MemoryStream ms = new MemoryStream(serialized))
             {
@@ -134,10 +139,8 @@ namespace EntityNetworkingSystems
 
         public static byte[] SerializeObject(object packet)
         {
-            if (bF == null)
-            {
-                bF = new BinaryFormatter();
-            }
+
+            BinaryFormatter bF = new BinaryFormatter();
 
             using (MemoryStream ms = new MemoryStream())
             {

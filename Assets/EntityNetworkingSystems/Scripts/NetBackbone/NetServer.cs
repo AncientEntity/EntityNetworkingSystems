@@ -8,6 +8,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
 using System.Text;
 using Steamworks;
+using System.Linq;
 
 namespace EntityNetworkingSystems
 {
@@ -32,6 +33,9 @@ namespace EntityNetworkingSystems
         List<NetworkPlayer> connections = new List<NetworkPlayer>();
         List<Thread> connThreads = new List<Thread>();
         Thread connectionHandler = null;
+        Thread packetSendHandler = null;
+        //Thread packetSendHandler = null;
+        //Dictionary<Packet, NetworkPlayer> queuedSendPackets = new Dictionary<Packet, NetworkPlayer>();
 
         public List<Packet> bufferedPackets = new List<Packet>();
 
@@ -87,7 +91,36 @@ namespace EntityNetworkingSystems
                 Debug.LogWarning("NetworkData object not found.");
             }
 
+            //if (packetSendHandler == null)
+            //{
+            //    packetSendHandler = new Thread(new ThreadStart(PacketSendHandler));
+            //    packetSendHandler.Start();
+            //}
+
         }
+
+        //public void PacketSendHandler()
+        //{
+        //    while (serverInstance != null)
+        //    {
+        //        while(queuedSendPackets.Count <= 0)
+        //        {
+        //            Thread.Sleep(5);
+        //        }
+
+        //        foreach(KeyValuePair<Packet,NetworkPlayer> entry in queuedSendPackets)
+        //        {
+        //            SendPacket(entry.Value, entry.Key,true);
+        //            queuedSendPackets.Remove(entry.Key);
+        //        }
+        //    }
+        //}
+
+        //public void QueueSendPacket(Packet pack, NetworkPlayer player)
+        //{
+        //    queuedSendPackets.Add(pack, player);
+        //}
+
 
         public void StartServer()
         {
@@ -102,6 +135,8 @@ namespace EntityNetworkingSystems
 
             connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
             connectionHandler.Start();
+            packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
+            packetSendHandler.Start();
 
 
         }
@@ -212,9 +247,9 @@ namespace EntityNetworkingSystems
             if (bufferedPackets.Count > 0)
             {
                 List<Packet> packetsToSend = new List<Packet>(); //Will contain buffered packets and all network fields to be updated.
-                packetsToSend.AddRange(bufferedPackets);
+                packetsToSend.AddRange(bufferedPackets.ToArray());
                 //Debug.Log(packetsToSend.Count);
-                foreach (NetworkObject netObj in NetworkObject.allNetObjs)
+                foreach (NetworkObject netObj in NetworkObject.allNetObjs.ToArray())
                 {
                     if (netObj.fields.Count > 0)
                     {
@@ -223,32 +258,32 @@ namespace EntityNetworkingSystems
                     }
                 }
 
-                //int packetIndex = 0;
-                //bool breakingUp = true;
 
-                //while (breakingUp)
-                //{
-                //    List<Packet> tempPackets = new List<Packet>();
+                List<Packet> tempPackets = new List<Packet>();
 
-                //    for (int i = 0; i < 100; i++)
-                //    {
-                //        if (packetIndex + i > packetsToSend.Count)
-                //        {
-                //            breakingUp = false;
-                //            break;
-                //        }
-                //        tempPackets.Add(packetsToSend[packetIndex + i]);
-                //        packetIndex++;
-                //    }
-                //    Packet bpacket = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(tempPackets));
-                //    bpacket.sendToAll = false;
-                //    SendPacket(client, bpacket);
 
-                //}
-                Debug.Log(packetsToSend.Count);
-                Packet bpacket = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(packetsToSend));
-                bpacket.sendToAll = false;
-                SendPacket(client, bpacket);
+                foreach (Packet p in packetsToSend)
+                {
+                    tempPackets.Add(p);
+                    if (tempPackets.Count >= 100)
+                    {
+                        Packet multiPack = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(tempPackets));
+                        multiPack.sendToAll = false;
+                        SendPacket(client, multiPack);
+
+                        tempPackets = new List<Packet>();
+                    }
+                }
+
+                //Send whatever remains in it otherwise 99 or less packets will be lost.
+                Debug.Log(tempPackets.Count);
+                Packet lastMulti = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(tempPackets));
+                lastMulti.sendToAll = false;
+                SendPacket(client, lastMulti);
+                //Debug.Log(packetsToSend.Count);
+                //Packet bpacket = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(packetsToSend));
+                //bpacket.sendToAll = false;
+                //SendPacket(client, bpacket);
             }
 
             bool clientRunning = true;
@@ -356,9 +391,15 @@ namespace EntityNetworkingSystems
         }
 
 
-        public void SendPacket(NetworkPlayer player, Packet packet)
+        public void SendPacket(NetworkPlayer player, Packet packet, bool queuedPacket = false)
         {
-            byte[] array = Packet.SerializeObject(packet);//Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
+            if(!queuedPacket)
+            {
+                queuedSendingPackets.Add(packet, player);
+                return;
+            }
+
+            byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));//Packet.SerializeObject(packet);
 
             //First send packet size
             byte[] arraySize = new byte[4];
@@ -367,6 +408,7 @@ namespace EntityNetworkingSystems
             player.netStream.Write(arraySize, 0, arraySize.Length);
 
             //Send packet
+            player.tcpClient.SendBufferSize = array.Length;
             player.netStream.Write(array, 0, array.Length);
         }
 
@@ -380,8 +422,52 @@ namespace EntityNetworkingSystems
 
             //Get packet
             byte[] byteMessage = new byte[pSize];
-            player.netStream.Read(byteMessage, 0, byteMessage.Length);
-            return (Packet)Packet.DeserializeObject(byteMessage);//Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
+            player.tcpClient.ReceiveBufferSize = pSize;
+            byteMessage = RecieveSizeSpecificData(pSize, player.netStream);
+            //player.netStream.Read(byteMessage, 0, byteMessage.Length);
+            return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));//(Packet)Packet.DeserializeObject(byteMessage);
+        }
+
+        byte[] RecieveSizeSpecificData(int byteCountToGet, NetworkStream netStream)
+        {
+            //byteCountToGet--;
+
+            List<byte> bytesRecieved = new List<byte>();
+            
+            int bytesRead = 0;
+            while (bytesRead < byteCountToGet)
+            {
+                byte[] bunch = new byte[byteCountToGet - bytesRead];
+                netStream.Read(bunch, 0, bunch.Length);
+                bytesRecieved.AddRange(bunch);
+                bytesRead += bunch.Length;
+            }
+            return bytesRecieved.ToArray();
+        }
+
+        public Dictionary<Packet, NetworkPlayer> queuedSendingPackets = new Dictionary<Packet, NetworkPlayer>();
+
+        public void SendingPacketHandler()
+        {
+            while(NetServer.serverInstance != null)
+            {
+                while(queuedSendingPackets.Count > 0)
+                {
+                    lock (queuedSendingPackets)
+                    {
+                        foreach (Packet packetKey in queuedSendingPackets.Keys.ToList())
+                        {
+                            if (packetKey == null || queuedSendingPackets.ContainsKey(packetKey) == false)
+                            {
+                                continue;
+                            }
+
+                            SendPacket(queuedSendingPackets[packetKey], packetKey, true);
+                            queuedSendingPackets.Remove(packetKey);
+                        }
+                    }
+                }
+            }
         }
 
         //void OnDestroy()

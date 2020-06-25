@@ -22,6 +22,7 @@ namespace EntityNetworkingSystems
         public TcpClient client = null;
         public NetworkStream netStream;
         Thread connectionHandler = null;
+        Thread packetSendHandler = null;
         [Space]
         public int clientID = -1;
 
@@ -64,7 +65,10 @@ namespace EntityNetworkingSystems
                 uPH.AddComponent<UnityPacketHandler>();
                 GameObject.DontDestroyOnLoad(uPH);
             }
+
+        
         }
+
 
         public void ConnectionHandler()
         {
@@ -78,6 +82,12 @@ namespace EntityNetworkingSystems
                 UnityPacketHandler.instance.QueuePacket(packet);
                 //} //Otherwise NetServer will run it. But since the server is sending the login info to the client, it'll only get it here.
                 //Thread.Sleep(50);
+
+                //if(packetSendHandler == null || packetSendHandler.IsAlive == false)
+                //{
+                //    packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
+                //    packetSendHandler.Start();
+                //}
             }
             Debug.Log("NetClient.ConnectionHandler() thread has successfully finished.");
         }
@@ -105,7 +115,8 @@ namespace EntityNetworkingSystems
                 authPacket.sendToAll = false;
                 SendPacket(authPacket);
             }
-
+            //packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
+            //packetSendHandler.Start();
             connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
             connectionHandler.Start();
         }
@@ -120,6 +131,7 @@ namespace EntityNetworkingSystems
                 client = null;
                 NetClient.instanceClient = null;
                 connectionHandler.Abort();
+                packetSendHandler.Abort();
                 if (useSteamworks)
                 {
                     SteamInteraction.instance.StopClient();
@@ -127,17 +139,31 @@ namespace EntityNetworkingSystems
             }
         }
 
-        public void SendPacket(Packet packet)
+        public void SendPacket(Packet packet)//, bool queuedPacket = false)
         {
-            byte[] array = Packet.SerializeObject(packet);//Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
+            //if(!queuedPacket)
+            //{
+            //    queuedSendingPackets.Add(packet);
+            //    return;
+            //}
 
-            //First send packet size
-            byte[] arraySize = new byte[4];
-            arraySize = System.BitConverter.GetBytes(array.Length);
-            netStream.Write(arraySize, 0, arraySize.Length);
+            lock (netStream){
+                lock (client)
+                {
+                    byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));//Packet.SerializeObject(packet);
 
-            //Send packet
-            netStream.Write(array, 0, array.Length);
+
+                    //First send packet size
+                    byte[] arraySize = new byte[4];
+                    arraySize = System.BitConverter.GetBytes(array.Length);
+                    client.SendBufferSize = 4;
+                    netStream.Write(arraySize, 0, arraySize.Length);
+
+                    //Send packet
+                    client.SendBufferSize = array.Length;
+                    netStream.Write(array, 0, array.Length);
+                }
+            }
         }
 
         public Packet RecvPacket()
@@ -151,11 +177,57 @@ namespace EntityNetworkingSystems
 
             //Get packet
             byte[] byteMessage = new byte[pSize];
-            netStream.Read(byteMessage, 0, byteMessage.Length);
+            byteMessage = RecieveSizeSpecificData(pSize, netStream);
+            //netStream.Read(byteMessage, 0, byteMessage.Length);
             //Debug.Log(Encoding.ASCII.GetString(byteMessage));
-            return (Packet)Packet.DeserializeObject(byteMessage);//Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
+            return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));//(Packet)Packet.DeserializeObject(byteMessage);
         }
 
+
+        byte[] RecieveSizeSpecificData(int byteCountToGet, NetworkStream netStream)
+        {
+            //byteCountToGet--;
+            client.ReceiveBufferSize = byteCountToGet;
+
+            List<byte> bytesRecieved = new List<byte>();
+
+            int bytesRead = 0;
+            while (bytesRead < byteCountToGet)
+            {
+                byte[] bunch = new byte[byteCountToGet - bytesRead];
+                netStream.Read(bunch, 0, bunch.Length);
+                bytesRecieved.AddRange(bunch);
+                bytesRead += bunch.Length;
+            }
+            return bytesRecieved.ToArray();
+        }
+
+        public List<Packet> queuedSendingPackets = new List<Packet>();
+
+        //public void SendingPacketHandler()
+        //{
+        //    while (NetClient.instanceClient != null)
+        //    {
+        //        //Debug.Log("SendingPacketHandler running");
+        //        if (queuedSendingPackets.Count <= 0)
+        //        {
+        //            continue;
+        //        }
+
+        //        try
+        //        {
+        //            foreach (Packet packet in queuedSendingPackets.ToArray())
+        //            {
+        //                SendPacket(packet, true);
+        //            }
+        //            queuedSendingPackets = new List<Packet>();
+        //        } catch
+        //        {
+
+        //        }
+        //    }
+        //    Debug.Log("Sending packet handler stopped... Possible problem?");
+        //}
 
         //public void SendMessage(byte[] message)
         //{
