@@ -202,7 +202,7 @@ namespace EntityNetworkingSystems
             return bytesRecieved.ToArray();
         }
 
-        public List<Packet> queuedSendingPackets = new List<Packet>();
+        //public List<Packet> queuedSendingPackets = new List<Packet>();
 
         //public void SendingPacketHandler()
         //{

@@ -101,7 +101,7 @@ namespace EntityNetworkingSystems
                 Packet curPacket = queuedNetworkPackets[0];
                 NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.GetPacketData();
 
-                if ((ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !sharedObject))
+                if ((ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !sharedObject) || (curPacket.packetOwnerID == NetTools.clientID && nFP.immediateOnSelf))
                 {
                     queuedNetworkPackets.RemoveAt(0);
                     continue;
@@ -243,7 +243,7 @@ namespace EntityNetworkingSystems
                 }
 
                 Packet packet = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
-                    new NetworkFieldPacket(networkID, netField.fieldName,jPO));
+                    new NetworkFieldPacket(networkID, netField.fieldName,jPO,false));
                 fieldPackets.Add(packet);
                 //print("Adding netfield: " + netField.fieldName);
             }
@@ -280,10 +280,11 @@ namespace EntityNetworkingSystems
             String,
         };
         public valueInitializer defaultValue = valueInitializer.None;
-        public UnityEvent onValueChange;
+        public OnFieldChange onValueChange;
         private string jsonData = "notinitialized";
         private string jsonDataTypeName = "notinitialized";
         private bool initialized = false;
+        private int netID = -1;
 
         public void InitializeDefaultValue(int netID)
         {
@@ -291,7 +292,7 @@ namespace EntityNetworkingSystems
             {
                 return;
             }
-
+            this.netID = netID;
             //LocalFieldSet(default(T));
             //UpdateField(default(T),netID,true);
 
@@ -339,7 +340,7 @@ namespace EntityNetworkingSystems
             }
 
             Packet pack = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
-                new NetworkFieldPacket(netObjID, fieldName, jPO));
+                new NetworkFieldPacket(netObjID, fieldName, jPO,immediateOnSelf));
             NetClient.instanceClient.SendPacket(pack);
             if (immediateOnSelf)
             {
@@ -359,8 +360,13 @@ namespace EntityNetworkingSystems
             }
             jsonDataTypeName = newValue.GetType().ToString();
 
+            FieldArgs constructedArgs = new FieldArgs();
+            constructedArgs.fieldName = fieldName;
+            constructedArgs.networkID = netID;
+            constructedArgs.fieldValue = newValue;
+
             initialized = true;
-            onValueChange.Invoke();
+            onValueChange.Invoke(constructedArgs);
         }
 
         public object GetField()
@@ -399,17 +405,38 @@ namespace EntityNetworkingSystems
     }
 
     [System.Serializable]
+    public class OnFieldChange : UnityEvent<FieldArgs>
+    {
+
+    }
+
+    [System.Serializable]
+    public class FieldArgs
+    {
+        public string fieldName = "";
+        public int networkID = -1;
+        public object fieldValue = null;
+
+        public T GetValue<T>()
+        {
+            return (T)System.Convert.ChangeType(fieldValue, typeof(T));
+        }
+
+    }
+
+    [System.Serializable]
     public class NetworkFieldPacket
     {
         public int networkObjID = -1;
         public string fieldName = "";
         public JsonPacketObject data;
-
-        public NetworkFieldPacket(int netID, string fieldName, JsonPacketObject val)
+        public bool immediateOnSelf = false;
+        public NetworkFieldPacket(int netID, string fieldName, JsonPacketObject val, bool immediateOnSelf)
         {
             networkObjID = netID;
             this.fieldName = fieldName;
             data = val;
+            this.immediateOnSelf = immediateOnSelf;
         }
 
     }

@@ -12,6 +12,11 @@ namespace EntityNetworkingSystems
     {
         public static bool IsSimple(System.Type type)
         {
+            if(type == null)
+            {
+                return false; //Not sure why it is null but it do be like that sometime.
+            }
+
             return type.IsPrimitive || type.Equals(typeof(string));
         }
 

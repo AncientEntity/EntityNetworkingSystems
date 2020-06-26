@@ -25,6 +25,11 @@ public class ExamplePlayerController : MonoBehaviour
         float b = args.GetNext<float>();
         sR.color = new Color(r,g, b);
     }
+    
+    public void OnValueChangeTestExample(FieldArgs args)
+    {
+        Debug.Log("Player Position Changed: " + args.GetValue<SerializableVector>().ToVec3());
+    } 
 
     void SetRandomColor()
     {
@@ -47,7 +52,7 @@ public class ExamplePlayerController : MonoBehaviour
         {
             if (net.fields[0].IsInitialized())
             {
-                transform.position = (net.GetField<SerializableVector>("position")).ToVec3();
+                transform.position = net.GetField<SerializableVector>("position").ToVec3();
             }
             return;
         }
