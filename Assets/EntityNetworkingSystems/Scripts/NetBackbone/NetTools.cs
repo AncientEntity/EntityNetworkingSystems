@@ -83,6 +83,7 @@ namespace EntityNetworkingSystems
             nObj.sharedObject = gOID.isShared;
 
             nObj.Initialize();
+            nObj.DoRpcFieldInitialization();
             if (nObj.onNetworkStart != null)
             {
                 nObj.onNetworkStart.Invoke();
@@ -99,7 +100,7 @@ namespace EntityNetworkingSystems
             NetDestroy(netObj.networkID, sT);
         }
 
-        public static void NetDestroy(int netID, Packet.sendType sT = Packet.sendType.buffered)
+        public static void NetDestroy(int netID, Packet.sendType sT = Packet.sendType.buffered, bool destroyImmediate=false)
         {
             NetworkObject netObj = NetworkObject.NetObjFromNetID(netID);
 
@@ -117,6 +118,12 @@ namespace EntityNetworkingSystems
                 p.relatesToNetObjID = netID;
                 p.packetOwnerID = clientID;
                 NetClient.instanceClient.SendPacket(p);
+
+                if(destroyImmediate)
+                {
+                    Destroy(netObj);
+                }
+
             }
             else
             {

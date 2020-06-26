@@ -150,7 +150,7 @@ namespace EntityNetworkingSystems
             lock (netStream){
                 lock (client)
                 {
-                    byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));//Packet.SerializeObject(packet);
+                    byte[] array = Packet.SerializeObject(packet);//Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
 
 
                     //First send packet size
@@ -180,7 +180,7 @@ namespace EntityNetworkingSystems
             byteMessage = RecieveSizeSpecificData(pSize, netStream);
             //netStream.Read(byteMessage, 0, byteMessage.Length);
             //Debug.Log(Encoding.ASCII.GetString(byteMessage));
-            return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));//(Packet)Packet.DeserializeObject(byteMessage);
+            return (Packet)Packet.DeserializeObject(byteMessage);//Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
         }
 
 

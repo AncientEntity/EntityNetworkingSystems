@@ -12,7 +12,7 @@ namespace EntityNetworkingSystems
         public bool handlerRunning = false;
         public List<Packet> packetQueue = new List<Packet>();
         public int amountPerUpdate = 100;
-
+        
         bool syncingBuffered = false;
 
         Coroutine runningHandler = null;
@@ -103,6 +103,8 @@ namespace EntityNetworkingSystems
                             nObj.sharedObject = gOID.isShared;
 
                             nObj.Initialize();
+                            nObj.DoRpcFieldInitialization();
+
                             if (nObj.onNetworkStart != null)
                             {
                                 nObj.onNetworkStart.Invoke();
@@ -148,7 +150,7 @@ namespace EntityNetworkingSystems
                         NetworkObject netObj = NetworkObject.NetObjFromNetID(nFP.networkObjID);
                         if (netObj == null)
                         {
-                            //Debug.LogError("Invalid Ownership on netvar",netObj);
+                            Debug.Log("Couldn't find object... " + nFP.networkObjID);
                             continue; //Probably was instantiated on client but not server or vice versa.
                         }
                         //Debug.Log("Seting NetVarEdit.");

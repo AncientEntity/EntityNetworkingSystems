@@ -36,12 +36,9 @@ namespace EntityNetworkingSystems
 
         }
 
-        void Start()
-        {
-            DoRpcFieldInitialization();
-        }
 
-        void DoRpcFieldInitialization()
+
+        public void DoRpcFieldInitialization()
         {
             foreach (NetworkField field in fields)
             {
@@ -70,13 +67,13 @@ namespace EntityNetworkingSystems
                 NetworkData.AddUsedNetID(networkID);
             }
 
-            if (NetworkObject.allNetObjs.Contains(this) == false)
+            if (allNetObjs.Contains(this) == false)
             {
                 allNetObjs.Add(this);
             }
             initialized = true;
 
-            DoRpcFieldInitialization();
+            //DoRpcFieldInitialization();
 
             foreach (RPC r in rpcs)
             {

@@ -135,8 +135,8 @@ namespace EntityNetworkingSystems
 
             connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
             connectionHandler.Start();
-            packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
-            packetSendHandler.Start();
+            //packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
+            //packetSendHandler.Start();
 
 
         }
@@ -391,25 +391,30 @@ namespace EntityNetworkingSystems
         }
 
 
-        public void SendPacket(NetworkPlayer player, Packet packet, bool queuedPacket = false)
+        public void SendPacket(NetworkPlayer player, Packet packet)//, bool queuedPacket = false)
         {
-            if(!queuedPacket)
+            //if(!queuedPacket)
+            //{
+            //    queuedSendingPackets.Add(packet, player);
+            //    return;
+            //}
+            lock (player.netStream)
             {
-                queuedSendingPackets.Add(packet, player);
-                return;
+                lock (player.tcpClient)
+                {
+                    byte[] array = Packet.SerializeObject(packet);//Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
+
+                    //First send packet size
+                    byte[] arraySize = new byte[4];
+                    arraySize = System.BitConverter.GetBytes(array.Length);
+                    //Debug.Log("Length: " + arraySize.Length);
+                    player.netStream.Write(arraySize, 0, arraySize.Length);
+
+                    //Send packet
+                    player.tcpClient.SendBufferSize = array.Length;
+                    player.netStream.Write(array, 0, array.Length);
+                }
             }
-
-            byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));//Packet.SerializeObject(packet);
-
-            //First send packet size
-            byte[] arraySize = new byte[4];
-            arraySize = System.BitConverter.GetBytes(array.Length);
-            //Debug.Log("Length: " + arraySize.Length);
-            player.netStream.Write(arraySize, 0, arraySize.Length);
-
-            //Send packet
-            player.tcpClient.SendBufferSize = array.Length;
-            player.netStream.Write(array, 0, array.Length);
         }
 
         public Packet RecvPacket(NetworkPlayer player)
@@ -425,7 +430,7 @@ namespace EntityNetworkingSystems
             player.tcpClient.ReceiveBufferSize = pSize;
             byteMessage = RecieveSizeSpecificData(pSize, player.netStream);
             //player.netStream.Read(byteMessage, 0, byteMessage.Length);
-            return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));//(Packet)Packet.DeserializeObject(byteMessage);
+            return (Packet)Packet.DeserializeObject(byteMessage);//Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
         }
 
         byte[] RecieveSizeSpecificData(int byteCountToGet, NetworkStream netStream)
@@ -445,30 +450,33 @@ namespace EntityNetworkingSystems
             return bytesRecieved.ToArray();
         }
 
-        public Dictionary<Packet, NetworkPlayer> queuedSendingPackets = new Dictionary<Packet, NetworkPlayer>();
+        //public Dictionary<Packet, NetworkPlayer> queuedSendingPackets = new Dictionary<Packet, NetworkPlayer>();
 
-        public void SendingPacketHandler()
-        {
-            while(NetServer.serverInstance != null)
-            {
-                while(queuedSendingPackets.Count > 0)
-                {
-                    lock (queuedSendingPackets)
-                    {
-                        foreach (Packet packetKey in queuedSendingPackets.Keys.ToList())
-                        {
-                            if (packetKey == null || queuedSendingPackets.ContainsKey(packetKey) == false)
-                            {
-                                continue;
-                            }
+        //public void SendingPacketHandler()
+        //{
+        //    while(NetServer.serverInstance != null)
+        //    {
+        //        while(queuedSendingPackets.Count > 0)
+        //        {
+        //            lock (queuedSendingPackets)
+        //            {
+        //                lock (queuedSendingPackets.Keys)
+        //                {
+        //                    foreach (Packet packetKey in queuedSendingPackets.Keys.ToArray())
+        //                    {
+        //                        if (packetKey == null || queuedSendingPackets.ContainsKey(packetKey) == false)
+        //                        {
+        //                            continue;
+        //                        }
 
-                            SendPacket(queuedSendingPackets[packetKey], packetKey, true);
-                            queuedSendingPackets.Remove(packetKey);
-                        }
-                    }
-                }
-            }
-        }
+        //                        SendPacket(queuedSendingPackets[packetKey], packetKey, true);
+        //                        queuedSendingPackets.Remove(packetKey);
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
 
         //void OnDestroy()
         //{
