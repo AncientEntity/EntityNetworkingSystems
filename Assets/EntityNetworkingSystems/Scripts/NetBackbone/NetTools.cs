@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using EntityNetworkingSystems;
+using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -11,6 +13,7 @@ namespace EntityNetworkingSystems
         public static int clientID = -1;
         public static bool isServer = false;
         public static bool isClient = false;
+        public static bool isSingleplayer = false;
 
         public static UnityEvent onJoinServer = new UnityEvent(); //Gets ran when the login packet finishes :D
         public static UnityEvent onBufferedCompletion = new UnityEvent(); //Gets ran when the buffered packets complete.
@@ -32,7 +35,8 @@ namespace EntityNetworkingSystems
 
         }
 
-        public static GameObject NetInstantiate(int prefabDomain, int prefabID, Vector3 position, Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false)
+        public static GameObject NetInstantiate(int prefabDomain, int prefabID, Vector3 position, Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false, List<NetworkFieldPacket> fieldDefaults = null)
+
         {
             SerializableVector finalVector = new SerializableVector(position);
             SerializableQuaternion finalQuat = new SerializableQuaternion(rotation);
@@ -44,7 +48,7 @@ namespace EntityNetworkingSystems
             gOID.prefabID = prefabID;
             gOID.isShared = isSharedObject;
             gOID.netObjID = GenerateNetworkObjectID();
-
+            gOID.fieldDefaults = fieldDefaults;
 
             Packet p = new Packet(gOID);
             p.packetType = Packet.pType.gOInstantiate;
@@ -83,12 +87,24 @@ namespace EntityNetworkingSystems
             nObj.sharedObject = gOID.isShared;
 
             nObj.Initialize();
-            nObj.DoRpcFieldInitialization();
+            if (NetTools.isServer)
+            {
+                nObj.DoRpcFieldInitialization();
+            }
             if (nObj.onNetworkStart != null)
             {
                 nObj.onNetworkStart.Invoke();
             }
             //nObj.initialized = true;
+
+            if (fieldDefaults != null)
+            {
+                foreach (NetworkFieldPacket nFP in fieldDefaults)
+                {
+                    nFP.networkObjID = gOID.netObjID;
+                    nObj.UpdateField(nFP.fieldName, nFP.data.ToObject(), nFP.immediateOnSelf);
+                }
+            }
 
             return g;
         }
@@ -131,6 +147,7 @@ namespace EntityNetworkingSystems
             }
         }
 
+
         public static List<Packet> GenerateScenePackets()
         {
             //Will generate all the packets required to sync scenes for users. Useful for right when the server begins.
@@ -170,6 +187,8 @@ namespace EntityNetworkingSystems
             }
             return Random.Range(0, int.MaxValue);
         }
+
+
 
         public static bool IsMultiplayerGame()
         {

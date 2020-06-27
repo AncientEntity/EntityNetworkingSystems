@@ -96,6 +96,10 @@ namespace EntityNetworkingSystems
             //    packetSendHandler = new Thread(new ThreadStart(PacketSendHandler));
             //    packetSendHandler.Start();
             //}
+            if(maxConnections <= 1)
+            {
+                NetTools.isSingleplayer = true;
+            }
 
         }
 
@@ -124,6 +128,13 @@ namespace EntityNetworkingSystems
 
         public void StartServer()
         {
+            if(NetTools.isSingleplayer)
+            {
+                NetTools.isServer = true;
+                UnityPacketHandler.instance.StartHandler();
+                return;
+            }
+
             //Create server
             Debug.Log(IPAddress.Parse(hostAddress));
             server = new TcpListener(IPAddress.Any, hostPort);
@@ -398,6 +409,12 @@ namespace EntityNetworkingSystems
             //    queuedSendingPackets.Add(packet, player);
             //    return;
             //}
+            if (NetTools.isSingleplayer)
+            {
+                UnityPacketHandler.instance.QueuePacket(packet);
+                return;
+            }
+
             lock (player.netStream)
             {
                 lock (player.tcpClient)

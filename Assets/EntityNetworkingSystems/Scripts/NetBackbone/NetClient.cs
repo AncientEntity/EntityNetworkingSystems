@@ -93,6 +93,12 @@ namespace EntityNetworkingSystems
         }
 
 
+        public void ConnectToSingleplayer()
+        {
+            NetTools.isClient = true;
+            NetTools.isSingleplayer = true;
+        }
+
         public void ConnectToServer(string ip = "127.0.0.1", int port = 44594)
         {
             Debug.Log("Attempting Connection");
@@ -146,6 +152,12 @@ namespace EntityNetworkingSystems
             //    queuedSendingPackets.Add(packet);
             //    return;
             //}
+
+            if(NetTools.isSingleplayer)
+            {
+                UnityPacketHandler.instance.QueuePacket(packet);
+                return;
+            }
 
             lock (netStream){
                 lock (client)

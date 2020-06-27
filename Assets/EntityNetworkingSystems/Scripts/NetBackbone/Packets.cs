@@ -173,6 +173,9 @@ namespace EntityNetworkingSystems
 
         public int netObjID = -1;
         public bool isShared = false;
+
+        public List<NetworkFieldPacket> fieldDefaults = new List<NetworkFieldPacket>();
+
     }
 
     [System.Serializable]
