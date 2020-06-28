@@ -20,6 +20,7 @@ namespace EntityNetworkingSystems
             buffered,
             nonbuffered,
             culledbuffered,
+            proximity,
         }
         public sendType packetSendType = sendType.buffered;
 
@@ -48,6 +49,7 @@ namespace EntityNetworkingSystems
         public List<int> usersToRecieve = new List<int>(); //if send to all is false.
         public int relatesToNetObjID = -1;
 
+        public SerializableVector packetPosition;
 
         public Packet(pType packetType, sendType typeOfSend, object obj)
         {
@@ -232,6 +234,7 @@ namespace EntityNetworkingSystems
     {
         public string jsonData;
         public string jsonDataTypeName;
+        public object actualObj;
 
         public JsonPacketObject(string data, string jsonTypeName)
         {
@@ -241,6 +244,11 @@ namespace EntityNetworkingSystems
 
         public object ToObject()
         {
+            if(actualObj != null)
+            {
+                return System.Convert.ChangeType(actualObj,System.Type.GetType(jsonDataTypeName));
+            }
+
             if (ENSUtils.IsSimple(System.Type.GetType(jsonDataTypeName)))
             {
                 return System.Convert.ChangeType(jsonData, System.Type.GetType(jsonDataTypeName));

@@ -27,10 +27,10 @@ namespace EntityNetworkingSystems
         public string modDir = "spacewar";
         public string gameDesc = "spacewar";
         public string mapName = "world1";
-
+        [Space]
+        public List<NetworkPlayer> connections = new List<NetworkPlayer>();
 
         TcpListener server = null;
-        List<NetworkPlayer> connections = new List<NetworkPlayer>();
         List<Thread> connThreads = new List<Thread>();
         Thread connectionHandler = null;
         Thread packetSendHandler = null;
@@ -199,7 +199,7 @@ namespace EntityNetworkingSystems
                 Thread connThread = new Thread(() => ClientHandler(netClient));
                 connThread.Start();
 
-                //onPlayerConnect.Invoke(netClient);
+                NetTools.onPlayerJoin.Invoke(netClient);
             }
             Debug.Log("NetServer.ConnectionHandler() thread has successfully finished.");
         }
@@ -287,7 +287,7 @@ namespace EntityNetworkingSystems
                 }
 
                 //Send whatever remains in it otherwise 99 or less packets will be lost.
-                Debug.Log(tempPackets.Count);
+                //Debug.Log(tempPackets.Count);
                 Packet lastMulti = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(tempPackets));
                 lastMulti.sendToAll = false;
                 SendPacket(client, lastMulti);
@@ -409,6 +409,20 @@ namespace EntityNetworkingSystems
             //    queuedSendingPackets.Add(packet, player);
             //    return;
             //}
+
+            //if(packet.packetType == Packet.pType.netVarEdit && player.clientID == NetTools.clientID)
+            //{
+            //    return; //No need to double sync it.
+            //}
+
+            if (packet.packetSendType == Packet.sendType.proximity)
+            {
+                if(Vector3.Distance(player.proximityPosition,packet.packetPosition.ToVec3()) >= player.loadProximity)
+                {
+                    return;
+                }
+            }
+
             if (NetTools.isSingleplayer)
             {
                 UnityPacketHandler.instance.QueuePacket(packet);
@@ -511,16 +525,29 @@ namespace EntityNetworkingSystems
         //    return message;
         //}
 
+        public NetworkPlayer GetPlayerByID(int id)
+        {
+            foreach(NetworkPlayer player in connections)
+            {
+                if(player.clientID == id)
+                {
+                    return player;
+                }
+            }
+            return null;
+        }
+
 
     }
 
+    [System.Serializable]
     public class NetworkPlayer
     {
         public int clientID = -1;
         public TcpClient tcpClient;
         public NetworkStream netStream;
         public Vector3 proximityPosition = Vector3.zero;
-        public float loadProximity = 10f;
+        public float loadProximity = 15f;
         public Thread threadHandlingClient;
 
         public NetworkPlayer(TcpClient client)

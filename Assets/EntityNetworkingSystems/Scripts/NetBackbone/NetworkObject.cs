@@ -17,6 +17,7 @@ namespace EntityNetworkingSystems
         public int networkID = -1;
         public int ownerID = -1;
         public bool sharedObject = false; //All clients/server can effect the networkObject.
+        public bool trackPlayerProxPos = false; //If true, and there is ENS_Position it'll be tracked as the players proximity position.
         public List<NetworkField> fields = new List<NetworkField>();
         public List<RPC> rpcs = new List<RPC>();
         [Space]
@@ -39,22 +40,6 @@ namespace EntityNetworkingSystems
 
 
 
-        public void DoRpcFieldInitialization()
-        {
-            foreach (NetworkField field in fields)
-            {
-                if (field.IsInitialized() == false)
-                {
-                    field.InitializeDefaultValue(this);
-                }
-            }
-            int index = 0;
-            foreach (RPC rpc in rpcs)
-            {
-                rpc.SetParentNetworkObject(this, index);
-                index += 1;
-            }
-        }
 
         public void Initialize()
         {
@@ -63,18 +48,13 @@ namespace EntityNetworkingSystems
                 networkID = NetTools.GenerateNetworkObjectID();
             }
 
-            if (NetworkData.usedNetworkObjectInstances.Contains(networkID) == false && networkID != -1)
-            {
-                NetworkData.AddUsedNetID(networkID);
-            }
 
-            if (allNetObjs.Contains(this) == false)
-            {
-                allNetObjs.Add(this);
-            }
+            NetworkData.AddUsedNetID(networkID);
+            allNetObjs.Add(this);
+            
             initialized = true;
 
-            //DoRpcFieldInitialization();
+            DoRpcFieldInitialization();
 
             foreach (RPC r in rpcs)
             {
@@ -111,6 +91,23 @@ namespace EntityNetworkingSystems
         //    }
         //}
 
+        public void DoRpcFieldInitialization()
+        {
+            foreach (NetworkField field in fields)
+            {
+                if (field.IsInitialized() == false)
+                {
+                    field.InitializeDefaultValue(this);
+                }
+            }
+            int index = 0;
+            foreach (RPC rpc in rpcs)
+            {
+                rpc.SetParentNetworkObject(this, index);
+                index += 1;
+            }
+        }
+
 
         public bool IsOwner()
         {
@@ -132,7 +129,12 @@ namespace EntityNetworkingSystems
 
         public static NetworkObject NetObjFromNetID(int netID)
         {
-            foreach (NetworkObject netObj in allNetObjs)
+            NetworkObject[] netObjArray = { };
+            lock (allNetObjs)
+            {
+                netObjArray = allNetObjs.ToArray();
+            }
+            foreach (NetworkObject netObj in netObjArray)
             {
                 if (netObj.networkID == netID)
                 {
@@ -259,13 +261,25 @@ namespace EntityNetworkingSystems
             }
         }
 
-        //A premade "on value change" method for positional network fields.
+        public void FieldAddOnChangeMethod(string fieldName, UnityAction<FieldArgs> action)
+        {
+            foreach(NetworkField netField in fields)
+            {
+                if(netField.fieldName == fieldName)
+                {
+                    netField.onValueChange.AddListener(action);
+                    return;
+                }
+            }
+        }
+
+        //A premade "on value change" method for positional network fields. Gets added to fields named ENS_Position
         public void ManagePositionField(FieldArgs args)
         {
             transform.position = args.GetValue<SerializableVector>().ToVec3();
         }
 
-        //A premade "on value change" method for network fields representing scales.
+        //A premade "on value change" method for network fields representing scales. Gets added to fields named ENS_Scale
         public void ManageScaleField(FieldArgs args)
         {
             transform.localScale = args.GetValue<SerializableVector>().ToVec3();
@@ -291,81 +305,133 @@ namespace EntityNetworkingSystems
         };
         public valueInitializer defaultValue = valueInitializer.None;
         public OnFieldChange onValueChange;
+        public bool shouldBeProximity = false;
         private string jsonData = "notinitialized";
         private string jsonDataTypeName = "notinitialized";
         private bool initialized = false;
         private int netID = -1;
+        private NetworkObject netObj;
+
+        public bool InitializeSpecialFields()
+        {
+            if(netID == -1)
+            {
+                return false;
+            }
+
+            if (fieldName == "ENS_Position")
+            {
+                IfServerLocalSetField(new SerializableVector(netObj.transform.position), false);
+                //shouldBeProximity = true;
+                onValueChange.AddListener(netObj.ManagePositionField);
+                return true;
+            }
+            else if (fieldName == "ENS_Scale")
+            {
+                IfServerLocalSetField(new SerializableVector(netObj.transform.localScale), false);
+                //shouldBeProximity = true;
+                onValueChange.AddListener(netObj.ManageScaleField);
+                return true;
+            }
+            return false;
+        }
 
         public void InitializeDefaultValue(NetworkObject netObj)
         {
             if (initialized)
             {
+                if (netID == -1)
+                {
+                    this.netID = netObj.networkID; //We do this here since NetworkData initializes the template fields but doesnt know this yet.
+                    this.netObj = netObj;
+                    InitializeSpecialFields();
+                }
                 return;
             }
-            int netID = netObj.networkID;
-            this.netID = netID;
+            if (netObj != null)
+            {
+                int netID = netObj.networkID;
+                this.netID = netID;
+                this.netObj = netObj;
+            }
             //LocalFieldSet(default(T));
             //UpdateField(default(T),netID,true);
 
             //initialized = true; //Gets set in LocalFieldSet
 
-            if (fieldName == "ENS_Position")
-            {
-                UpdateField(new SerializableVector(netObj.transform.position), netID, true);
-                onValueChange.AddListener(netObj.ManagePositionField);
-            }
-            else if (fieldName == "ENS_Scale")
-            {
-                UpdateField(new SerializableVector(netObj.transform.localScale), netID, true);
-                onValueChange.AddListener(netObj.ManageScaleField);
-            }
-            else
+
+            if(!InitializeSpecialFields()) 
             {
                 switch (defaultValue)
                 {
                     case valueInitializer.INT:
-                        UpdateField(0, netID, true);
+                        IfServerLocalSetField(0, false);
                         break;
                     case valueInitializer.FLOAT:
-                        UpdateField(0.0f, netID, true);
+                        IfServerLocalSetField(0.0f, false);
                         break;
                     case valueInitializer.DOUBLE:
-                        UpdateField(0.0, netID, true);
+                        IfServerLocalSetField(0.0, false);
                         break;
                     case valueInitializer.serializableVector:
-                        UpdateField(new SerializableVector(0, 0, 0), netID, true);
+                        IfServerLocalSetField(new SerializableVector(0, 0, 0), false);
                         break;
                     case valueInitializer.BYTE:
-                        UpdateField(new byte(), netID, true);
+                        IfServerLocalSetField(new byte(), false);
                         break;
                     case valueInitializer.BYTE_ARRAY:
-                        UpdateField(new byte[0], netID, true);
+                        IfServerLocalSetField(new byte[0], false);
                         break;
                     case valueInitializer.String:
-                        UpdateField("", netID, true);
+                        IfServerLocalSetField("", false);
                         break;
                 }
             }
         }
+
+        public void IfServerLocalSetField(object newValue, bool invokeOnChange=true)
+        {
+            if (NetTools.isServer)
+            {
+                LocalFieldSet(newValue, invokeOnChange);
+            }
+        }
+
+        public void IfServerUpdateField(object newValue, int netObjID,bool immediateOnSelf=true)
+        {
+            if(NetTools.isServer)
+            {
+                UpdateField(newValue, netObjID, immediateOnSelf);
+            }
+        }
+
         public void UpdateField(object newValue, NetworkObject netObj)
         {
             UpdateField(newValue, netObj.networkID);
         }
 
-        public void UpdateField<T>(T newValue, int netObjID, bool immediateOnSelf = false)
+        public void UpdateField<T>(T newValue, int netObjID, bool immediateOnSelf = true)
         {
-            JsonPacketObject jPO;
+            JsonPacketObject jPO = new JsonPacketObject("",newValue.GetType().ToString());
+            jPO.jsonDataTypeName = newValue.GetType().ToString();
+            jPO.actualObj = newValue;
 
-            if (!ENSUtils.IsSimple(newValue.GetType())) {
-               jPO = new JsonPacketObject(JsonUtility.ToJson(newValue), newValue.GetType().ToString());
-            } else
-            {
-                jPO = new JsonPacketObject(""+newValue, newValue.GetType().ToString());
-            }
+
+            //if (!ENSUtils.IsSimple(newValue.GetType())) {
+            //   jPO = new JsonPacketObject(JsonUtility.ToJson(newValue), newValue.GetType().ToString());
+            //} else
+            //{
+            //    jPO = new JsonPacketObject(""+newValue, newValue.GetType().ToString());
+            //}
 
             Packet pack = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
                 new NetworkFieldPacket(netObjID, fieldName, jPO,immediateOnSelf));
             pack.relatesToNetObjID = netObjID;
+            if(shouldBeProximity)
+            {
+                pack.packetSendType = Packet.sendType.proximity;
+                pack.packetPosition = new SerializableVector(netObj.transform.position);
+            }
             NetClient.instanceClient.SendPacket(pack);
             if (immediateOnSelf)
             {
@@ -374,7 +440,7 @@ namespace EntityNetworkingSystems
         }
 
 
-        public void LocalFieldSet<T>(T newValue)
+        public void LocalFieldSet<T>(T newValue, bool invokeOnChange = true)
         {
             if (ENSUtils.IsSimple(newValue.GetType()))
             {
@@ -392,7 +458,10 @@ namespace EntityNetworkingSystems
             constructedArgs.fieldValue = newValue;
 
             initialized = true;
-            onValueChange.Invoke(constructedArgs);
+            if (invokeOnChange)
+            {
+                onValueChange.Invoke(constructedArgs);
+            }
         }
 
         public object GetField()
@@ -411,6 +480,12 @@ namespace EntityNetworkingSystems
             }
         }
 
+        public void AddOnChangeMethod(UnityAction<FieldArgs> a)
+        {
+            onValueChange.AddListener(a);
+        }
+
+
         public bool IsInitialized()
         {
             return initialized;
@@ -425,6 +500,7 @@ namespace EntityNetworkingSystems
             newField.jsonData = jsonData;
             newField.jsonDataTypeName = jsonDataTypeName;
             newField.initialized = initialized;
+            newField.shouldBeProximity = shouldBeProximity;
             return newField;
         }
         public static NetworkFieldPacket GenerateNFP<T>(string fieldName, T newValue, bool immediateOnSelf = false, int netObjID=-1)

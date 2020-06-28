@@ -11,8 +11,7 @@ namespace EntityNetworkingSystems
         public static UnityPacketHandler instance = null;
         public bool handlerRunning = false;
         public List<Packet> packetQueue = new List<Packet>();
-        public int amountPerUpdate = 100;
-        
+        public int amountPerUpdate = 85;
         bool syncingBuffered = false;
 
         Coroutine runningHandler = null;
@@ -134,10 +133,7 @@ namespace EntityNetworkingSystems
                     nObj.sharedObject = gOID.isShared;
 
                     nObj.Initialize();
-                    if (NetTools.isServer)
-                    {
-                        nObj.DoRpcFieldInitialization();
-                    }
+                    nObj.DoRpcFieldInitialization();
 
                     if (nObj.onNetworkStart != null)
                     {
@@ -179,7 +175,7 @@ namespace EntityNetworkingSystems
             }
             else if (curPacket.packetType == Packet.pType.loginInfo)
             {
-                Debug.Log("Login Info Packet Recieved.");
+                //Debug.Log("Login Info Packet Recieved.");
                 NetTools.clientID = ((PlayerLoginData)curPacket.GetPacketData()).playerNetworkID;
                 NetClient.instanceClient.clientID = NetTools.clientID;
 
@@ -205,8 +201,13 @@ namespace EntityNetworkingSystems
                 }
 
                 //Debug.Log("Seting NetVarEdit.");
+                try
+                {
+                    netObj.SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
+                } catch
+                {
 
-                netObj.SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
+                }
             }
             else if (curPacket.packetType == Packet.pType.rpc)
             {
@@ -263,7 +264,14 @@ namespace EntityNetworkingSystems
 
         public void QueuePacket(Packet packet)
         {
-            packetQueue.Add(packet);
+            if (packet.packetType == Packet.pType.netVarEdit)
+            {
+                ExecutePacket(packet);
+            }
+            else
+            {
+                packetQueue.Add(packet);
+            }
         }
 
 

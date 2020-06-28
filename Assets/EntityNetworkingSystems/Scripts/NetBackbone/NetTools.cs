@@ -15,6 +15,7 @@ namespace EntityNetworkingSystems
         public static bool isClient = false;
         public static bool isSingleplayer = false;
 
+        public static PlayerJoinEvent onPlayerJoin = new PlayerJoinEvent();
         public static UnityEvent onJoinServer = new UnityEvent(); //Gets ran when the login packet finishes :D
         public static UnityEvent onBufferedCompletion = new UnityEvent(); //Gets ran when the buffered packets complete.
 
@@ -87,10 +88,7 @@ namespace EntityNetworkingSystems
             nObj.sharedObject = gOID.isShared;
 
             nObj.Initialize();
-            if (NetTools.isServer)
-            {
-                nObj.DoRpcFieldInitialization();
-            }
+            nObj.DoRpcFieldInitialization();
             if (nObj.onNetworkStart != null)
             {
                 nObj.onNetworkStart.Invoke();
@@ -197,4 +195,9 @@ namespace EntityNetworkingSystems
 
     }
 
+    public class PlayerJoinEvent : UnityEvent<NetworkPlayer>
+    {
+
+    }
 }
+

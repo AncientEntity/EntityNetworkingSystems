@@ -155,6 +155,20 @@ namespace EntityNetworkingSystems
 
             if(NetTools.isSingleplayer)
             {
+                if(packet.packetSendType == Packet.sendType.proximity)
+                {
+                    if(NetServer.serverInstance.connections.Count > 0)
+                    {
+                        if(Vector3.Distance(packet.packetPosition.ToVec3(), NetServer.serverInstance.connections[0].proximityPosition) > NetServer.serverInstance.connections[0].loadProximity)
+                        {
+                            return;
+                        }
+                    }
+                }
+                //if(packet.packetType == Packet.pType.netVarEdit && ((NetworkFieldPacket)packet.GetPacketData()).immediateOnSelf)
+                //{
+                //    return; //basically would be a double sync. No reason to.
+                //}
                 UnityPacketHandler.instance.QueuePacket(packet);
                 return;
             }
