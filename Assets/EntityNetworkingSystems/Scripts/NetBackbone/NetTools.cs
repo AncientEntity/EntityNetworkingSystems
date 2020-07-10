@@ -74,6 +74,7 @@ namespace EntityNetworkingSystems
                 foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultFields)
                 {
                     nObj.fields.Add(defaultField.Clone());
+                    //nObj.CreateField(defaultField.fieldName, null, init: defaultField.defaultValue, defaultField.shouldBeProximity);
                 }
                 foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultRpcs)
                 {
@@ -88,7 +89,7 @@ namespace EntityNetworkingSystems
             nObj.sharedObject = gOID.isShared;
 
             nObj.Initialize();
-            nObj.DoRpcFieldInitialization();
+            //nObj.DoRpcFieldInitialization();
             if (nObj.onNetworkStart != null)
             {
                 nObj.onNetworkStart.Invoke();

@@ -135,6 +135,7 @@ namespace EntityNetworkingSystems
                 return;
             }
 
+            NetTools.isSingleplayer = false;
             //Create server
             Debug.Log(IPAddress.Parse(hostAddress));
             server = new TcpListener(IPAddress.Any, hostPort);

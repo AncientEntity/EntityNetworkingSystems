@@ -110,7 +110,15 @@ namespace EntityNetworkingSystems
                 if (NetTools.clientID != curPacket.packetOwnerID || NetworkObject.NetObjFromNetID(gOID.netObjID) == null)
                 {
                     //GameObjectInstantiateData gOID = (GameObjectInstantiateData)curPacket.GetPacketData();
-                    GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), gOID.rotation.ToQuaternion());
+                    GameObject g = null;
+                    try
+                    {
+                        g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), gOID.rotation.ToQuaternion());
+                    } catch
+                    {
+                        Debug.Log("Error NetInstantiating: domainID: " + gOID.prefabDomainID + ", prefabID: " + gOID.prefabID);
+                        return;
+                    }
                     nObj = g.GetComponent<NetworkObject>();
                     if (nObj == null)
                     {
@@ -133,7 +141,7 @@ namespace EntityNetworkingSystems
                     nObj.sharedObject = gOID.isShared;
 
                     nObj.Initialize();
-                    nObj.DoRpcFieldInitialization();
+                    //nObj.DoRpcFieldInitialization();
 
                     if (nObj.onNetworkStart != null)
                     {
@@ -169,7 +177,10 @@ namespace EntityNetworkingSystems
             {
                 //Debug.Log("Recieved buffered packets.");
                 List<Packet> packetInfo = ((PacketListPacket)curPacket.GetPacketData()).packets;
-                packetQueue.AddRange(packetInfo);
+                lock (packetQueue)
+                {
+                    packetQueue.AddRange(packetInfo);
+                }
 
                 syncingBuffered = true;
             }
@@ -189,10 +200,16 @@ namespace EntityNetworkingSystems
 
                 NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.GetPacketData();
                 NetworkObject netObj = NetworkObject.NetObjFromNetID(nFP.networkObjID);
-                if (netObj == null)
+
+                if(netObj == null)
                 {
-                    //Debug.Log("Couldn't find object... " + nFP.networkObjID);
-                    return; //Probably was instantiated on client but not server or vice versa.
+                    return;
+                }
+
+                if(netObj.initialized == false)
+                {
+                    netObj.queuedNetworkPackets.Add(curPacket);
+                    return;
                 }
 
                 if ((netObj.ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !netObj.sharedObject) || (curPacket.packetOwnerID == NetTools.clientID && nFP.immediateOnSelf))

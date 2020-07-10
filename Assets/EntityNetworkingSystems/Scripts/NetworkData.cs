@@ -26,13 +26,14 @@ namespace EntityNetworkingSystems
                 Destroy(this);
             }
 
-            foreach(GameObjectList gOL in networkPrefabList)
-            {
-                foreach(NetworkField netField in gOL.defaultFields)
-                {
-                    netField.InitializeDefaultValue(null);
-                }
-            }
+            //Initializing moved to just happening when instantiating over the network.
+            //foreach(GameObjectList gOL in networkPrefabList)
+            //{
+            //    foreach(NetworkField netField in gOL.defaultFields)
+            //    {
+            //        netField.InitializeDefaultValue(null);
+            //    }
+            //}
         }
 
         public static void AddUsedNetID(int id)

@@ -107,6 +107,8 @@ namespace EntityNetworkingSystems
             netStream = client.GetStream();
             UnityPacketHandler.instance.StartHandler();
 
+            NetTools.isSingleplayer = false;
+
             if (useSteamworks)
             {
                 SteamInteraction.instance.StartClient();

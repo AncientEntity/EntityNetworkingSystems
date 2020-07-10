@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -28,8 +29,8 @@ namespace EntityNetworkingSystems
         //[HideInInspector]
         public int prefabDomainID = -1;
 
-        //[HideInInspector]
-        //public List<Packet> queuedNetworkPackets = new List<Packet>();
+        [HideInInspector]
+        public List<Packet> queuedNetworkPackets = new List<Packet>();
 
 
         void Awake()
@@ -50,9 +51,23 @@ namespace EntityNetworkingSystems
 
 
             NetworkData.AddUsedNetID(networkID);
-            allNetObjs.Add(this);
-            
+            lock (allNetObjs)
+            {
+                allNetObjs.Add(this);
+            }
+
             initialized = true;
+
+            foreach(MonoBehaviour c in gameObject.GetComponents(typeof(MonoBehaviour)))
+            {
+                if(c.GetType().GetMethod("NetworkStart") == null)
+                {
+                    continue;
+                }
+
+                c.SendMessage("NetworkStart");
+
+            }
 
             DoRpcFieldInitialization();
 
@@ -64,6 +79,17 @@ namespace EntityNetworkingSystems
                     NetClient.instanceClient.SendPacket(r.GenerateRPCPacket(call.Key, call.Value)); //Send any RPCs requested before the netObj was initialized.
                 }
                 r.queued = new Dictionary<Packet.sendType, object[]>(); //Clear it afterwards.
+            }
+            foreach(Packet queuedPacket in queuedNetworkPackets)
+            {
+                UnityPacketHandler.instance.ExecutePacket(queuedPacket);
+            }
+            queuedNetworkPackets = new List<Packet>();
+
+            //If you want automatic Animator networking, a little buggy.
+            if (GetComponent<Animator>() != null && GetComponent<AnimationNetworker>() == null)
+            {
+                gameObject.AddComponent<AnimationNetworker>();
             }
 
             //StartCoroutine(NetworkFieldPacketHandler());
@@ -122,23 +148,24 @@ namespace EntityNetworkingSystems
         public void OnDestroy()
         {
             //Remove from used lists
-            allNetObjs.Remove(this);
-            NetworkData.usedNetworkObjectInstances.Remove(networkID);
+            lock (allNetObjs)
+            {
+                allNetObjs.Remove(this);
+            }
+            //NetworkData.usedNetworkObjectInstances.Remove(networkID); //Probably a bad idea to remove them.
 
         }
 
         public static NetworkObject NetObjFromNetID(int netID)
         {
-            NetworkObject[] netObjArray = { };
             lock (allNetObjs)
             {
-                netObjArray = allNetObjs.ToArray();
-            }
-            foreach (NetworkObject netObj in netObjArray)
-            {
-                if (netObj.networkID == netID)
+                foreach (NetworkObject netObj in allNetObjs.ToArray())
                 {
-                    return netObj;
+                    if (netObj.networkID == netID)
+                    {
+                        return netObj;
+                    }
                 }
             }
             return null;
@@ -156,13 +183,15 @@ namespace EntityNetworkingSystems
             return false;
         }
 
-        public void CreateField(string fieldName, object value = null, NetworkField.valueInitializer init = NetworkField.valueInitializer.None)
+        
+        public void CreateField(string fieldName, object value = null, NetworkField.valueInitializer init = NetworkField.valueInitializer.None, bool isProximity=false)
         {
             if (FieldExists(fieldName) == false)
             {
                 NetworkField newField = new NetworkField();
                 newField.fieldName = fieldName;
                 newField.defaultValue = init;
+                newField.shouldBeProximity = isProximity;
                 if (value != null)
                 {
                     newField.UpdateField(value, this);
@@ -184,6 +213,11 @@ namespace EntityNetworkingSystems
             {
                 if (fields[i].fieldName == fieldName)
                 {
+                    if(fields[i].netObj == null)
+                    {
+                        fields[i].netObj = this;
+                    }
+
                     fields[i].UpdateField(data, networkID, immediateOnSelf);
                     break;
                 }
@@ -210,6 +244,7 @@ namespace EntityNetworkingSystems
                 {
                     if (fields[i].IsInitialized() == false)
                     {
+                        //Debug.LogError("GetField attempted on non initialized network field",transform);
                         fields[i].InitializeDefaultValue(this);
                     }
 
@@ -276,7 +311,9 @@ namespace EntityNetworkingSystems
         //A premade "on value change" method for positional network fields. Gets added to fields named ENS_Position
         public void ManagePositionField(FieldArgs args)
         {
-            transform.position = args.GetValue<SerializableVector>().ToVec3();
+            Vector3 newPos = args.GetValue<SerializableVector>().ToVec3();
+            transform.position = newPos;
+            //Debug.Log(newPos);
         }
 
         //A premade "on value change" method for network fields representing scales. Gets added to fields named ENS_Scale
@@ -284,6 +321,13 @@ namespace EntityNetworkingSystems
         {
             transform.localScale = args.GetValue<SerializableVector>().ToVec3();
         }
+
+        //A premade "on value change" method for network fields representing scales. Gets added to fields named ENS_Scale
+        public void ManageRotationField(FieldArgs args)
+        {
+            transform.rotation = args.GetValue<SerializableQuaternion>().ToQuaternion();
+        }
+
 
 
     }
@@ -302,35 +346,39 @@ namespace EntityNetworkingSystems
             BYTE_ARRAY,
             None,
             String,
+            Boolean,
+            serializableQuaternion,
         };
         public valueInitializer defaultValue = valueInitializer.None;
-        public OnFieldChange onValueChange;
+        public OnFieldChange onValueChange = new OnFieldChange();
         public bool shouldBeProximity = false;
         private string jsonData = "notinitialized";
         private string jsonDataTypeName = "notinitialized";
         private bool initialized = false;
         private int netID = -1;
-        private NetworkObject netObj;
+        [HideInInspector]
+        public NetworkObject netObj;
 
         public bool InitializeSpecialFields()
         {
-            if(netID == -1)
-            {
-                return false;
-            }
-
             if (fieldName == "ENS_Position")
             {
-                IfServerLocalSetField(new SerializableVector(netObj.transform.position), false);
+                LocalFieldSet(new SerializableVector(netObj.transform.position), false);
                 //shouldBeProximity = true;
                 onValueChange.AddListener(netObj.ManagePositionField);
                 return true;
             }
             else if (fieldName == "ENS_Scale")
             {
-                IfServerLocalSetField(new SerializableVector(netObj.transform.localScale), false);
+                LocalFieldSet(new SerializableVector(netObj.transform.localScale), false);
                 //shouldBeProximity = true;
                 onValueChange.AddListener(netObj.ManageScaleField);
+                return true;
+            }
+            else if (fieldName == "ENS_Rotation")
+            {
+                LocalFieldSet(new SerializableQuaternion(netObj.transform.rotation), false);
+                onValueChange.AddListener(netObj.ManageRotationField);
                 return true;
             }
             return false;
@@ -385,6 +433,12 @@ namespace EntityNetworkingSystems
                     case valueInitializer.String:
                         IfServerLocalSetField("", false);
                         break;
+                    case valueInitializer.Boolean:
+                        IfServerLocalSetField(false, false);
+                        break;
+                    case valueInitializer.serializableQuaternion:
+                        IfServerLocalSetField(new SerializableQuaternion(netObj.transform.rotation), false);
+                        break;
                 }
             }
         }
@@ -410,24 +464,45 @@ namespace EntityNetworkingSystems
             UpdateField(newValue, netObj.networkID);
         }
 
-        public void UpdateField<T>(T newValue, int netObjID, bool immediateOnSelf = true)
+        public void UpdateField<T>(T value, int netObjID, bool immediateOnSelf = true)
         {
-            JsonPacketObject jPO = new JsonPacketObject("",newValue.GetType().ToString());
-            jPO.jsonDataTypeName = newValue.GetType().ToString();
-            jPO.actualObj = newValue;
+            if(value == null)
+            {
+                Debug.LogError("Cannot change value to null...", netObj.transform);
+                return;
+            }
+
+            object newValue = value;
+            if(value.GetType() == typeof(Vector3))
+            {
+                newValue = new SerializableVector((Vector3)System.Convert.ChangeType(value,typeof(Vector3)));
+            }
+
+            if(netObj == null)
+            {
+                netObj = NetworkObject.NetObjFromNetID(netObjID);
+            }
+            if(netID == -1)
+            {
+                netID = netObj.networkID;
+            }
+
+            JsonPacketObject jPO;
 
 
-            //if (!ENSUtils.IsSimple(newValue.GetType())) {
-            //   jPO = new JsonPacketObject(JsonUtility.ToJson(newValue), newValue.GetType().ToString());
-            //} else
-            //{
-            //    jPO = new JsonPacketObject(""+newValue, newValue.GetType().ToString());
-            //}
+            if (!ENSUtils.IsSimple(newValue.GetType()))
+            {
+                jPO = new JsonPacketObject(JsonUtility.ToJson(newValue), newValue.GetType().ToString());
+            }
+            else
+            {
+                jPO = new JsonPacketObject("" + newValue, newValue.GetType().ToString());
+            }
 
             Packet pack = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
                 new NetworkFieldPacket(netObjID, fieldName, jPO,immediateOnSelf));
             pack.relatesToNetObjID = netObjID;
-            if(shouldBeProximity)
+            if(shouldBeProximity && netObj != null)
             {
                 pack.packetSendType = Packet.sendType.proximity;
                 pack.packetPosition = new SerializableVector(netObj.transform.position);
