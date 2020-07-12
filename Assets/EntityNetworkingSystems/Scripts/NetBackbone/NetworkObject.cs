@@ -19,6 +19,7 @@ namespace EntityNetworkingSystems
         public int ownerID = -1;
         public bool sharedObject = false; //All clients/server can effect the networkObject.
         public bool trackPlayerProxPos = false; //If true, and there is ENS_Position it'll be tracked as the players proximity position.
+        public bool detectNetworkStarts = false;
         public List<NetworkField> fields = new List<NetworkField>();
         public List<RPC> rpcs = new List<RPC>();
         [Space]
@@ -37,6 +38,14 @@ namespace EntityNetworkingSystems
         {
             //onNetworkStart.Invoke(); //Invokes inside of UnityPacketHandler
 
+        }
+
+        void Start()
+        {
+            foreach(NetworkField f in fields)
+            {
+                f.InitializeSpecialFields();
+            }
         }
 
 
@@ -58,15 +67,17 @@ namespace EntityNetworkingSystems
 
             initialized = true;
 
-            foreach(MonoBehaviour c in gameObject.GetComponents(typeof(MonoBehaviour)))
+            if (detectNetworkStarts)
             {
-                if(c.GetType().GetMethod("NetworkStart") == null)
+                foreach (MonoBehaviour c in gameObject.GetComponents(typeof(MonoBehaviour)))
                 {
-                    continue;
+                    if (c.GetType().GetMethod("NetworkStart") == null)
+                    {
+                        continue;
+                    }
+
+                    c.SendMessage("NetworkStart");
                 }
-
-                c.SendMessage("NetworkStart");
-
             }
 
             DoRpcFieldInitialization();
@@ -80,11 +91,6 @@ namespace EntityNetworkingSystems
                 }
                 r.queued = new Dictionary<Packet.sendType, object[]>(); //Clear it afterwards.
             }
-            foreach(Packet queuedPacket in queuedNetworkPackets)
-            {
-                UnityPacketHandler.instance.ExecutePacket(queuedPacket);
-            }
-            queuedNetworkPackets = new List<Packet>();
 
             //If you want automatic Animator networking, a little buggy.
             if (GetComponent<Animator>() != null && GetComponent<AnimationNetworker>() == null)
@@ -95,27 +101,27 @@ namespace EntityNetworkingSystems
             //StartCoroutine(NetworkFieldPacketHandler());
         }
 
-        //public IEnumerator NetworkFieldPacketHandler ()
-        //{
-        //    yield return new WaitUntil(() => initialized);
-        //    while(initialized)
-        //    {
-        //        yield return new WaitUntil(() => queuedNetworkPackets.Count > 0);
+        public IEnumerator NetworkFieldPacketHandler()
+        {
+            yield return new WaitUntil(() => initialized);
+            while (initialized)
+            {
+                yield return new WaitUntil(() => queuedNetworkPackets.Count > 0);
 
-        //        Packet curPacket = queuedNetworkPackets[0];
-        //        NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.GetPacketData();
+                Packet curPacket = queuedNetworkPackets[0];
+                NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.GetPacketData();
 
-        //        if ((ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !sharedObject) || (curPacket.packetOwnerID == NetTools.clientID && nFP.immediateOnSelf))
-        //        {
-        //            queuedNetworkPackets.RemoveAt(0);
-        //            continue;
-        //        }
+                if ((ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !sharedObject) || (curPacket.packetOwnerID == NetTools.clientID && nFP.immediateOnSelf))
+                {
+                    queuedNetworkPackets.RemoveAt(0);
+                    continue;
+                }
 
-        //        SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
-        //        queuedNetworkPackets.RemoveAt(0);
+                SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
+                queuedNetworkPackets.RemoveAt(0);
 
-        //    }
-        //}
+            }
+        }
 
         public void DoRpcFieldInitialization()
         {
@@ -228,6 +234,7 @@ namespace EntityNetworkingSystems
         {
             for (int i = 0; i < fields.Count; i++)
             {
+
                 if (fields[i].fieldName == fieldName)
                 {
                     fields[i].LocalFieldSet(data);
@@ -311,7 +318,14 @@ namespace EntityNetworkingSystems
         //A premade "on value change" method for positional network fields. Gets added to fields named ENS_Position
         public void ManagePositionField(FieldArgs args)
         {
-            Vector3 newPos = args.GetValue<SerializableVector>().ToVec3();
+            //SerializableVector sVec = args.GetValue<SerializableVector>();
+            //if(sVec == null)
+            //{
+            //    return;
+            //}
+
+            Vector3 newPos = args.GetValue<SerializableVector>().ToVec3();//sVec.ToVec3();
+            print(newPos);
             transform.position = newPos;
             //Debug.Log(newPos);
         }
@@ -355,30 +369,51 @@ namespace EntityNetworkingSystems
         private string jsonData = "notinitialized";
         private string jsonDataTypeName = "notinitialized";
         private bool initialized = false;
+        private bool specialFieldsInitialized = false;
         private int netID = -1;
         [HideInInspector]
         public NetworkObject netObj;
 
-        public bool InitializeSpecialFields()
+
+
+        public bool InitializeSpecialFields(bool justListener = false)
         {
+            if(specialFieldsInitialized)
+            {
+                return true;
+            }
+
             if (fieldName == "ENS_Position")
             {
-                LocalFieldSet(new SerializableVector(netObj.transform.position), false);
+                if (!justListener)
+                {
+                    IfServerUpdateField(new SerializableVector(netObj.transform.position), netID, true);
+                }
                 //shouldBeProximity = true;
+                //onValueChange.AddListener(new UnityAction<FieldArgs>(netObj.ManagePositionField));
                 onValueChange.AddListener(netObj.ManagePositionField);
+                specialFieldsInitialized = true;
                 return true;
             }
             else if (fieldName == "ENS_Scale")
             {
-                LocalFieldSet(new SerializableVector(netObj.transform.localScale), false);
+                if (!justListener)
+                {
+                    IfServerUpdateField(new SerializableVector(netObj.transform.localScale), netID, true);
+                }
                 //shouldBeProximity = true;
-                onValueChange.AddListener(netObj.ManageScaleField);
+                onValueChange.AddListener(new UnityAction<FieldArgs>(netObj.ManageScaleField));
+                specialFieldsInitialized = true;
                 return true;
             }
             else if (fieldName == "ENS_Rotation")
             {
-                LocalFieldSet(new SerializableQuaternion(netObj.transform.rotation), false);
-                onValueChange.AddListener(netObj.ManageRotationField);
+                if (!justListener)
+                {
+                    IfServerUpdateField(new SerializableQuaternion(netObj.transform.rotation), netID, true);
+                }
+                onValueChange.AddListener(new UnityAction<FieldArgs>(netObj.ManageRotationField));
+                specialFieldsInitialized = true;
                 return true;
             }
             return false;
@@ -392,7 +427,7 @@ namespace EntityNetworkingSystems
                 {
                     this.netID = netObj.networkID; //We do this here since NetworkData initializes the template fields but doesnt know this yet.
                     this.netObj = netObj;
-                    InitializeSpecialFields();
+                    //InitializeSpecialFields();
                 }
                 return;
             }
@@ -441,6 +476,7 @@ namespace EntityNetworkingSystems
                         break;
                 }
             }
+            initialized = true;
         }
 
         public void IfServerLocalSetField(object newValue, bool invokeOnChange=true)
@@ -507,7 +543,10 @@ namespace EntityNetworkingSystems
                 pack.packetSendType = Packet.sendType.proximity;
                 pack.packetPosition = new SerializableVector(netObj.transform.position);
             }
-            NetClient.instanceClient.SendPacket(pack);
+            if (NetClient.instanceClient != null)
+            {
+                NetClient.instanceClient.SendPacket(pack);
+            }
             if (immediateOnSelf)
             {
                 LocalFieldSet(newValue);
@@ -517,6 +556,8 @@ namespace EntityNetworkingSystems
 
         public void LocalFieldSet<T>(T newValue, bool invokeOnChange = true)
         {
+            InitializeSpecialFields(true); //Cause when data gets sent over the network it may miss doing this, then there wont be able special UnityEvents added.
+
             if (ENSUtils.IsSimple(newValue.GetType()))
             {
                 jsonData = "" + newValue;
@@ -571,11 +612,12 @@ namespace EntityNetworkingSystems
             NetworkField newField = new NetworkField();
             newField.fieldName = fieldName;
             newField.defaultValue = defaultValue;
-            newField.onValueChange = onValueChange;
-            newField.jsonData = jsonData;
-            newField.jsonDataTypeName = jsonDataTypeName;
-            newField.initialized = initialized;
+            //newField.onValueChange = new OnFieldChange(); //On value changed is not cloned.
+            //newField.jsonData = jsonData;
+            //newField.jsonDataTypeName = jsonDataTypeName;
+            //newField.initialized = initialized;
             newField.shouldBeProximity = shouldBeProximity;
+            newField.specialFieldsInitialized = false;
             return newField;
         }
         public static NetworkFieldPacket GenerateNFP<T>(string fieldName, T newValue, bool immediateOnSelf = false, int netObjID=-1)
@@ -613,7 +655,13 @@ namespace EntityNetworkingSystems
 
         public T GetValue<T>()
         {
-            return (T)System.Convert.ChangeType(fieldValue, typeof(T));
+            try
+            {
+                return (T)System.Convert.ChangeType(fieldValue, typeof(T));
+            } catch
+            {
+                return default;
+            }
         }
 
     }

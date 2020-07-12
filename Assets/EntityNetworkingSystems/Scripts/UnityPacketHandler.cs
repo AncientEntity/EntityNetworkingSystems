@@ -153,7 +153,7 @@ namespace EntityNetworkingSystems
                         foreach (NetworkFieldPacket nFP in gOID.fieldDefaults)
                         {
                             nFP.networkObjID = gOID.netObjID;
-                            Debug.Log(nFP.data);
+                            //Debug.Log(nFP.data);
                             nObj.UpdateField(nFP.fieldName, nFP.data.ToObject(), nFP.immediateOnSelf);
                         }
                     }
@@ -208,7 +208,7 @@ namespace EntityNetworkingSystems
 
                 if(netObj.initialized == false)
                 {
-                    netObj.queuedNetworkPackets.Add(curPacket);
+                    //netObj.queuedNetworkPackets.Add(curPacket);
                     return;
                 }
 
@@ -217,13 +217,15 @@ namespace EntityNetworkingSystems
                     return;
                 }
 
+                
                 //Debug.Log("Seting NetVarEdit.");
                 try
                 {
                     netObj.SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
-                } catch
+                }
+                catch (System.Exception e)
                 {
-
+                    Debug.LogError(e);
                 }
             }
             else if (curPacket.packetType == Packet.pType.rpc)
@@ -281,14 +283,7 @@ namespace EntityNetworkingSystems
 
         public void QueuePacket(Packet packet)
         {
-            if (packet.packetType == Packet.pType.netVarEdit)
-            {
-                ExecutePacket(packet);
-            }
-            else
-            {
-                packetQueue.Add(packet);
-            }
+            packetQueue.Add(packet);
         }
 
 

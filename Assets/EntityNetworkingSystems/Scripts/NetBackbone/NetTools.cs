@@ -1,6 +1,7 @@
 ﻿using EntityNetworkingSystems;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
@@ -19,6 +20,7 @@ namespace EntityNetworkingSystems
         public static UnityEvent onJoinServer = new UnityEvent(); //Gets ran when the login packet finishes :D
         public static UnityEvent onBufferedCompletion = new UnityEvent(); //Gets ran when the buffered packets complete.
 
+        public static Thread mainUnityThread = Thread.CurrentThread;
 
         //Useless cause NetInstantiate should check, but still here!
         public static GameObject ManagedInstantiate(int prefabDomain, int prefabID, Vector3 position, Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false)

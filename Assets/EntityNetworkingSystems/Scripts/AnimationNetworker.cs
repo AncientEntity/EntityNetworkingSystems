@@ -35,15 +35,32 @@ namespace EntityNetworkingSystems {
                     net.FieldAddOnChangeMethod(parameter.name, OnNetworkFieldBoolUpdate);
                 }
             }
-            if(NetTools.isServer)
+            if(net.IsOwner() && net.initialized)
             {
                 StartCoroutine(HandleAnimationBoolPackets());
+            } else if (net.initialized == false)
+            {
+                StartCoroutine(CheckToDoAnim());
             }
             
         }
+
+        IEnumerator CheckToDoAnim()
+        {
+            yield return new WaitUntil(() => net.initialized);
+            yield return new WaitForFixedUpdate();
+
+            if(net.IsOwner())
+            {
+                StartCoroutine(HandleAnimationBoolPackets());
+            }
+
+            yield return new WaitForFixedUpdate();
+        }
+
         IEnumerator HandleAnimationBoolPackets()
         {
-            while(NetServer.serverInstance != null)
+            while(NetServer.serverInstance != null || NetClient.instanceClient != null)
             {
 
                 int index = 0;
