@@ -89,6 +89,7 @@ namespace EntityNetworkingSystems
             nObj.prefabID = gOID.prefabID;
             nObj.networkID = gOID.netObjID;
             nObj.sharedObject = gOID.isShared;
+            nObj.detectNetworkStarts = NetworkData.instance.networkPrefabList[gOID.prefabDomainID].detectNetworkStarts;
 
             nObj.Initialize();
             //nObj.DoRpcFieldInitialization();

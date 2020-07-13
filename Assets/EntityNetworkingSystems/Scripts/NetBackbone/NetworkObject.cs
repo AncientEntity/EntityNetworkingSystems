@@ -40,13 +40,13 @@ namespace EntityNetworkingSystems
 
         }
 
-        void Start()
-        {
-            foreach(NetworkField f in fields)
-            {
-                f.InitializeSpecialFields();
-            }
-        }
+        //void Start()
+        //{
+        //    foreach(NetworkField f in fields)
+        //    {
+        //        f.InitializeSpecialFields();
+        //    }
+        //}
 
 
 
@@ -75,7 +75,6 @@ namespace EntityNetworkingSystems
                     {
                         continue;
                     }
-
                     c.SendMessage("NetworkStart");
                 }
             }
@@ -303,13 +302,24 @@ namespace EntityNetworkingSystems
             }
         }
 
-        public void FieldAddOnChangeMethod(string fieldName, UnityAction<FieldArgs> action)
+        public void FieldAddOnChangeMethod(string fieldName, UnityAction<FieldArgs> action, bool invokeNow=false)
         {
             foreach(NetworkField netField in fields)
             {
                 if(netField.fieldName == fieldName)
                 {
                     netField.onValueChange.AddListener(action);
+
+                    if(invokeNow == true)
+                    {
+                        FieldArgs constructedArgs = new FieldArgs();
+                        constructedArgs.fieldName = fieldName;
+                        constructedArgs.networkID = networkID;
+                        constructedArgs.fieldValue = netField.GetField();
+
+                        netField.onValueChange.Invoke(constructedArgs);
+                    }
+
                     return;
                 }
             }
@@ -325,7 +335,7 @@ namespace EntityNetworkingSystems
             //}
 
             Vector3 newPos = args.GetValue<SerializableVector>().ToVec3();//sVec.ToVec3();
-            print(newPos);
+            //print(newPos);
             transform.position = newPos;
             //Debug.Log(newPos);
         }
@@ -365,6 +375,7 @@ namespace EntityNetworkingSystems
         };
         public valueInitializer defaultValue = valueInitializer.None;
         public OnFieldChange onValueChange = new OnFieldChange();
+        public OnValueMethodData[] onValueChangeMethods;
         public bool shouldBeProximity = false;
         private string jsonData = "notinitialized";
         private string jsonDataTypeName = "notinitialized";
@@ -441,7 +452,6 @@ namespace EntityNetworkingSystems
             //UpdateField(default(T),netID,true);
 
             //initialized = true; //Gets set in LocalFieldSet
-
 
             if(!InitializeSpecialFields()) 
             {
@@ -556,7 +566,7 @@ namespace EntityNetworkingSystems
 
         public void LocalFieldSet<T>(T newValue, bool invokeOnChange = true)
         {
-            InitializeSpecialFields(true); //Cause when data gets sent over the network it may miss doing this, then there wont be able special UnityEvents added.
+            //InitializeSpecialFields(true); //Cause when data gets sent over the network it may miss doing this, then there wont be able special UnityEvents added.
 
             if (ENSUtils.IsSimple(newValue.GetType()))
             {
@@ -577,6 +587,19 @@ namespace EntityNetworkingSystems
             if (invokeOnChange)
             {
                 onValueChange.Invoke(constructedArgs);
+
+                //You can also input the method names as strings, not as efficient but sometimes necessary.
+                if (onValueChangeMethods != null)
+                {
+                    foreach (OnValueMethodData methodData in onValueChangeMethods)
+                    {
+                        if (netObj.GetComponent(methodData.componentTypeName) != null)
+                        {
+                            netObj.GetComponent(methodData.componentTypeName).SendMessage(methodData.methodName, constructedArgs);
+                        }
+                    }
+                }
+
             }
         }
 
@@ -618,6 +641,7 @@ namespace EntityNetworkingSystems
             //newField.initialized = initialized;
             newField.shouldBeProximity = shouldBeProximity;
             newField.specialFieldsInitialized = false;
+            newField.onValueChangeMethods = onValueChangeMethods;
             return newField;
         }
         public static NetworkFieldPacket GenerateNFP<T>(string fieldName, T newValue, bool immediateOnSelf = false, int netObjID=-1)
@@ -636,6 +660,13 @@ namespace EntityNetworkingSystems
             return new NetworkFieldPacket(netObjID, fieldName, jPO, immediateOnSelf);
         }
 
+
+        [System.Serializable]
+        public struct OnValueMethodData
+        {
+            public string componentTypeName;
+            public string methodName;
+        }
 
 
     }
@@ -680,6 +711,7 @@ namespace EntityNetworkingSystems
             data = val;
             this.immediateOnSelf = immediateOnSelf;
         }
+        
 
     }
 

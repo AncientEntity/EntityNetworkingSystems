@@ -62,6 +62,7 @@ namespace EntityNetworkingSystems
         public GameObject[] prefabList;
         [Space]
         //These will automatically get applied to objects in this certain prefab domain when created, and if it doesn't have a netobj on it already.
+        public bool detectNetworkStarts = false;
         public List<NetworkField> defaultFields;
         public RPC[] defaultRpcs;
     }

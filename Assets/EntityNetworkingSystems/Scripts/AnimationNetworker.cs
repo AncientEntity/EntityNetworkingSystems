@@ -13,6 +13,8 @@ namespace EntityNetworkingSystems {
         private NetworkObject net;
         //private Thread handleAnimation;
 
+        
+
         void Start()
         {
             anim = GetComponent<Animator>();
