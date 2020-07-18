@@ -8,10 +8,17 @@ namespace EntityNetworkingSystems {
     {
         public List<AnimatorControllerParameter> animationBools = new List<AnimatorControllerParameter>();
         public List<bool> animationBoolsLastValue = new List<bool>();
+        public bool manageSpriteFlips = true;
+
+
 
         private Animator anim;
         private NetworkObject net;
+        private SpriteRenderer sR;
         //private Thread handleAnimation;
+
+        private bool lastSpriteFlipXValue = false;
+        private bool lastSpriteFlipYValue = false;
 
         
 
@@ -19,52 +26,66 @@ namespace EntityNetworkingSystems {
         {
             anim = GetComponent<Animator>();
             net = GetComponent<NetworkObject>();
+            sR = GetComponent<SpriteRenderer>();
             if (anim == null)
             {
                 Destroy(this);
             }
+
+            if(sR == null)
+            {
+                manageSpriteFlips = false;
+            }
+
             foreach (AnimatorControllerParameter parameter in anim.parameters)
             {
                 if (parameter.type == AnimatorControllerParameterType.Bool)
                 {
-                    if (NetTools.isServer)
-                    {
-                        animationBools.Add(parameter);
-                        animationBoolsLastValue.Add(anim.GetBool(parameter.name));
-                    }
+                    animationBools.Add(parameter);
+                    animationBoolsLastValue.Add(anim.GetBool(parameter.name));
 
                     net.CreateField(parameter.name, anim.GetBool(parameter.name), NetworkField.valueInitializer.Boolean,true);
                     net.FieldAddOnChangeMethod(parameter.name, OnNetworkFieldBoolUpdate);
+                    //net.FieldAddStringChangeMethod(parameter.name, "OnNetworkFieldBoolUpdate", "EntityNetworkingSystemsAnimationNetworker");
                 }
             }
-            if(net.IsOwner() && net.initialized)
-            {
-                StartCoroutine(HandleAnimationBoolPackets());
-            } else if (net.initialized == false)
-            {
-                StartCoroutine(CheckToDoAnim());
-            }
-            
-        }
 
-        IEnumerator CheckToDoAnim()
-        {
-            yield return new WaitUntil(() => net.initialized);
-            yield return new WaitForFixedUpdate();
+            if(manageSpriteFlips)
+            {
+                net.CreateField("SRFlipX", sR.flipX, init: NetworkField.valueInitializer.Boolean, true);
+                net.CreateField("SRFlipY", sR.flipX, init: NetworkField.valueInitializer.Boolean, true);
+
+                net.FieldAddOnChangeMethod("SRFlipX", OnNetworkFieldFlipX);
+                net.FieldAddOnChangeMethod("SRFlipY", OnNetworkFieldFlipY);
+            }
+
 
             if(net.IsOwner())
             {
                 StartCoroutine(HandleAnimationBoolPackets());
             }
-
-            yield return new WaitForFixedUpdate();
+            
         }
+
+        //IEnumerator CheckToDoAnim()
+        //{
+        //    yield return new WaitUntil(() => net.initialized);
+        //    yield return new WaitForFixedUpdate();
+
+        //    if(net.IsOwner())
+        //    {
+        //        StartCoroutine(HandleAnimationBoolPackets());
+        //    }
+
+        //    yield return new WaitForFixedUpdate();
+        //}
 
         IEnumerator HandleAnimationBoolPackets()
         {
             while(NetServer.serverInstance != null || NetClient.instanceClient != null)
             {
 
+                //Animation checking
                 int index = 0;
                 foreach(AnimatorControllerParameter parameter in animationBools)
                 {
@@ -79,7 +100,23 @@ namespace EntityNetworkingSystems {
                     }
                     index += 1;
                 }
-                yield return new WaitForSeconds(1f / 30f);
+
+                //SpriteRenderer flip checking
+                if(manageSpriteFlips)
+                {
+                    if (lastSpriteFlipXValue != sR.flipX)
+                    {
+                        net.UpdateField("SRFlipX", sR.flipX, true);
+                        lastSpriteFlipXValue = sR.flipX;
+                    }
+                    if (lastSpriteFlipYValue != sR.flipY)
+                    {
+                        net.UpdateField("SRFlipY", sR.flipY, true);
+                        lastSpriteFlipYValue = sR.flipY;
+                    }
+                }
+
+                yield return new WaitForSeconds(1f / 15f);
             }
             Debug.Log("Handle Animation Bool Packets has ended.");
         }
@@ -88,6 +125,16 @@ namespace EntityNetworkingSystems {
         {
             anim.SetBool(args.fieldName, args.GetValue<bool>());
             //Debug.Log("Field Updated... " + args.fieldName + " "+args.GetValue<bool>());
+        }
+
+        public void OnNetworkFieldFlipX(FieldArgs args)
+        {
+            sR.flipX = args.GetValue<bool>();
+        }
+
+        public void OnNetworkFieldFlipY(FieldArgs args)
+        {
+            sR.flipX = args.GetValue<bool>();
         }
 
 

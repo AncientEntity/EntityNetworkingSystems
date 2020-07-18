@@ -84,7 +84,7 @@ namespace EntityNetworkingSystems
         {
             System.Type t = System.Type.GetType(jsonDataTypeName);
             //Debug.Log(t);
-            if (t.ToString() == "EntityNetworkingSystems.IntPacket")
+            if (t == typeof(IntPacket))
             {
                 //If integer you must first convert it out of a IntPacket.
                 return JsonUtility.FromJson<IntPacket>(jsonData).integer;

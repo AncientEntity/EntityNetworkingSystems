@@ -91,6 +91,7 @@ namespace EntityNetworkingSystems
             nObj.sharedObject = gOID.isShared;
             nObj.detectNetworkStarts = NetworkData.instance.networkPrefabList[gOID.prefabDomainID].detectNetworkStarts;
 
+
             nObj.Initialize();
             //nObj.DoRpcFieldInitialization();
             if (nObj.onNetworkStart != null)
@@ -115,6 +116,11 @@ namespace EntityNetworkingSystems
 
         public static void NetDestroy(NetworkObject netObj, Packet.sendType sT = Packet.sendType.buffered)
         {
+            if(netObj == null)
+            {
+                return;
+            }
+
             NetDestroy(netObj.networkID, sT);
         }
 
@@ -155,7 +161,7 @@ namespace EntityNetworkingSystems
             //Will generate all the packets required to sync scenes for users. Useful for right when the server begins.
             //Only generates packets for NetworkObject's that are included inside of NetworkData's prefab domains.
             List<Packet> objPackets = new List<Packet>();
-            foreach (NetworkObject netObj in NetworkObject.allNetObjs)
+            foreach (NetworkObject netObj in NetworkObject.allNetObjs.Values)
             {
                 if (netObj.prefabID == -1 || netObj.prefabDomainID == -1)
                 {
@@ -195,6 +201,14 @@ namespace EntityNetworkingSystems
         public static bool IsMultiplayerGame()
         {
             return isServer || isClient;
+        }
+
+        public static void UpdatePlayerProximityPosition(int clientID, Vector3 position)
+        {
+            if (NetTools.isServer)
+            {
+                NetServer.serverInstance.GetPlayerByID(clientID).proximityPosition = position;
+            }
         }
 
     }

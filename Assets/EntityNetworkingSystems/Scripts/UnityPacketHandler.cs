@@ -139,6 +139,7 @@ namespace EntityNetworkingSystems
                     nObj.prefabID = gOID.prefabID;
                     nObj.networkID = gOID.netObjID;
                     nObj.sharedObject = gOID.isShared;
+                    nObj.detectNetworkStarts = NetworkData.instance.networkPrefabList[gOID.prefabDomainID].detectNetworkStarts;
 
                     nObj.Initialize();
                     //nObj.DoRpcFieldInitialization();
@@ -221,7 +222,7 @@ namespace EntityNetworkingSystems
                 //Debug.Log("Seting NetVarEdit.");
                 try
                 {
-                    netObj.SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
+                    netObj.SetFieldLocal(nFP.fieldName, nFP.data.ToObject(),nFP.blockSelfMethods,curPacket.packetOwnerID);
                 }
                 catch (System.Exception e)
                 {

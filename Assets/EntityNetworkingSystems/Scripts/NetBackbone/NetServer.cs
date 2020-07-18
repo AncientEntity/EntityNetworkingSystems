@@ -146,6 +146,7 @@ namespace EntityNetworkingSystems
             UnityPacketHandler.instance.StartHandler();
 
             connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
+            connectionHandler.Name = "Epocria Server Connection Handler";
             connectionHandler.Start();
             //packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
             //packetSendHandler.Start();
@@ -198,6 +199,7 @@ namespace EntityNetworkingSystems
                 Debug.Log("New Client Connected Successfully.");
 
                 Thread connThread = new Thread(() => ClientHandler(netClient));
+                connThread.Name = "ClientHandler" + netClient.clientID;
                 connThread.Start();
 
                 NetTools.onPlayerJoin.Invoke(netClient);
@@ -261,7 +263,7 @@ namespace EntityNetworkingSystems
                 List<Packet> packetsToSend = new List<Packet>(); //Will contain buffered packets and all network fields to be updated.
                 packetsToSend.AddRange(bufferedPackets.ToArray());
                 //Debug.Log(packetsToSend.Count);
-                foreach (NetworkObject netObj in NetworkObject.allNetObjs.ToArray())
+                foreach (NetworkObject netObj in NetworkObject.allNetObjs.Values.ToArray())
                 {
                     if (netObj.fields.Count > 0)
                     {
@@ -299,6 +301,7 @@ namespace EntityNetworkingSystems
             }
 
             bool clientRunning = true;
+            
 
             while (client != null && server != null && clientRunning)
             {
@@ -306,6 +309,13 @@ namespace EntityNetworkingSystems
                 {
                     //Thread.Sleep(50);
                     Packet pack = RecvPacket(client);
+
+                    if(pack == null)
+                    {
+                        return;
+                    }
+
+                    
                     if (pack.packetOwnerID != client.clientID)// && client.tcpClient == NetClient.instanceClient.client) //if server dont change cause if it is -1 it has all authority.
                     {
                         pack.packetOwnerID = client.clientID;
@@ -377,9 +387,9 @@ namespace EntityNetworkingSystems
                 catch (System.Exception e)
                 {
                     //Something went wrong with packet deserialization or connection closed.
-                    //Debug.LogError(e);
-                    clientRunning = false; //Basically end the thread.
-
+                    Debug.LogError(e);
+                    //clientRunning = false; //Basically end the thread.
+                    
                 }
             }
             Debug.Log("NetServer.ClientHandler() thread has successfully finished.");
@@ -434,7 +444,7 @@ namespace EntityNetworkingSystems
             {
                 lock (player.tcpClient)
                 {
-                    byte[] array = Packet.SerializeObject(packet);//Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));
+                    byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));//Packet.SerializeObject(packet);
 
                     //First send packet size
                     byte[] arraySize = new byte[4];
@@ -462,7 +472,7 @@ namespace EntityNetworkingSystems
             player.tcpClient.ReceiveBufferSize = pSize;
             byteMessage = RecieveSizeSpecificData(pSize, player.netStream);
             //player.netStream.Read(byteMessage, 0, byteMessage.Length);
-            return (Packet)Packet.DeserializeObject(byteMessage);//Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));
+            return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage)); //(Packet)Packet.DeserializeObject(byteMessage);
         }
 
         byte[] RecieveSizeSpecificData(int byteCountToGet, NetworkStream netStream)

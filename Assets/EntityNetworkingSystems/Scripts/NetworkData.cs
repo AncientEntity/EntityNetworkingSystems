@@ -63,6 +63,7 @@ namespace EntityNetworkingSystems
         [Space]
         //These will automatically get applied to objects in this certain prefab domain when created, and if it doesn't have a netobj on it already.
         public bool detectNetworkStarts = false;
+        //public float defaultDisableProximityRange = -1; //If negative it is ignored.
         public List<NetworkField> defaultFields;
         public RPC[] defaultRpcs;
     }

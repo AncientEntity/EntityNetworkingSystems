@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using static EntityNetworkingSystems.NetworkField;
 
 namespace EntityNetworkingSystems
 {
@@ -12,6 +13,7 @@ namespace EntityNetworkingSystems
         public string rpcName;
         public bool serverAuthorityRequired = false;
         public RPCEvent onRpc = new RPCEvent();
+        public List<OnValueMethodData> onValueChangeMethods = new List<OnValueMethodData>();
         private NetworkObject net; //Gets auto set by NetworkObject in Initialize
         private int rpcIndex = -1; //Gets auto set by NetworkObject in Initialize
 
@@ -58,6 +60,8 @@ namespace EntityNetworkingSystems
         public void InvokeRPC(RPCArgs args)
         {
             onRpc.Invoke(args);
+            InvokeOnValueChangeMethods(args);
+            
         }
 
         public RPC Clone()
@@ -66,7 +70,22 @@ namespace EntityNetworkingSystems
             newRPC.rpcName = rpcName;
             newRPC.serverAuthorityRequired = serverAuthorityRequired;
             newRPC.onRpc = onRpc;
+            newRPC.onValueChangeMethods = onValueChangeMethods;
             return newRPC;
+        }
+
+        public void InvokeOnValueChangeMethods(RPCArgs constructedArgs)
+        {
+            if (onValueChangeMethods != null)
+            {
+                foreach (OnValueMethodData methodData in onValueChangeMethods)
+                {
+                    if (net.GetComponent(methodData.componentTypeName) != null)
+                    {
+                        net.GetComponent(methodData.componentTypeName).SendMessage(methodData.methodName, constructedArgs);
+                    }
+                }
+            }
         }
 
     }
@@ -118,6 +137,7 @@ namespace EntityNetworkingSystems
 
             return rpcArgs;
         }
+
 
     }
 
