@@ -123,8 +123,8 @@ namespace EntityNetworkingSystems
                 authPacket.sendToAll = false;
                 SendPacket(authPacket);
             }
-            packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
-            packetSendHandler.Start();
+            //packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
+            //packetSendHandler.Start();
             connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
             connectionHandler.Start();
         }
@@ -147,15 +147,15 @@ namespace EntityNetworkingSystems
             }
         }
 
-        public void SendPacket(Packet packet, bool queuedPacket = false)
+        public void SendPacket(Packet packet)//, bool queuedPacket = false)
         {
-            if (!queuedPacket)
-            {
-                queuedSendingPackets.Add(packet);
-                return;
-            }
-
-            if (NetTools.isSingleplayer)
+            //if(!queuedPacket)
+            //{
+            //    queuedSendingPackets.Add(packet);
+            //    return;
+            //}
+            
+            if(NetTools.isSingleplayer)
             {
                 if(packet.packetSendType == Packet.sendType.proximity)
                 {
@@ -178,7 +178,7 @@ namespace EntityNetworkingSystems
             lock (netStream){
                 lock (client)
                 {
-                    byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet)); //Packet.SerializeObject(packet);
+                    byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));//Packet.SerializeObject(packet);
 
 
                     //First send packet size
@@ -208,7 +208,7 @@ namespace EntityNetworkingSystems
             byteMessage = RecieveSizeSpecificData(pSize, netStream);
             //netStream.Read(byteMessage, 0, byteMessage.Length);
             //Debug.Log(Encoding.ASCII.GetString(byteMessage));
-            return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage)); //(Packet)Packet.DeserializeObject(byteMessage);
+            return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));//(Packet)Packet.DeserializeObject(byteMessage);
         }
 
 
@@ -230,33 +230,32 @@ namespace EntityNetworkingSystems
             return bytesRecieved.ToArray();
         }
 
-        public List<Packet> queuedSendingPackets = new List<Packet>();
+        //public List<Packet> queuedSendingPackets = new List<Packet>();
 
-        public void SendingPacketHandler()
-        {
-            while (NetClient.instanceClient != null)
-            {
-                //Debug.Log("SendingPacketHandler running");
-                if (queuedSendingPackets.Count <= 0)
-                {
-                    continue;
-                }
+        //public void SendingPacketHandler()
+        //{
+        //    while (NetClient.instanceClient != null)
+        //    {
+        //        //Debug.Log("SendingPacketHandler running");
+        //        if (queuedSendingPackets.Count <= 0)
+        //        {
+        //            continue;
+        //        }
 
-                try
-                {
-                    foreach (Packet packet in queuedSendingPackets.ToArray())
-                    {
-                        SendPacket(packet, true);
-                    }
-                    queuedSendingPackets = new List<Packet>();
-                }
-                catch
-                {
+        //        try
+        //        {
+        //            foreach (Packet packet in queuedSendingPackets.ToArray())
+        //            {
+        //                SendPacket(packet, true);
+        //            }
+        //            queuedSendingPackets = new List<Packet>();
+        //        } catch
+        //        {
 
-                }
-            }
-            Debug.Log("Sending packet handler stopped... Possible problem?");
-        }
+        //        }
+        //    }
+        //    Debug.Log("Sending packet handler stopped... Possible problem?");
+        //}
 
         //public void SendMessage(byte[] message)
         //{

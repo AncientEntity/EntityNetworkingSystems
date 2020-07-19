@@ -124,22 +124,23 @@ namespace EntityNetworkingSystems
                     {
                         nObj = g.AddComponent<NetworkObject>();
 
-                        foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultFields)
-                        {
-                            nObj.fields.Add(defaultField.Clone());
-                        }
-                        foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultRpcs)
-                        {
-                            nObj.rpcs.Add(defaultRPC.Clone());
-                        }
                     }
+
+                    foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultFields)
+                    {
+                        nObj.fields.Add(defaultField.Clone());
+                    }
+                    foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultRpcs)
+                    {
+                        nObj.rpcs.Add(defaultRPC.Clone());
+                    }
+
 
                     nObj.ownerID = curPacket.packetOwnerID;
                     nObj.prefabDomainID = gOID.prefabDomainID;
                     nObj.prefabID = gOID.prefabID;
                     nObj.networkID = gOID.netObjID;
                     nObj.sharedObject = gOID.isShared;
-                    nObj.detectNetworkStarts = NetworkData.instance.networkPrefabList[gOID.prefabDomainID].detectNetworkStarts;
 
                     nObj.Initialize();
                     //nObj.DoRpcFieldInitialization();
@@ -222,7 +223,7 @@ namespace EntityNetworkingSystems
                 //Debug.Log("Seting NetVarEdit.");
                 try
                 {
-                    netObj.SetFieldLocal(nFP.fieldName, nFP.data.ToObject(),nFP.blockSelfMethods,curPacket.packetOwnerID);
+                    netObj.SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
                 }
                 catch (System.Exception e)
                 {

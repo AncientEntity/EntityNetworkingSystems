@@ -73,15 +73,16 @@ namespace EntityNetworkingSystems
             {
                 nObj = g.AddComponent<NetworkObject>();
 
-                foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultFields)
-                {
-                    nObj.fields.Add(defaultField.Clone());
-                    //nObj.CreateField(defaultField.fieldName, null, init: defaultField.defaultValue, defaultField.shouldBeProximity);
-                }
-                foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultRpcs)
-                {
-                    nObj.rpcs.Add(defaultRPC.Clone());
-                }
+            }
+
+            foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultFields)
+            {
+                nObj.fields.Add(defaultField.Clone());
+                //nObj.CreateField(defaultField.fieldName, null, init: defaultField.defaultValue, defaultField.shouldBeProximity);
+            }
+            foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultRpcs)
+            {
+                nObj.rpcs.Add(defaultRPC.Clone());
             }
 
             nObj.ownerID = NetTools.clientID;
@@ -90,7 +91,6 @@ namespace EntityNetworkingSystems
             nObj.networkID = gOID.netObjID;
             nObj.sharedObject = gOID.isShared;
             nObj.detectNetworkStarts = NetworkData.instance.networkPrefabList[gOID.prefabDomainID].detectNetworkStarts;
-
 
             nObj.Initialize();
             //nObj.DoRpcFieldInitialization();
@@ -116,11 +116,6 @@ namespace EntityNetworkingSystems
 
         public static void NetDestroy(NetworkObject netObj, Packet.sendType sT = Packet.sendType.buffered)
         {
-            if(netObj == null)
-            {
-                return;
-            }
-
             NetDestroy(netObj.networkID, sT);
         }
 
@@ -161,7 +156,7 @@ namespace EntityNetworkingSystems
             //Will generate all the packets required to sync scenes for users. Useful for right when the server begins.
             //Only generates packets for NetworkObject's that are included inside of NetworkData's prefab domains.
             List<Packet> objPackets = new List<Packet>();
-            foreach (NetworkObject netObj in NetworkObject.allNetObjs.Values)
+            foreach (NetworkObject netObj in NetworkObject.allNetObjs)
             {
                 if (netObj.prefabID == -1 || netObj.prefabDomainID == -1)
                 {

@@ -116,7 +116,7 @@ namespace EntityNetworkingSystems {
                     }
                 }
 
-                yield return new WaitForSeconds(1f / 15f);
+                yield return new WaitForSeconds(1f / 25f);
             }
             Debug.Log("Handle Animation Bool Packets has ended.");
         }

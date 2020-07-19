@@ -11,15 +11,16 @@ namespace EntityNetworkingSystems
     {
         //NETWORK OBJECT AUTOMATICALLY GETS ADDED TO PREFAB WHEN INSTANTIATED OVER THE NETWORK IF THE PREFAB DOESN'T ALREADY CONTAIN ONE.
 
-        public static Dictionary<int, NetworkObject> allNetObjs = new Dictionary<int, NetworkObject>(); //Int is the NetID
+        public static List<NetworkObject> allNetObjs = new List<NetworkObject>();
 
         public bool initialized = false; //Has it been initialized on the network?
         [Space]
         public int networkID = -1;
         public int ownerID = -1;
         public bool sharedObject = false; //All clients/server can effect the networkObject.
-        public bool trackPlayerProxPos = false; //If true, and there is ENS_Position it'll be tracked as the players proximity position
+        public bool trackPlayerProxPos = false; //If true, and there is ENS_Position it'll be tracked as the players proximity position.
         public bool detectNetworkStarts = false;
+        public bool updateFieldsThroughServer = false;
         public List<NetworkField> fields = new List<NetworkField>();
         public List<RPC> rpcs = new List<RPC>();
         [Space]
@@ -33,11 +34,6 @@ namespace EntityNetworkingSystems
         [HideInInspector]
         public List<Packet> queuedNetworkPackets = new List<Packet>();
 
-        //Very useful, for players instead of basing a proximity position based off of the transform's position. Use this.
-        //Example: Prevents players from being 'ghosts'. The position of the player stops updating due to proximity, so it looks like the player (or other objects) are idle/not moving.
-        //If you use this though it'll fix the problem.
-        //This will get managed server side only as the server decides where proximity packets should go and who should get them. It uses the UpdateLastProxPosition() method.
-        private Dictionary<int, Vector3> lastProximityPositions = new Dictionary<int, Vector3>(); //ClientID/Position
 
         void Awake()
         {
@@ -67,10 +63,7 @@ namespace EntityNetworkingSystems
             NetworkData.AddUsedNetID(networkID);
             lock (allNetObjs)
             {
-                if (allNetObjs.ContainsKey(networkID) == false)
-                {
-                    allNetObjs.Add(networkID, this);
-                }
+                allNetObjs.Add(this);
             }
 
             initialized = true;
@@ -124,7 +117,7 @@ namespace EntityNetworkingSystems
                     continue;
                 }
 
-                SetFieldLocal(nFP.fieldName, nFP.data.ToObject(),false,-1);
+                SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
                 queuedNetworkPackets.RemoveAt(0);
 
             }
@@ -163,7 +156,7 @@ namespace EntityNetworkingSystems
             //Remove from used lists
             lock (allNetObjs)
             {
-                allNetObjs.Remove(networkID);
+                allNetObjs.Remove(this);
             }
             //NetworkData.usedNetworkObjectInstances.Remove(networkID); //Probably a bad idea to remove them.
 
@@ -173,17 +166,13 @@ namespace EntityNetworkingSystems
         {
             lock (allNetObjs)
             {
-                if (allNetObjs.ContainsKey(netID))
+                foreach (NetworkObject netObj in allNetObjs.ToArray())
                 {
-                    return allNetObjs[netID];
+                    if (netObj.networkID == netID)
+                    {
+                        return netObj;
+                    }
                 }
-                //foreach (NetworkObject netObj in allNetObjs.Values)
-                //{
-                //    if (netObj.networkID == netID)
-                //    {
-                //        return netObj;
-                //    }
-                //}
             }
             return null;
         }
@@ -224,7 +213,7 @@ namespace EntityNetworkingSystems
             }
         }
 
-        public void UpdateField<T>(string fieldName, T data, bool immediateOnSelf = false, bool forceNonProximity=false, bool blockSelfMethods=false)
+        public void UpdateField<T>(string fieldName, T data, bool immediateOnSelf = false)
         {
             for (int i = 0; i < fields.Count; i++)
             {
@@ -235,20 +224,20 @@ namespace EntityNetworkingSystems
                         fields[i].netObj = this;
                     }
 
-                    fields[i].UpdateField(data, networkID, immediateOnSelf,forceNonProximity,blockSelfMethods:blockSelfMethods);
+                    fields[i].UpdateField(data, networkID, immediateOnSelf);
                     break;
                 }
             }
         }
 
-        public void SetFieldLocal(string fieldName, object data,bool blockSelfMethods, int responsibleClientID=-1)
+        public void SetFieldLocal(string fieldName, object data)
         {
             for (int i = 0; i < fields.Count; i++)
             {
 
                 if (fields[i].fieldName == fieldName)
                 {
-                    fields[i].LocalFieldSet(data,blockSelfMethods:blockSelfMethods,responsibleClientID:responsibleClientID);
+                    fields[i].LocalFieldSet(data);
                     break;
                 }
             }
@@ -267,7 +256,7 @@ namespace EntityNetworkingSystems
                     }
 
                     object returnedData = fields[i].GetField();
-                    if(returnedData == null)
+                    if (returnedData == null)
                     {
                         return default(T);
                     }
@@ -302,8 +291,7 @@ namespace EntityNetworkingSystems
                 }
 
                 Packet packet = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
-                    new NetworkFieldPacket(networkID, netField.fieldName,jPO,false,false));
-                packet.relatesToNetObjID = networkID;
+                    new NetworkFieldPacket(networkID, netField.fieldName,jPO,false));
                 fieldPackets.Add(packet);
                 //print("Adding netfield: " + netField.fieldName);
             }
@@ -357,41 +345,6 @@ namespace EntityNetworkingSystems
             }
         }
 
-        public void AddOnRPCMethod(string rpcName, UnityAction<RPCArgs> action)
-        {
-            foreach(RPC rpc in rpcs)
-            {
-                if(rpc.rpcName == rpcName)
-                {
-                    rpc.onRpc.AddListener(action);
-                    return;
-                }
-            }
-        }
-
-
-        public void UpdateLastProxPosition(int playerID, Vector3 position)
-        {
-            if (lastProximityPositions.ContainsKey(playerID))
-            {
-                lastProximityPositions[playerID] = position;
-            } else
-            {
-                lastProximityPositions.Add(playerID,position);
-            }
-        }
-
-        public Vector3 GetLastProxPosition(int playerID, Vector3 ifNonAnswer)
-        {
-            if(lastProximityPositions.ContainsKey(playerID) == false)
-            {
-                //UpdateLastProxPosition(playerID, transform.position);
-                //return transform.position; //Only the main thread can run this so it freezes unity ree
-                return ifNonAnswer; 
-            }
-            return lastProximityPositions[playerID];
-        }
-
         //A premade "on value change" method for positional network fields. Gets added to fields named ENS_Position
         public void ManagePositionField(FieldArgs args)
         {
@@ -401,13 +354,9 @@ namespace EntityNetworkingSystems
             //    return;
             //}
 
-
             Vector3 newPos = args.GetValue<SerializableVector>().ToVec3();//sVec.ToVec3();
             //print(newPos);
             transform.position = newPos;
-            if(trackPlayerProxPos && NetTools.isServer) {
-                NetTools.UpdatePlayerProximityPosition(ownerID, newPos);
-            }
             //Debug.Log(newPos);
         }
 
@@ -582,7 +531,7 @@ namespace EntityNetworkingSystems
             UpdateField(newValue, netObj.networkID);
         }
 
-        public void UpdateField<T>(T value, int netObjID, bool immediateOnSelf = true, bool forceNonProximity=false, bool blockSelfMethods=false)
+        public void UpdateField<T>(T value, int netObjID, bool immediateOnSelf = true)
         {
             if(value == null)
             {
@@ -605,8 +554,6 @@ namespace EntityNetworkingSystems
                 netID = netObj.networkID;
             }
 
-           
-
             JsonPacketObject jPO;
 
 
@@ -620,29 +567,34 @@ namespace EntityNetworkingSystems
             }
 
             Packet pack = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
-                new NetworkFieldPacket(netObjID, fieldName, jPO,immediateOnSelf,blockSelfMethods));
+                new NetworkFieldPacket(netObjID, fieldName, jPO,immediateOnSelf));
             pack.relatesToNetObjID = netObjID;
-            if(shouldBeProximity && netObj != null && !forceNonProximity)
+            if(shouldBeProximity && netObj != null)
             {
                 pack.packetSendType = Packet.sendType.proximity;
                 pack.packetPosition = new SerializableVector(netObj.transform.position);
             }
-
-            //immediateOnSelf = true; //for testing probably shouldn't be here if found...
-
-            if (immediateOnSelf)
-            {
-                LocalFieldSet(newValue, blockSelfMethods: blockSelfMethods, responsibleClientID: NetTools.clientID);
-            }
-
-            if (NetClient.instanceClient != null)
+            if (NetClient.instanceClient != null && !netObj.updateFieldsThroughServer)
             {
                 NetClient.instanceClient.SendPacket(pack);
+            } else if(NetServer.serverInstance != null)
+            {
+                foreach (NetworkPlayer player in NetServer.serverInstance.connections) {
+                    if(player.clientID == NetTools.clientID)
+                    {
+                        continue;
+                    }
+                    NetServer.serverInstance.SendPacket(player, pack);
+                }
+            }
+            if (immediateOnSelf)
+            {
+                LocalFieldSet(newValue);
             }
         }
 
 
-        public void LocalFieldSet<T>(T newValue, bool invokeOnChange = true, bool blockSelfMethods=false,int responsibleClientID=-1)
+        public void LocalFieldSet<T>(T newValue, bool invokeOnChange = true)
         {
             //InitializeSpecialFields(true); //Cause when data gets sent over the network it may miss doing this, then there wont be able special UnityEvents added.
 
@@ -664,10 +616,6 @@ namespace EntityNetworkingSystems
             initialized = true;
             if (invokeOnChange)
             {
-                if(blockSelfMethods && NetTools.clientID == responsibleClientID)
-                {
-                    return;
-                }
                 onValueChange.Invoke(constructedArgs);
 
                 //You can also input the method names as strings, not as efficient but sometimes necessary.
@@ -683,6 +631,12 @@ namespace EntityNetworkingSystems
             {
                 return default;
             }
+
+            if (jsonData == null)
+            {
+                return null;
+            }
+
             if (ENSUtils.IsSimple(System.Type.GetType(jsonDataTypeName)))
             {
                 return System.Convert.ChangeType(jsonData, System.Type.GetType(jsonDataTypeName));
@@ -724,7 +678,7 @@ namespace EntityNetworkingSystems
             newField.onValueChangeMethods = onValueChangeMethods;
             return newField;
         }
-        public static NetworkFieldPacket GenerateNFP<T>(string fieldName, T newValue, bool immediateOnSelf = false, int netObjID=-1, bool blockSelfMethods=false)
+        public static NetworkFieldPacket GenerateNFP<T>(string fieldName, T newValue, bool immediateOnSelf = false, int netObjID=-1)
         {
             JsonPacketObject jPO;
 
@@ -737,7 +691,7 @@ namespace EntityNetworkingSystems
                 jPO = new JsonPacketObject("" + newValue, newValue.GetType().ToString());
             }
 
-            return new NetworkFieldPacket(netObjID, fieldName, jPO, immediateOnSelf,blockSelfMethods);
+            return new NetworkFieldPacket(netObjID, fieldName, jPO, immediateOnSelf);
         }
 
 
@@ -773,7 +727,7 @@ namespace EntityNetworkingSystems
                 this.methodName = methodName;
             }
         }
-        
+
 
 
     }
@@ -811,14 +765,12 @@ namespace EntityNetworkingSystems
         public string fieldName = "";
         public JsonPacketObject data;
         public bool immediateOnSelf = false;
-        public bool blockSelfMethods = false;
-        public NetworkFieldPacket(int netID, string fieldName, JsonPacketObject val, bool immediateOnSelf, bool blockSelfMethods)
+        public NetworkFieldPacket(int netID, string fieldName, JsonPacketObject val, bool immediateOnSelf)
         {
             networkObjID = netID;
             this.fieldName = fieldName;
             data = val;
             this.immediateOnSelf = immediateOnSelf;
-            this.blockSelfMethods = blockSelfMethods;
         }
         
 
