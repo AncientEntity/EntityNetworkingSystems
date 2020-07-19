@@ -97,6 +97,14 @@ namespace EntityNetworkingSystems
         {
             NetTools.isClient = true;
             NetTools.isSingleplayer = true;
+
+            NetworkPlayer player = new NetworkPlayer(null);
+            player.clientID = 0;
+
+            NetServer.serverInstance.connections.Add(player);
+
+            NetTools.onJoinServer.Invoke();
+            UnityPacketHandler.instance.StartHandler();
         }
 
         public void ConnectToServer(string ip = "127.0.0.1", int port = 44594)

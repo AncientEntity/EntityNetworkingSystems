@@ -195,7 +195,7 @@ namespace EntityNetworkingSystems
 
         public static bool IsMultiplayerGame()
         {
-            return isServer || isClient;
+            return !isSingleplayer;
         }
 
         public static void UpdatePlayerProximityPosition(int clientID, Vector3 position)

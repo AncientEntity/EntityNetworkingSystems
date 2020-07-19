@@ -77,7 +77,7 @@ namespace EntityNetworkingSystems
                 uPH.AddComponent<UnityPacketHandler>();
                 GameObject.DontDestroyOnLoad(uPH);
             }
-            if (useSteamworks)
+            if (useSteamworks && !NetTools.isSingleplayer)
             {
                 GameObject steamIntegration = new GameObject("Steam Integration Handler");
                 steamIntegration.AddComponent<SteamInteraction>();
@@ -130,12 +130,12 @@ namespace EntityNetworkingSystems
         {
             if(NetTools.isSingleplayer)
             {
+                NetTools.clientID = 0;
                 NetTools.isServer = true;
                 UnityPacketHandler.instance.StartHandler();
                 return;
             }
 
-            NetTools.isSingleplayer = false;
             //Create server
             Debug.Log(IPAddress.Parse(hostAddress));
             server = new TcpListener(IPAddress.Any, hostPort);
@@ -169,7 +169,7 @@ namespace EntityNetworkingSystems
                 {
                     SteamInteraction.instance.ShutdownServer();
                 }
-
+                connections = new List<NetworkPlayer>();
             }
         }
 
@@ -377,7 +377,7 @@ namespace EntityNetworkingSystems
                 catch (System.Exception e)
                 {
                     //Something went wrong with packet deserialization or connection closed.
-                    //Debug.LogError(e);
+                    Debug.LogError(e);
                     clientRunning = false; //Basically end the thread.
 
                 }
@@ -553,6 +553,11 @@ namespace EntityNetworkingSystems
 
         public NetworkPlayer(TcpClient client)
         {
+            if(client == null)
+            {
+                return;
+            }
+
             this.tcpClient = client;
             this.netStream = client.GetStream();
         }

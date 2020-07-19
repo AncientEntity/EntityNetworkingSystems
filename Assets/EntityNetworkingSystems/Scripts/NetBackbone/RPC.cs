@@ -22,8 +22,12 @@ namespace EntityNetworkingSystems
 
         public void CallRPC(Packet.sendType sendType = Packet.sendType.culledbuffered, params object[] list)
         {
+
+            Packet p = GenerateRPCPacket(sendType, list);
+
             if (NetTools.IsMultiplayerGame() == false)
             {
+                InvokeRPC(((RPCPacketData)p.GetPacketData()).ReturnArgs());
                 return;
             }
 
@@ -34,8 +38,7 @@ namespace EntityNetworkingSystems
                 //Debug.Log("Rpc called before initialization. Adding to queue");
                 return;
             }
-
-            Packet p = GenerateRPCPacket(sendType, list);
+            
 
             NetClient.instanceClient.SendPacket(p);
         }
