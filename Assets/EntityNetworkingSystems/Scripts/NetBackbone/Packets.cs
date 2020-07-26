@@ -175,6 +175,7 @@ namespace EntityNetworkingSystems
 
         public int netObjID = -1;
         public bool isShared = false;
+        public bool doImmediate = true;
 
         public List<NetworkFieldPacket> fieldDefaults = new List<NetworkFieldPacket>();
 

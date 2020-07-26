@@ -33,7 +33,6 @@ namespace EntityNetworkingSystems
         TcpListener server = null;
         List<Thread> connThreads = new List<Thread>();
         Thread connectionHandler = null;
-        Thread packetSendHandler = null;
         //Thread packetSendHandler = null;
         //Dictionary<Packet, NetworkPlayer> queuedSendPackets = new Dictionary<Packet, NetworkPlayer>();
 
@@ -77,7 +76,7 @@ namespace EntityNetworkingSystems
                 uPH.AddComponent<UnityPacketHandler>();
                 GameObject.DontDestroyOnLoad(uPH);
             }
-            if (useSteamworks && !NetTools.isSingleplayer)
+            if (useSteamworks && !NetTools.isSingleplayer && SteamInteraction.instance == null)
             {
                 GameObject steamIntegration = new GameObject("Steam Integration Handler");
                 steamIntegration.AddComponent<SteamInteraction>();
@@ -126,8 +125,10 @@ namespace EntityNetworkingSystems
         //}
 
 
-        public void StartServer()
+        public void StartServer(bool isSingleplayer=false)
         {
+            
+
             if(NetTools.isSingleplayer)
             {
                 NetTools.clientID = 0;
@@ -163,14 +164,25 @@ namespace EntityNetworkingSystems
                 }
                 server.Stop();
                 server = null;
-                NetServer.serverInstance = null;
 
-                if (useSteamworks)
-                {
-                    SteamInteraction.instance.ShutdownServer();
-                }
-                connections = new List<NetworkPlayer>();
+                //if (useSteamworks && !NetTools.isSingleplayer)
+                //{
+                //    SteamInteraction.instance.ShutdownServer();
+                //}
             }
+            if (connectionHandler != null)
+            {
+                connectionHandler.Abort();
+                connectionHandler = null;
+            }
+
+            GameObject.Destroy(GameObject.FindObjectOfType<UnityPacketHandler>().gameObject);
+            //NetServer.serverInstance = null;
+            connections = new List<NetworkPlayer>();
+            bufferedPackets = new List<Packet>();
+
+            NetTools.isServer = false;
+            NetTools.isSingleplayer = false;
         }
 
         public void ConnectionHandler()
@@ -200,7 +212,6 @@ namespace EntityNetworkingSystems
                 Thread connThread = new Thread(() => ClientHandler(netClient));
                 connThread.Start();
 
-                NetTools.onPlayerJoin.Invoke(netClient);
             }
             Debug.Log("NetServer.ConnectionHandler() thread has successfully finished.");
         }
@@ -216,7 +227,7 @@ namespace EntityNetworkingSystems
                 {
                     //Debug.Log(p.jsonData);
                     clientSteamAuthTicket = (SteamAuthPacket)p.GetPacketData();
-
+                    client.steamID = clientSteamAuthTicket.steamID;
 
                     Thread.Sleep(1500); //Wait for steam to authenticate it. Will take around this time. Probably should add x attempts over a few seconds.
 
@@ -261,7 +272,7 @@ namespace EntityNetworkingSystems
                 List<Packet> packetsToSend = new List<Packet>(); //Will contain buffered packets and all network fields to be updated.
                 packetsToSend.AddRange(bufferedPackets.ToArray());
                 //Debug.Log(packetsToSend.Count);
-                foreach (NetworkObject netObj in NetworkObject.allNetObjs)
+                foreach (NetworkObject netObj in NetworkObject.allNetObjs.ToArray())
                 {
                     if (netObj.fields.Count > 0)
                     {
@@ -297,6 +308,7 @@ namespace EntityNetworkingSystems
                 //bpacket.sendToAll = false;
                 //SendPacket(client, bpacket);
             }
+            NetTools.onPlayerJoin.Invoke(client);
 
             bool clientRunning = true;
 
@@ -317,6 +329,13 @@ namespace EntityNetworkingSystems
                     else
                     {
                         pack.serverAuthority = false;
+                    }
+
+                    if(pack.packetType == Packet.pType.rpc)
+                    {
+                        RPCPacketData rPD = (RPCPacketData)pack.GetPacketData();
+                        rPD.packetOwnerID = client.clientID;
+                        pack.SetPacketData(rPD);
                     }
 
                     if (pack.packetSendType == Packet.sendType.buffered || pack.packetSendType == Packet.sendType.culledbuffered)
@@ -383,6 +402,9 @@ namespace EntityNetworkingSystems
                 }
             }
             Debug.Log("NetServer.ClientHandler() thread has successfully finished.");
+            client.netStream.Close();
+            client.playerConnected = false;
+            NetTools.onPlayerDisconnect.Invoke(client);
         }
 
         public bool IsInitialized()
@@ -550,6 +572,9 @@ namespace EntityNetworkingSystems
         public Vector3 proximityPosition = Vector3.zero;
         public float loadProximity = 15f;
         public Thread threadHandlingClient;
+        public ulong steamID;
+
+        public bool playerConnected = true;
 
         public NetworkPlayer(TcpClient client)
         {

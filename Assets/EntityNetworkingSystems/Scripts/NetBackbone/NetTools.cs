@@ -16,7 +16,9 @@ namespace EntityNetworkingSystems
         public static bool isClient = false;
         public static bool isSingleplayer = false;
 
-        public static PlayerJoinEvent onPlayerJoin = new PlayerJoinEvent();
+        public static PlayerLeaveEvent onLeaveServer = new PlayerLeaveEvent(); //When the client leaves the game. Either from disconnect/loss of connection. It gives a reason as a parameter.
+        public static PlayerEvent onPlayerJoin = new PlayerEvent();
+        public static PlayerEvent onPlayerDisconnect = new PlayerEvent();
         public static UnityEvent onJoinServer = new UnityEvent(); //Gets ran when the login packet finishes :D
         public static UnityEvent onBufferedCompletion = new UnityEvent(); //Gets ran when the buffered packets complete.
 
@@ -75,15 +77,6 @@ namespace EntityNetworkingSystems
 
             }
 
-            foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultFields)
-            {
-                nObj.fields.Add(defaultField.Clone());
-                //nObj.CreateField(defaultField.fieldName, null, init: defaultField.defaultValue, defaultField.shouldBeProximity);
-            }
-            foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[gOID.prefabDomainID].defaultRpcs)
-            {
-                nObj.rpcs.Add(defaultRPC.Clone());
-            }
 
             nObj.ownerID = NetTools.clientID;
             nObj.prefabDomainID = gOID.prefabDomainID;
@@ -116,6 +109,12 @@ namespace EntityNetworkingSystems
 
         public static void NetDestroy(NetworkObject netObj, Packet.sendType sT = Packet.sendType.buffered)
         {
+            if(netObj == null)
+            {
+                Debug.LogError("Object reference not set.");
+                return;
+            }
+
             NetDestroy(netObj.networkID, sT);
         }
 
@@ -208,9 +207,14 @@ namespace EntityNetworkingSystems
 
     }
 
-    public class PlayerJoinEvent : UnityEvent<NetworkPlayer>
+    public class PlayerEvent : UnityEvent<NetworkPlayer>
     {
 
+    }
+
+    public class PlayerLeaveEvent : UnityEvent<string>
+    {
+        //String should be the reason...
     }
 }
 

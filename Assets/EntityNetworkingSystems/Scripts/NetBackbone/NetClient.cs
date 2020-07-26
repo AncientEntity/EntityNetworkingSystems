@@ -22,7 +22,6 @@ namespace EntityNetworkingSystems
         public TcpClient client = null;
         public NetworkStream netStream;
         Thread connectionHandler = null;
-        Thread packetSendHandler = null;
         [Space]
         public int clientID = -1;
 
@@ -39,7 +38,7 @@ namespace EntityNetworkingSystems
 
             if (client != null)
             {
-                Debug.LogError("Trying to initial NetClient when it has already been initialized.");
+                //Debug.LogError("Trying to initial NetClient when it has already been initialized.");
                 return;
             }
 
@@ -98,26 +97,46 @@ namespace EntityNetworkingSystems
             NetTools.isClient = true;
             NetTools.isSingleplayer = true;
 
+            connectedToServer = true;
+
             NetworkPlayer player = new NetworkPlayer(null);
             player.clientID = 0;
 
+            if (useSteamworks)
+            {
+                player.steamID = SteamInteraction.instance.ourSteamID;
+            }
+
             NetServer.serverInstance.connections.Add(player);
 
-            NetTools.onJoinServer.Invoke();
+            PlayerLoginData pLD = new PlayerLoginData();
+            pLD.playerNetworkID = 0;
+            Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, pLD);
+            loginPacket.packetOwnerID = -1;
+            loginPacket.sendToAll = false;
+            NetServer.serverInstance.SendPacket(player, loginPacket);
+
+            //NetTools.onJoinServer.Invoke();
             UnityPacketHandler.instance.StartHandler();
         }
 
         public void ConnectToServer(string ip = "127.0.0.1", int port = 44594)
         {
+            if(client == null)
+            {
+                client = new TcpClient();
+                NetTools.isClient = true;
+            }
+
             Debug.Log("Attempting Connection");
             client.Connect(IPAddress.Parse(ip), port);
             Debug.Log("Connection Accepted");
             netStream = client.GetStream();
             UnityPacketHandler.instance.StartHandler();
 
-            NetTools.isSingleplayer = false;
+            //NetTools.isSingleplayer = false;
 
-            if (useSteamworks)
+            if (useSteamworks && !SteamInteraction.instance.initialized)
             {
                 SteamInteraction.instance.StartClient();
 
@@ -131,6 +150,8 @@ namespace EntityNetworkingSystems
                 authPacket.sendToAll = false;
                 SendPacket(authPacket);
             }
+            //NetTools.onJoinServer.Invoke();
+            connectedToServer = true;
             //packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
             //packetSendHandler.Start();
             connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
@@ -139,31 +160,43 @@ namespace EntityNetworkingSystems
 
         public void DisconnectFromServer()
         {
-            if (client != null)
+            if (client != null && !NetTools.isSingleplayer)
             {
                 Debug.Log("Disconnecting From Server");
                 client.GetStream().Close();
                 client.Close();
                 client = null;
-                NetClient.instanceClient = null;
                 connectionHandler.Abort();
-                packetSendHandler.Abort();
-                if (useSteamworks)
-                {
-                    SteamInteraction.instance.StopClient();
-                }
+                //if (useSteamworks)
+                //{
+                //    SteamInteraction.instance.StopClient();
+                //}
             }
+            connectedToServer = false;
+            //NetClient.instanceClient = null;
+            NetTools.clientID = -1;
+            NetTools.isClient = false;
+            NetTools.isSingleplayer = false;
+            clientID = -1;
+            
         }
 
         public void SendPacket(Packet packet)//, bool queuedPacket = false)
         {
+
+            //Debug.Log(NetTools.isSingleplayer);
             //if(!queuedPacket)
             //{
             //    queuedSendingPackets.Add(packet);
             //    return;
             //}
-            
-            if(NetTools.isSingleplayer)
+
+            //if (netStream == null)
+            //{
+            //    NetTools.isSingleplayer = true;
+            //}
+
+            if (NetTools.isSingleplayer)
             {
                 if(packet.packetSendType == Packet.sendType.proximity)
                 {
@@ -183,6 +216,8 @@ namespace EntityNetworkingSystems
                 return;
             }
 
+            
+
             lock (netStream){
                 lock (client)
                 {
@@ -193,7 +228,17 @@ namespace EntityNetworkingSystems
                     byte[] arraySize = new byte[4];
                     arraySize = System.BitConverter.GetBytes(array.Length);
                     client.SendBufferSize = 4;
-                    netStream.Write(arraySize, 0, arraySize.Length);
+                    try
+                    {
+                        netStream.Write(arraySize, 0, arraySize.Length);
+                    } catch (Exception e)
+                    {
+                        if(e.ToString().Contains("SocketException"))
+                        {
+                            NetTools.onLeaveServer.Invoke(e.ToString());
+                        }
+                    }
+
 
                     //Send packet
                     client.SendBufferSize = array.Length;

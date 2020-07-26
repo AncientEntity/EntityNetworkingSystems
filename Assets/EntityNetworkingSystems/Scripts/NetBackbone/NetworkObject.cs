@@ -68,6 +68,17 @@ namespace EntityNetworkingSystems
 
             initialized = true;
 
+            foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[prefabDomainID].defaultFields)
+            {
+                fields.Add(defaultField.Clone());
+                //nObj.CreateField(defaultField.fieldName, null, init: defaultField.defaultValue, defaultField.shouldBeProximity);
+            }
+            foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[prefabDomainID].defaultRpcs)
+            {
+                rpcs.Add(defaultRPC.Clone());
+            }
+
+
             if (detectNetworkStarts)
             {
                 foreach (MonoBehaviour c in gameObject.GetComponents(typeof(MonoBehaviour)))
@@ -79,6 +90,7 @@ namespace EntityNetworkingSystems
                     c.SendMessage("NetworkStart");
                 }
             }
+
 
             DoRpcFieldInitialization();
 
@@ -580,6 +592,10 @@ namespace EntityNetworkingSystems
             } else if(NetServer.serverInstance != null)
             {
                 foreach (NetworkPlayer player in NetServer.serverInstance.connections) {
+                    if(!player.playerConnected)
+                    {
+                        continue; //No longer connected.
+                    }
                     if(player.clientID == NetTools.clientID)
                     {
                         continue;

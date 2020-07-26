@@ -45,7 +45,7 @@ namespace EntityNetworkingSystems
 
         public Packet GenerateRPCPacket(Packet.sendType sendType = Packet.sendType.culledbuffered, params object[] list)
         {
-            RPCPacketData rpcData = new RPCPacketData(net.networkID, rpcIndex, list);
+            RPCPacketData rpcData = new RPCPacketData(net.networkID, rpcIndex,NetTools.clientID, list);
 
             Packet rpcPacket = new Packet(Packet.pType.rpc, sendType, rpcData);
             rpcPacket.sendToAll = true;
@@ -96,15 +96,17 @@ namespace EntityNetworkingSystems
     [System.Serializable]
     public class RPCPacketData
     {
+        public int packetOwnerID = -1;
         public int networkObjectID = -1;
         public int rpcIndex = -1;
         public List<string> parameters = new List<string>();
         public List<string> paramTypes = new List<string>();
 
-        public RPCPacketData(int netID, int rpcIndex, params object[] list)
+        public RPCPacketData(int netID, int rpcIndex,int ownerID, params object[] list)
         {
             this.networkObjectID = netID;
             this.rpcIndex = rpcIndex;
+            this.packetOwnerID = ownerID;
 
             foreach (object o in list)
             {
@@ -124,6 +126,7 @@ namespace EntityNetworkingSystems
         public RPCArgs ReturnArgs()
         {
             RPCArgs rpcArgs = new RPCArgs();
+            rpcArgs.ownerID = packetOwnerID;
 
             for (int i = 0; i < parameters.Count; i++)
             {
@@ -149,6 +152,7 @@ namespace EntityNetworkingSystems
     {
         public List<object> parameters = new List<object>();
         int nextIndex = 0;
+        public int ownerID = -1;
 
         public T GetNext<T>()
         {

@@ -22,6 +22,9 @@ namespace EntityNetworkingSystems
 
         public List<ulong> connectedSteamIDs = new List<ulong>();
 
+        public ulong ourSteamID = 0;
+        public string steamName = "";
+
         bool doCallbacks = false;
         bool serverRunning = false;
 
@@ -67,7 +70,15 @@ namespace EntityNetworkingSystems
                 }
             }
             //SteamFriends.OnGameLobbyJoinRequested += SteamFriends_OnGameLobbyJoinRequested;
-
+            if (ourSteamID == 0)
+            {
+                Debug.Log(SteamClient.SteamId.Value);
+                ourSteamID = SteamClient.SteamId.Value;
+            }
+            if(steamName == "")
+            {
+                steamName = SteamClient.Name;
+            }
             initialized = true;
             Debug.Log("Steam Interaction Initialized");
         }
@@ -101,7 +112,10 @@ namespace EntityNetworkingSystems
             {
                 clientAuth.Cancel();
             }
-            Steamworks.SteamClient.Shutdown();
+            if ((NetTools.isServer && NetServer.serverInstance.steamAppID != -1) || (NetTools.isClient && NetClient.instanceClient.steamAppID != -1))
+            {
+                Steamworks.SteamClient.Shutdown();
+            }
             clientStarted = false;
         }
 
@@ -163,8 +177,11 @@ namespace EntityNetworkingSystems
 
             SteamServer.LogOff();
 
-            SteamServer.Shutdown();
-            SteamClient.Shutdown();
+            if ((NetTools.isServer && NetServer.serverInstance.steamAppID != -1) || (NetTools.isClient && NetClient.instanceClient.steamAppID != -1))
+            {
+                SteamServer.Shutdown();
+                SteamClient.Shutdown();
+            }
             serverRunning = false;
         }
 
