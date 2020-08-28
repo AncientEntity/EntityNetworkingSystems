@@ -18,6 +18,7 @@ I am mainly using this for my project at https://epocria.net
 - Higher Level Methods. Kicking/Banning/Etc. (Soon)
 - EntityNetworkingSystems Namespace (Complete)
 - Documentation (Always being worked on)
+- [More Here](https://github.com/AncientEntity/EntityNetworkingSystems/wiki/Full-Todo-List)
 
 ## Extras
 - Buffered Packet Culling (Complete)
