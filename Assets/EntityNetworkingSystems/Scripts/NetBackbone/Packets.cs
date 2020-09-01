@@ -110,7 +110,9 @@ namespace EntityNetworkingSystems
             {
                 Debug.LogError(e);
                 //Debug.LogError("Error Dejsonify. Length: "+jsonPacket.Length+": " + jsonPacket);
+#if UNITY_EDITOR
                 NetworkData.instance.errorJson = jsonPacket;
+#endif
                 return null;
             }
         }

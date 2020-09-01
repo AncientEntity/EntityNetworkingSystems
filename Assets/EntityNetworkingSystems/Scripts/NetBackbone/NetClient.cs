@@ -129,7 +129,19 @@ namespace EntityNetworkingSystems
             }
 
             Debug.Log("Attempting Connection");
-            client.Connect(IPAddress.Parse(ip), port);
+            try
+            {
+                client.Connect(ip, port);
+            } catch (System.Exception e)
+            {
+                Debug.LogError(e);
+                //Couldn't connect to server.
+                Debug.LogError("Couldn't connect to server: " + ip + ":" + port);
+                NetTools.isClient = false;
+                client.Dispose();
+                NetTools.onFailedServerConnection.Invoke();
+                return;
+            }
             Debug.Log("Connection Accepted");
             netStream = client.GetStream();
             UnityPacketHandler.instance.StartHandler();
@@ -163,6 +175,7 @@ namespace EntityNetworkingSystems
             if (client != null && !NetTools.isSingleplayer)
             {
                 Debug.Log("Disconnecting From Server");
+                NetTools.onLeaveServer.Invoke("disconnect");
                 client.GetStream().Close();
                 client.Close();
                 client = null;
@@ -250,8 +263,9 @@ namespace EntityNetworkingSystems
         public Packet RecvPacket()
         {
             //First get packet size
-            byte[] packetSize = new byte[4];
-            netStream.Read(packetSize, 0, packetSize.Length);
+            //byte[] packetSize = new byte[4];
+            byte[] packetSize = RecieveSizeSpecificData(4, netStream);
+            //netStream.Read(packetSize, 0, packetSize.Length);
             //Debug.Log(Encoding.ASCII.GetString(packetSize));
             int pSize = System.BitConverter.ToInt32(packetSize, 0);
             //Debug.Log(pSize);
@@ -270,17 +284,15 @@ namespace EntityNetworkingSystems
             //byteCountToGet--;
             client.ReceiveBufferSize = byteCountToGet;
 
-            List<byte> bytesRecieved = new List<byte>();
+            byte[] bytesRecieved = new byte[byteCountToGet];
 
-            int bytesRead = 0;
-            while (bytesRead < byteCountToGet)
+            int messageRead = 0;
+            while (messageRead < bytesRecieved.Length)
             {
-                byte[] bunch = new byte[byteCountToGet - bytesRead];
-                netStream.Read(bunch, 0, bunch.Length);
-                bytesRecieved.AddRange(bunch);
-                bytesRead += bunch.Length;
+                int bytesRead = netStream.Read(bytesRecieved, messageRead, bytesRecieved.Length - messageRead);
+                messageRead += bytesRead;
             }
-            return bytesRecieved.ToArray();
+            return bytesRecieved;
         }
 
         //public List<Packet> queuedSendingPackets = new List<Packet>();

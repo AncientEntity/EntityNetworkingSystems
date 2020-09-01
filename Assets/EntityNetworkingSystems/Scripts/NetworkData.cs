@@ -12,8 +12,9 @@ namespace EntityNetworkingSystems
 
         public List<GameObjectList> networkPrefabList = new List<GameObjectList>();
 
+#if UNITY_EDITOR
         public string errorJson;
-
+#endif
 
         void Awake()
         {

@@ -176,7 +176,15 @@ namespace EntityNetworkingSystems
     [System.Serializable]
     public class RPCEvent : UnityEvent<RPCArgs>
     {
+        public RPCEvent ()
+        {
 
+        }
+
+        public RPCEvent(UnityAction<RPCArgs> a)
+        {
+            this.AddListener(a);
+        }
     }
 
 }

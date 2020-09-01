@@ -11,12 +11,6 @@ public class ExampleMoving : MonoBehaviour
     void Start()
     {
         net = GetComponent<NetworkObject>();
-        net.onNetworkStart.AddListener(OnNetStart);
-    }
-
-    void OnNetStart()
-    {
-        net.fields[0].UpdateField<SerializableVector>(new SerializableVector(transform.position.x, transform.position.y, transform.position.z), net.networkID,immediateOnSelf:true);
     }
 
     // Update is called once per frame
@@ -25,11 +19,6 @@ public class ExampleMoving : MonoBehaviour
         if(!net.initialized)
         {
             return;
-        }
-        if (net.fields[0].IsInitialized())
-        {
-            SerializableVector sV = (SerializableVector)net.GetField<SerializableVector>("position");
-            transform.position = sV.ToVec3();
         }
     }
 }

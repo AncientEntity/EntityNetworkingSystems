@@ -21,6 +21,7 @@ namespace EntityNetworkingSystems
         public static PlayerEvent onPlayerDisconnect = new PlayerEvent();
         public static UnityEvent onJoinServer = new UnityEvent(); //Gets ran when the login packet finishes :D
         public static UnityEvent onBufferedCompletion = new UnityEvent(); //Gets ran when the buffered packets complete.
+        public static UnityEvent onFailedServerConnection = new UnityEvent(); //When you cant connect to the server, most commonly when the server isn't up.
 
         public static Thread mainUnityThread = Thread.CurrentThread;
 
@@ -43,33 +44,36 @@ namespace EntityNetworkingSystems
         public static GameObject NetInstantiate(int prefabDomain, int prefabID, Vector3 position, Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false, List<NetworkFieldPacket> fieldDefaults = null)
 
         {
-            SerializableVector finalVector = new SerializableVector(position);
-            SerializableQuaternion finalQuat = new SerializableQuaternion(rotation);
+            int netObjID = GenerateNetworkObjectID();
 
-            GameObjectInstantiateData gOID = new GameObjectInstantiateData();
-            gOID.position = finalVector;
-            gOID.rotation = finalQuat;
-            gOID.prefabDomainID = prefabDomain;
-            gOID.prefabID = prefabID;
-            gOID.isShared = isSharedObject;
-            gOID.netObjID = GenerateNetworkObjectID();
-            gOID.fieldDefaults = fieldDefaults;
-
-            Packet p = new Packet(gOID);
-            p.packetType = Packet.pType.gOInstantiate;
-            p.packetSendType = sT;
-
-
-            //if(sT == Packet.sendType.buffered && isServer)
-            //{
-            //    NetServer.serverInstance.bufferedPackets.Add(p);
-            //}
             if (NetTools.IsMultiplayerGame())
             {
+                SerializableVector finalVector = new SerializableVector(position);
+                SerializableQuaternion finalQuat = new SerializableQuaternion(rotation);
+
+                GameObjectInstantiateData gOID = new GameObjectInstantiateData();
+                gOID.position = finalVector;
+                gOID.rotation = finalQuat;
+                gOID.prefabDomainID = prefabDomain;
+                gOID.prefabID = prefabID;
+                gOID.isShared = isSharedObject;
+                gOID.netObjID = netObjID;
+                gOID.fieldDefaults = fieldDefaults;
+
+                Packet p = new Packet(gOID);
+                p.packetType = Packet.pType.gOInstantiate;
+                p.packetSendType = sT;
+
+
+                //if(sT == Packet.sendType.buffered && isServer)
+                //{
+                //    NetServer.serverInstance.bufferedPackets.Add(p);
+                //}
                 NetClient.instanceClient.SendPacket(p);
+                
             }
 
-            GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), rotation);
+            GameObject g = Instantiate(NetworkData.instance.networkPrefabList[prefabDomain].prefabList[prefabID],position, rotation);
             NetworkObject nObj = g.GetComponent<NetworkObject>();
             if (nObj == null)
             {
@@ -79,11 +83,11 @@ namespace EntityNetworkingSystems
 
 
             nObj.ownerID = NetTools.clientID;
-            nObj.prefabDomainID = gOID.prefabDomainID;
-            nObj.prefabID = gOID.prefabID;
-            nObj.networkID = gOID.netObjID;
-            nObj.sharedObject = gOID.isShared;
-            nObj.detectNetworkStarts = NetworkData.instance.networkPrefabList[gOID.prefabDomainID].detectNetworkStarts;
+            nObj.prefabDomainID = prefabDomain;
+            nObj.prefabID = prefabID;
+            nObj.networkID = netObjID;
+            nObj.sharedObject = isSharedObject;
+            nObj.detectNetworkStarts = NetworkData.instance.networkPrefabList[prefabDomain].detectNetworkStarts;
 
             nObj.Initialize();
             //nObj.DoRpcFieldInitialization();
@@ -97,7 +101,7 @@ namespace EntityNetworkingSystems
             {
                 foreach (NetworkFieldPacket nFP in fieldDefaults)
                 {
-                    nFP.networkObjID = gOID.netObjID;
+                    nFP.networkObjID = netObjID;
                     nObj.UpdateField(nFP.fieldName, nFP.data.ToObject(), nFP.immediateOnSelf);
                 }
             }

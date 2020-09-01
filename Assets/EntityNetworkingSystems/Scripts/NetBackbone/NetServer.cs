@@ -29,6 +29,7 @@ namespace EntityNetworkingSystems
         public string mapName = "world1";
         [Space]
         public List<NetworkPlayer> connections = new List<NetworkPlayer>();
+        public List<Packet> bufferedPackets = new List<Packet>();
 
         TcpListener server = null;
         List<Thread> connThreads = new List<Thread>();
@@ -36,14 +37,12 @@ namespace EntityNetworkingSystems
         //Thread packetSendHandler = null;
         //Dictionary<Packet, NetworkPlayer> queuedSendPackets = new Dictionary<Packet, NetworkPlayer>();
 
-        public List<Packet> bufferedPackets = new List<Packet>();
-
         int lastPlayerID = -1;
-
 
 
         public void Initialize()
         {
+
             if (IsInitialized())
             {
                 return;
@@ -134,12 +133,19 @@ namespace EntityNetworkingSystems
                 NetTools.clientID = 0;
                 NetTools.isServer = true;
                 UnityPacketHandler.instance.StartHandler();
+                Debug.Log("Server started in Singleplayer Mode.");
                 return;
             }
 
             //Create server
-            Debug.Log(IPAddress.Parse(hostAddress));
-            server = new TcpListener(IPAddress.Any, hostPort);
+            //Debug.Log(IPAddress.Parse(hostAddress));
+            if (hostAddress == "Any")
+            {
+                server = new TcpListener(IPAddress.Any, hostPort);
+            } else
+            {
+                server = new TcpListener(IPAddress.Parse(hostAddress), hostPort);
+            }
             server.Start();
             Debug.Log("Server started successfully.");
             NetTools.isServer = true;
@@ -176,7 +182,10 @@ namespace EntityNetworkingSystems
                 connectionHandler = null;
             }
 
-            GameObject.Destroy(GameObject.FindObjectOfType<UnityPacketHandler>().gameObject);
+            if (GameObject.FindObjectOfType<UnityPacketHandler>() != null)
+            {
+                GameObject.Destroy(GameObject.FindObjectOfType<UnityPacketHandler>().gameObject);
+            }
             //NetServer.serverInstance = null;
             connections = new List<NetworkPlayer>();
             bufferedPackets = new List<Packet>();
@@ -200,7 +209,6 @@ namespace EntityNetworkingSystems
                     Thread.Sleep(1000);
                 }
                 Debug.Log("Awaiting Client Connection...");
-
 
                 TcpClient tcpClient = server.AcceptTcpClient();
                 NetworkPlayer netClient = new NetworkPlayer(tcpClient);
@@ -233,7 +241,7 @@ namespace EntityNetworkingSystems
 
                     BeginAuthResult bAR = SteamUser.BeginAuthSession(clientSteamAuthTicket.authData, clientSteamAuthTicket.steamID);
 
-
+                    //Debug.Log(clientSteamAuthTicket.steamID);
                     if (bAR != BeginAuthResult.OK)
                     {
                         client.tcpClient.Close();
@@ -282,13 +290,14 @@ namespace EntityNetworkingSystems
                 }
 
 
+
                 List<Packet> tempPackets = new List<Packet>();
 
 
                 foreach (Packet p in packetsToSend)
                 {
                     tempPackets.Add(p);
-                    if (tempPackets.Count >= 100)
+                    if (tempPackets.Count >= 60)
                     {
                         Packet multiPack = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(tempPackets));
                         multiPack.sendToAll = false;
@@ -298,7 +307,7 @@ namespace EntityNetworkingSystems
                     }
                 }
 
-                //Send whatever remains in it otherwise 99 or less packets will be lost.
+                //Send whatever remains in it otherwise max-1 or less packets will be lost.
                 //Debug.Log(tempPackets.Count);
                 Packet lastMulti = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(tempPackets));
                 lastMulti.sendToAll = false;
@@ -318,6 +327,12 @@ namespace EntityNetworkingSystems
                 {
                     //Thread.Sleep(50);
                     Packet pack = RecvPacket(client);
+
+                    if(pack == null)
+                    {
+                        continue;
+                    }
+
                     if (pack.packetOwnerID != client.clientID)// && client.tcpClient == NetClient.instanceClient.client) //if server dont change cause if it is -1 it has all authority.
                     {
                         pack.packetOwnerID = client.clientID;
@@ -462,6 +477,7 @@ namespace EntityNetworkingSystems
                     byte[] arraySize = new byte[4];
                     arraySize = System.BitConverter.GetBytes(array.Length);
                     //Debug.Log("Length: " + arraySize.Length);
+
                     player.netStream.Write(arraySize, 0, arraySize.Length);
 
                     //Send packet
@@ -474,8 +490,9 @@ namespace EntityNetworkingSystems
         public Packet RecvPacket(NetworkPlayer player)
         {
             //First get packet size
-            byte[] packetSize = new byte[4];
-            player.netStream.Read(packetSize, 0, packetSize.Length);
+            //byte[] packetSize = new byte[4];
+            byte[] packetSize = RecieveSizeSpecificData(4, player.netStream);
+            //player.netStream.Read(packetSize, 0, packetSize.Length);
             int pSize = System.BitConverter.ToInt32(packetSize, 0);
             //Debug.Log(pSize);
 
@@ -490,18 +507,15 @@ namespace EntityNetworkingSystems
         byte[] RecieveSizeSpecificData(int byteCountToGet, NetworkStream netStream)
         {
             //byteCountToGet--;
+            byte[] bytesRecieved = new byte[byteCountToGet];
 
-            List<byte> bytesRecieved = new List<byte>();
-            
-            int bytesRead = 0;
-            while (bytesRead < byteCountToGet)
+            int messageRead = 0;
+            while (messageRead < bytesRecieved.Length)
             {
-                byte[] bunch = new byte[byteCountToGet - bytesRead];
-                netStream.Read(bunch, 0, bunch.Length);
-                bytesRecieved.AddRange(bunch);
-                bytesRead += bunch.Length;
+                int bytesRead = netStream.Read(bytesRecieved, messageRead, bytesRecieved.Length - messageRead);
+                messageRead += bytesRead;
             }
-            return bytesRecieved.ToArray();
+            return bytesRecieved;
         }
 
         //public Dictionary<Packet, NetworkPlayer> queuedSendingPackets = new Dictionary<Packet, NetworkPlayer>();

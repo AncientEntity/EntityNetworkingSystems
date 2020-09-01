@@ -9,8 +9,6 @@ namespace EntityNetworkingSystems {
         public List<AnimatorControllerParameter> animationBools = new List<AnimatorControllerParameter>();
         public List<bool> animationBoolsLastValue = new List<bool>();
         public bool manageSpriteFlips = true;
-        [Space]
-        public float updatesPerSecond = 25f;
 
 
 
@@ -118,7 +116,7 @@ namespace EntityNetworkingSystems {
                     }
                 }
 
-                yield return new WaitForSeconds(1f / updatesPerSecond);
+                yield return new WaitForSeconds(1f / 25f);
             }
             Debug.Log("Handle Animation Bool Packets has ended.");
         }

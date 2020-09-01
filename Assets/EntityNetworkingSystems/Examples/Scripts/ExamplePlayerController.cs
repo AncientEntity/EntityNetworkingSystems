@@ -38,7 +38,7 @@ public class ExamplePlayerController : MonoBehaviour
 
     void OnNetStart()
     {
-        net.UpdateField("position", new SerializableVector(transform.position),immediateOnSelf:true);
+        net.UpdateField("ENS_Position", new SerializableVector(transform.position),immediateOnSelf:true);
     }
 
     void FixedUpdate()
@@ -50,31 +50,27 @@ public class ExamplePlayerController : MonoBehaviour
 
         if(!net.IsOwner())
         {
-            if (net.fields[0].IsInitialized())
-            {
-                transform.position = net.GetField<SerializableVector>("position").ToVec3();
-            }
             return;
         }
         if (Input.GetKey(KeyCode.W))
         {
             transform.Translate(new Vector3(0f, 0.4f, 0f));
-            net.UpdateField("position", new SerializableVector(transform.position));
+            net.UpdateField("ENS_Position", new SerializableVector(transform.position));
         }
         else if (Input.GetKey(KeyCode.S))
         {
             transform.Translate(new Vector3(0f, -0.4f, 0f));
-            net.UpdateField("position", new SerializableVector(transform.position));
+            net.UpdateField("ENS_Position", new SerializableVector(transform.position));
         }
         if (Input.GetKey(KeyCode.D))
         {
             transform.Translate(new Vector3(0.4f, 0.0f, 0f));
-            net.UpdateField("position", new SerializableVector(transform.position));
+            net.UpdateField("ENS_Position", new SerializableVector(transform.position));
         }
         else if (Input.GetKey(KeyCode.A))
         {
             transform.Translate(new Vector3(-0.4f, 0.0f, 0f));
-            net.UpdateField("position", new SerializableVector(transform.position));
+            net.UpdateField("ENS_Position", new SerializableVector(transform.position));
         }
     }
 }

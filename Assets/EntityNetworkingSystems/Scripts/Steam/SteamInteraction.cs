@@ -72,7 +72,7 @@ namespace EntityNetworkingSystems
             //SteamFriends.OnGameLobbyJoinRequested += SteamFriends_OnGameLobbyJoinRequested;
             if (ourSteamID == 0)
             {
-                Debug.Log(SteamClient.SteamId.Value);
+                //Debug.Log(SteamClient.SteamId.Value);
                 ourSteamID = SteamClient.SteamId.Value;
             }
             if(steamName == "")

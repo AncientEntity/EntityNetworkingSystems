@@ -68,16 +68,6 @@ namespace EntityNetworkingSystems
 
             initialized = true;
 
-            foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[prefabDomainID].defaultFields)
-            {
-                fields.Add(defaultField.Clone());
-                //nObj.CreateField(defaultField.fieldName, null, init: defaultField.defaultValue, defaultField.shouldBeProximity);
-            }
-            foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[prefabDomainID].defaultRpcs)
-            {
-                rpcs.Add(defaultRPC.Clone());
-            }
-
 
             if (detectNetworkStarts)
             {
@@ -105,8 +95,9 @@ namespace EntityNetworkingSystems
             }
 
             //If you want automatic Animator networking, a little buggy.
-            if (GetComponent<Animator>() != null && GetComponent<AnimationNetworker>() == null)
+            if (NetTools.IsMultiplayerGame() && GetComponent<Animator>() != null && GetComponent<AnimationNetworker>() == null)
             {
+                //If it is singleplayer game it doesn't need this so it doesn't add one automatically.
                 gameObject.AddComponent<AnimationNetworker>();
             }
 
@@ -137,6 +128,18 @@ namespace EntityNetworkingSystems
 
         public void DoRpcFieldInitialization()
         {
+
+            foreach (NetworkField defaultField in NetworkData.instance.networkPrefabList[prefabDomainID].defaultFields)
+            {
+                fields.Add(defaultField.Clone());
+                //nObj.CreateField(defaultField.fieldName, null, init: defaultField.defaultValue, defaultField.shouldBeProximity);
+            }
+            foreach (RPC defaultRPC in NetworkData.instance.networkPrefabList[prefabDomainID].defaultRpcs)
+            {
+                rpcs.Add(defaultRPC.Clone());
+            }
+
+
             foreach (NetworkField field in fields)
             {
                 if (field.IsInitialized() == false)
@@ -225,6 +228,16 @@ namespace EntityNetworkingSystems
             }
         }
 
+        public void CreateRPC(string rpcName, RPCEvent events)
+        {
+            RPC newRPC = new RPC();
+            newRPC.rpcName = rpcName;
+            newRPC.onRpc = events;
+            newRPC.SetParentNetworkObject(this, rpcs.Count);
+
+            rpcs.Add(newRPC);
+        }
+
         public void UpdateField<T>(string fieldName, T data, bool immediateOnSelf = false)
         {
             for (int i = 0; i < fields.Count; i++)
@@ -246,13 +259,13 @@ namespace EntityNetworkingSystems
         {
             for (int i = 0; i < fields.Count; i++)
             {
-
                 if (fields[i].fieldName == fieldName)
                 {
                     fields[i].LocalFieldSet(data);
-                    break;
+                    return;
                 }
             }
+            Debug.LogError("NetworkField of name " + fieldName + " doesn't exist.", this);
         }
 
         public T GetField<T>(string fieldName)
@@ -276,6 +289,7 @@ namespace EntityNetworkingSystems
                     return (T)System.Convert.ChangeType(returnedData, typeof(T));
                 }
             }
+            Debug.LogError("NetworkField of name " + fieldName + " doesn't exist.", this);
             return default;
         }
 
@@ -317,8 +331,10 @@ namespace EntityNetworkingSystems
                 if (rpc.rpcName == rpcName)
                 {
                     rpc.CallRPC(sendType, list: list);
+                    return;
                 }
             }
+            Debug.LogError("No RPC with that name found. " + rpcName,this);
         }
 
         public void FieldAddOnChangeMethod(string fieldName, UnityAction<FieldArgs> action, bool invokeNow=false)
@@ -426,6 +442,12 @@ namespace EntityNetworkingSystems
             {
                 return true;
             }
+            if(fieldName.Contains("ENS_") && netObj.IsOwner())
+            {
+                specialFieldsInitialized = true;
+                return true;
+            }
+
 
             if (fieldName == "ENS_Position")
             {
@@ -577,6 +599,14 @@ namespace EntityNetworkingSystems
             {
                 jPO = new JsonPacketObject("" + newValue, newValue.GetType().ToString());
             }
+
+            if(!NetTools.IsMultiplayerGame())
+            {
+                //If singleplayer game just immediately set the value no matter what. No need to use the packet handler for this.
+                LocalFieldSet(newValue);
+                return;
+            }
+
 
             Packet pack = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
                 new NetworkFieldPacket(netObjID, fieldName, jPO,immediateOnSelf));
