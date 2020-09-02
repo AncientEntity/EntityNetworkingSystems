@@ -7,9 +7,9 @@ namespace EntityNetworkingSystems
     public class ENSSerialization
     {
         //Packet Serialization Data - Total Minimum Bytes: 38 bytes.
-        // - sendType int32, 4 bytes
-        // - packetType int32, 4 bytes
-        // - packetOwnerID int32, 4 bytes
+        // - sendType int8, 1 byte
+        // - packetType int8, 1 byte
+        // - packetOwnerID int16, 2 bytes
         // - serverAuthority bool, 1 byte
         // - sendToAll bool, 1 byte
         // - relatesToNetObjID int32, 4 bytes
@@ -26,11 +26,11 @@ namespace EntityNetworkingSystems
             List<byte> objectAsBytes = new List<byte>();
 
             //Basic Fields
-            byte[] sendType = System.BitConverter.GetBytes((int)packet.packetSendType);
-            objectAsBytes.AddRange(sendType);
-            byte[] packetType = System.BitConverter.GetBytes((int)packet.packetType);
-            objectAsBytes.AddRange(packetType);
-            byte[] packetOwnerID = System.BitConverter.GetBytes(packet.packetOwnerID);
+            byte sendType = (byte)packet.packetSendType;
+            objectAsBytes.Add(sendType);
+            byte packetType = (byte)packet.packetType;
+            objectAsBytes.Add(packetType);
+            byte[] packetOwnerID = System.BitConverter.GetBytes((short)packet.packetOwnerID);
             objectAsBytes.AddRange(packetOwnerID);
             byte[] serverAuthority = System.BitConverter.GetBytes(packet.serverAuthority);
             objectAsBytes.AddRange(serverAuthority);
@@ -76,9 +76,9 @@ namespace EntityNetworkingSystems
             Packet packet = new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, 0);
 
             //Basic Fields
-            packet.packetSendType = (Packet.sendType)System.BitConverter.ToInt32(packetBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
-            packet.packetType = (Packet.pType)System.BitConverter.ToInt32(packetBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
-            packet.packetOwnerID = System.BitConverter.ToInt32(packetBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            packet.packetSendType = (Packet.sendType)packetBytes[intIndex]; intIndex++;// (Packet.sendType)System.BitConverter.ToInt32(packetBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            packet.packetType = (Packet.pType)packetBytes[intIndex]; intIndex++; // (Packet.pType)System.BitConverter.ToInt32(packetBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            packet.packetOwnerID = System.BitConverter.ToInt16(packetBytes.GetRange(intIndex, 2).ToArray(), 0); intIndex += 2;
             packet.serverAuthority = System.BitConverter.ToBoolean(packetBytes.GetRange(intIndex, 1).ToArray(), 0); intIndex += 1;
             packet.sendToAll = System.BitConverter.ToBoolean(packetBytes.GetRange(intIndex, 1).ToArray(), 0); intIndex += 1;
             packet.relatesToNetObjID = System.BitConverter.ToInt32(packetBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
