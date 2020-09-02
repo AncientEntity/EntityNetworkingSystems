@@ -23,11 +23,16 @@ namespace EntityNetworkingSystems
         public void CallRPC(Packet.sendType sendType = Packet.sendType.culledbuffered, params object[] list)
         {
 
-            Packet p = GenerateRPCPacket(sendType, list);
+            RPCPacketData rpcData = GenerateRPCData(sendType, list);
+
+            Packet p = new Packet(Packet.pType.rpc, sendType, ENSSerialization.SerializeRPCPacketData(rpcData));
+            p.sendToAll = true;
+            p.relatesToNetObjID = net.networkID;
+
 
             if (NetTools.IsMultiplayerGame() == false)
             {
-                InvokeRPC(p.GetPacketData<RPCPacketData>().ReturnArgs());
+                InvokeRPC(rpcData.ReturnArgs());
                 return;
             }
 
@@ -45,13 +50,23 @@ namespace EntityNetworkingSystems
 
         public Packet GenerateRPCPacket(Packet.sendType sendType = Packet.sendType.culledbuffered, params object[] list)
         {
+            RPCPacketData rpcData = new RPCPacketData(net.networkID, rpcIndex, NetTools.clientID, list);
+
+
+            Packet p = new Packet(Packet.pType.rpc, sendType, ENSSerialization.SerializeRPCPacketData(rpcData));
+            p.sendToAll = true;
+            p.relatesToNetObjID = net.networkID;
+
+
+            return p;
+        }
+
+
+        public RPCPacketData GenerateRPCData(Packet.sendType sendType = Packet.sendType.culledbuffered, params object[] list)
+        {
             RPCPacketData rpcData = new RPCPacketData(net.networkID, rpcIndex,NetTools.clientID, list);
 
-            Packet rpcPacket = new Packet(Packet.pType.rpc, sendType, rpcData);
-            rpcPacket.sendToAll = true;
-            rpcPacket.relatesToNetObjID = net.networkID;
-
-            return rpcPacket;
+            return rpcData;
         }
 
         public void SetParentNetworkObject(NetworkObject net, int index)

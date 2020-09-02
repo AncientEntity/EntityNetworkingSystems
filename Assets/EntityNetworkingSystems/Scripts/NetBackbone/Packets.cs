@@ -26,15 +26,14 @@ namespace EntityNetworkingSystems
         [System.Serializable]
         public enum pType
         {
-            gOInstantiate, // Custom serializer done, 76 minimum bytes. NetworkFieldPacket could use a custom serializer which would help GREATLY for complicated instantiations.
-            gODestroy, // Custom serializaor done. 38 bytes per destroy.
-            netVarEdit,
-            rpc,
+            gOInstantiate, // Custom serializer done, 76 minimum bytes.
+            gODestroy, // 38 bytes per destroy.
+            netVarEdit, //100 bytes or so
+            rpc, //100 bytes or so to transmit a Color over the network
             message, //doesnt go anywhere
             unassigned, //doesnt go anywhere
-            multiPacket,
-            loginInfo,
-            netObjNetStartInvoke, 
+            multiPacket, //Optimized for the new packet serializers
+            loginInfo, //Custom serializer done.
             steamAuth, //only is managed when the client first connects with the server. UnityPacketManager has no logic for it.
         }
         public pType packetType = pType.unassigned;
@@ -63,7 +62,7 @@ namespace EntityNetworkingSystems
         {
             this.packetType = packetType;
             this.packetSendType = typeOfSend;
-            SetPacketData(obj);
+            packetData = obj;
             
         }
 
@@ -111,6 +110,15 @@ namespace EntityNetworkingSystems
         [Obsolete("This uses the BinaryFormatter. It is recommended to make your own serializer and use that instead. Then just set packetData manually.")]
         public T GetPacketData<T>()
         {
+            if(typeof(T).ToString() == "EntityNetworkingSystems.NetworkFieldPacket")
+            {
+                return (T)System.Convert.ChangeType(ENSSerialization.DeserializeNetworkFieldPacket(packetData),typeof(T));
+            } else if (typeof(T).ToString() == "EntityNetworkingSystems.RPCPacketData")
+            {
+                return (T)System.Convert.ChangeType(ENSSerialization.DeserializeRPCPacketData(packetData), typeof(T));
+            }
+
+
             try
             {
                 return (T)System.Convert.ChangeType(packetData, typeof(T));

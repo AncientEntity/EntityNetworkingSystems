@@ -348,9 +348,9 @@ namespace EntityNetworkingSystems
 
                     if(pack.packetType == Packet.pType.rpc)
                     {
-                        RPCPacketData rPD = pack.GetPacketData<RPCPacketData>();
+                        RPCPacketData rPD = ENSSerialization.DeserializeRPCPacketData(pack.packetData);
                         rPD.packetOwnerID = client.clientID;
-                        pack.SetPacketData(rPD);
+                        pack.packetData = ENSSerialization.SerializeRPCPacketData(rPD);
                     }
 
                     if (pack.packetSendType == Packet.sendType.buffered || pack.packetSendType == Packet.sendType.culledbuffered)

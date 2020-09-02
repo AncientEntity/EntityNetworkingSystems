@@ -360,9 +360,10 @@ namespace EntityNetworkingSystems
             //NetworkObjectID int32
             byte[] networkObjectID = System.BitConverter.GetBytes(rpc.networkObjectID);
             objectAsBytes.AddRange(networkObjectID);
-            //RPC Index as a short
+            //RPC Index as a SHORT
             byte[] rpcIndex = System.BitConverter.GetBytes((short)rpc.rpcIndex);
             objectAsBytes.AddRange(rpcIndex);
+
 
             //Parameters
             byte[] parameterElementCount = System.BitConverter.GetBytes(rpc.parameters.Count);
@@ -384,18 +385,19 @@ namespace EntityNetworkingSystems
                 objectAsBytes.AddRange(arrayElement);
 
             }
-
             return objectAsBytes.ToArray();
         }
 
         public static RPCPacketData DeserializeRPCPacketData(byte[] givenBytes)
         {
-            List<byte> rpcBytes = new List<byte>(); rpcBytes.AddRange(givenBytes);
-            int intIndex = 0;
+            List<byte> rpcBytes = new List<byte>();
+            rpcBytes.AddRange(givenBytes);
 
-            int packetOwnerID = System.BitConverter.ToInt16(rpcBytes.GetRange(intIndex, 2).ToArray(), 0); intIndex += 2;
+            int intIndex = 0;
+            
+            short packetOwnerID = System.BitConverter.ToInt16(rpcBytes.GetRange(intIndex, 2).ToArray(), 0); intIndex += 2;
             int networkObjectID = System.BitConverter.ToInt32(rpcBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
-            int rpcIndex = System.BitConverter.ToInt16(rpcBytes.GetRange(intIndex, 2).ToArray(), 0); intIndex += 2;
+            short rpcIndex = System.BitConverter.ToInt16(rpcBytes.GetRange(intIndex, 2).ToArray(), 0); intIndex += 2;
             RPCPacketData rpc = new RPCPacketData(networkObjectID,rpcIndex,packetOwnerID);
 
             //Parameter List

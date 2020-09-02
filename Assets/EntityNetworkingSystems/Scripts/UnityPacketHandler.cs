@@ -18,6 +18,7 @@ namespace EntityNetworkingSystems
 #if UNITY_EDITOR
         [Space]
         public List<Packet> problemPackets = new List<Packet>();
+        public RPCPacketData lastRPCPacket;
 #endif
 
         Coroutine runningHandler = null;
@@ -268,13 +269,19 @@ namespace EntityNetworkingSystems
             else if (curPacket.packetType == Packet.pType.rpc)
             {
                 //Debug.Log(curPacket.jsonData);
-                RPCPacketData rPD = curPacket.GetPacketData<RPCPacketData>();
+                RPCPacketData rPD = ENSSerialization.DeserializeRPCPacketData(curPacket.packetData);
                 NetworkObject nObj = NetworkObject.NetObjFromNetID(rPD.networkObjectID);
+
+#if UNITY_EDITOR
+                lastRPCPacket = rPD;
+#endif
+
                 if (nObj == null || (nObj.rpcs[rPD.rpcIndex].serverAuthorityRequired && !curPacket.serverAuthority) || (nObj.ownerID != curPacket.packetOwnerID && !nObj.sharedObject))
                 {
                     return; //Means only server can run it.
                 }
                 nObj.rpcs[rPD.rpcIndex].InvokeRPC(rPD.ReturnArgs());
+
             }
         }
 
