@@ -28,7 +28,7 @@ namespace EntityNetworkingSystems
         public enum pType
         {
             gOInstantiate,
-            gODestroy,
+            gODestroy, // Custom serializator done. 38 bytes per destroy.
             netVarEdit,
             rpc,
             message, //doesnt go anywhere
@@ -53,11 +53,22 @@ namespace EntityNetworkingSystems
 
         public SerializableVector packetPosition;
 
-        public Packet(pType packetType, sendType typeOfSend, object obj)
+        public Packet(pType packetType, sendType typeOfSend, byte[] obj)
         {
             this.packetType = packetType;
             this.packetSendType = typeOfSend;
             SetPacketData(obj);
+            
+        }
+
+        public Packet(pType packetType, sendType typeOfSend, object obj = null)
+        {
+            this.packetType = packetType;
+            this.packetSendType = typeOfSend;
+            if (obj != null)
+            {
+                SetPacketData(obj);
+            }
         }
 
         //Not a good way to do it, suggested is making a custom serializor and using SetPacketData(byte[] data)

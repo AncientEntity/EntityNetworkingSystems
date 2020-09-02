@@ -1461,6 +1461,11 @@ PrefabInstance:
       propertyPath: netClient.connectedToServer
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7745350244653862989, guid: 02188897ea456634dbc92f4ced9a9f72,
+        type: 3}
+      propertyPath: netClient.trackOverhead
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7745350244653862990, guid: 02188897ea456634dbc92f4ced9a9f72,
         type: 3}
       propertyPath: m_Name
