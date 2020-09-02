@@ -301,6 +301,42 @@ namespace EntityNetworkingSystems
             return nFP;
         }
 
+        //SteamAuthPacket Serializer
+        // - byte array authData
+        //   - length int32, 4 bytes
+        //   - the information in bytes, ? bytes
+        // - steamID ulong, 8 bytes.
+        
+        public static byte[] SerializeSteamAuth(SteamAuthPacket sAP)
+        {
+            List<byte> objectAsBytes = new List<byte>();
+
+            byte[] arrayLength = System.BitConverter.GetBytes(sAP.authData.Length);
+            objectAsBytes.AddRange(arrayLength);
+            objectAsBytes.AddRange(sAP.authData);
+
+            byte[] steamID = System.BitConverter.GetBytes(sAP.steamID);
+            objectAsBytes.AddRange(steamID);
+
+
+
+            return objectAsBytes.ToArray();
+        }
+
+        public static SteamAuthPacket DeserializeSteamAuth(byte[] sAPBytes)
+        {
+            List<byte> byteObject = new List<byte>();
+            byteObject.AddRange(sAPBytes);
+            int intIndex = 0;
+
+            int arrayLength = System.BitConverter.ToInt32(byteObject.GetRange(intIndex, 4).ToArray(),0); intIndex += 4;
+            byte[] authData = byteObject.GetRange(intIndex, arrayLength).ToArray(); intIndex += arrayLength;
+
+            ulong steamID = System.BitConverter.ToUInt64(byteObject.GetRange(intIndex,8).ToArray(),0); intIndex += 8;
+
+            return new SteamAuthPacket(authData,steamID);
+        }
+
 
 
         //Use not recommended as the BinaryFormatter has a bunch of overhead...

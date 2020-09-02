@@ -112,7 +112,7 @@ namespace EntityNetworkingSystems
                 yield return new WaitUntil(() => queuedNetworkPackets.Count > 0);
 
                 Packet curPacket = queuedNetworkPackets[0];
-                NetworkFieldPacket nFP = curPacket.GetPacketData<NetworkFieldPacket>();
+                NetworkFieldPacket nFP = ENSSerialization.DeserializeNetworkFieldPacket(curPacket.packetData);
 
                 if ((ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !sharedObject) || (curPacket.packetOwnerID == NetTools.clientID && nFP.immediateOnSelf))
                 {
