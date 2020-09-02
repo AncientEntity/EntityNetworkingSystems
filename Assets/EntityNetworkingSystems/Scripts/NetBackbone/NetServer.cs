@@ -297,7 +297,7 @@ namespace EntityNetworkingSystems
                 foreach (Packet p in packetsToSend)
                 {
                     tempPackets.Add(p);
-                    if (tempPackets.Count >= 60)
+                    if (tempPackets.Count >= 100)
                     {
                         Packet multiPack = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(tempPackets));
                         multiPack.sendToAll = false;

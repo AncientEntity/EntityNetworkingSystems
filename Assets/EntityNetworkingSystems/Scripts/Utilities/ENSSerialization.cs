@@ -229,34 +229,25 @@ namespace EntityNetworkingSystems
             return gOID;
         }
 
+        //NetworkFieldPacket Serializer - Total Minimum Calculatable Bytes: 9 bytes
+        // - networkObjID int32, 4 bytes
+        // - fieldIndex int32, 4 bytes
+        // - jsonData string, ? bytes
+        // - jsonDataTypeName string, ? bytes
+        // - immediateOnSelf boolean, 1 byte
 
-
-        //Serialize int - Total Minimum Bytes: 4 bytes
-        public static byte[] SerializeInt(int intValue)
+        public static byte[] SerializeNetworkFieldPacket(NetworkFieldPacket nFP)
         {
-            byte[] bytes = new byte[4];
+            List<byte> objectAsBytes = new List<byte>();
 
-            bytes[0] = (byte)(intValue >> 24);
-            bytes[1] = (byte)(intValue >> 16);
-            bytes[2] = (byte)(intValue >> 8);
-            bytes[3] = (byte)intValue;
 
-            return bytes;
+            byte[] networkObjID = System.BitConverter.GetBytes(nFP.networkObjID);
+            objectAsBytes.AddRange(networkObjID);
+
+
+
+            return objectAsBytes.ToArray();
         }
-
-        public static int DeserializeInt(byte[] intBytes)
-        {
-            int outInt = 0;
-
-            outInt += (intBytes[0] << 24);
-            outInt += (intBytes[1] << 16);
-            outInt += (intBytes[2] << 8);
-            outInt += intBytes[3];
-
-            return outInt;
-        }
-
-
 
 
 
@@ -292,6 +283,47 @@ namespace EntityNetworkingSystems
             }
             return (T)o;
         }
+
+
+        //Serialize int - Total Minimum Bytes: 4 bytes
+        public static byte[] SerializeInt(int intValue)
+        {
+            byte[] bytes = new byte[4];
+
+            bytes[0] = (byte)(intValue >> 24);
+            bytes[1] = (byte)(intValue >> 16);
+            bytes[2] = (byte)(intValue >> 8);
+            bytes[3] = (byte)intValue;
+
+            return bytes;
+        }
+
+        public static int DeserializeInt(byte[] intBytes)
+        {
+            int outInt = 0;
+
+            outInt += (intBytes[0] << 24);
+            outInt += (intBytes[1] << 16);
+            outInt += (intBytes[2] << 8);
+            outInt += intBytes[3];
+
+            return outInt;
+        }
+
+        public static object JsonToObject(string jsonData, string jsonDataTypeName)
+        {
+
+            if (ENSUtils.IsSimple(System.Type.GetType(jsonDataTypeName)))
+            {
+                return System.Convert.ChangeType(jsonData, System.Type.GetType(jsonDataTypeName));
+            }
+            else
+            {
+                return JsonUtility.FromJson(jsonData, System.Type.GetType(jsonDataTypeName));
+            }
+        }
+
+
 
     }
 }

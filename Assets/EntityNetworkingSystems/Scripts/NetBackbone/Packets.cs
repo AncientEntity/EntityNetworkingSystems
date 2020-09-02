@@ -26,8 +26,8 @@ namespace EntityNetworkingSystems
         [System.Serializable]
         public enum pType
         {
-            gOInstantiate,
-            gODestroy, // Custom serializator done. 38 bytes per destroy.
+            gOInstantiate, // Custom serializer done, 76 minimum bytes. NetworkFieldPacket could use a custom serializer which would help GREATLY for complicated instantiations.
+            gODestroy, // Custom serializaor done. 38 bytes per destroy.
             netVarEdit,
             rpc,
             message, //doesnt go anywhere
@@ -269,11 +269,14 @@ namespace EntityNetworkingSystems
     [System.Serializable]
     public class PacketListPacket
     {
-        public List<Packet> packets = new List<Packet>();
+        public List<byte[]> packets = new List<byte[]>();
 
         public PacketListPacket(List<Packet> packets)
         {
-            this.packets = packets;
+            foreach(Packet p in packets)
+            {
+                this.packets.Add(ENSSerialization.SerializePacket(p));
+            }
         }
     }
 

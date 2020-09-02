@@ -193,10 +193,13 @@ namespace EntityNetworkingSystems
             else if (curPacket.packetType == Packet.pType.multiPacket)
             {
                 //Debug.Log("Recieved buffered packets.");
-                List<Packet> packetInfo = (curPacket.GetPacketData<PacketListPacket>()).packets;
+                List<byte[]> packetByteInfo = (curPacket.GetPacketData<PacketListPacket>()).packets;
                 lock (packetQueue)
                 {
-                    packetQueue.AddRange(packetInfo);
+                    foreach(byte[] packetByte in packetByteInfo)
+                    {
+                        packetQueue.Add(ENSSerialization.DeserializePacket(packetByte));
+                    }
                 }
 
                 syncingBuffered = true;
