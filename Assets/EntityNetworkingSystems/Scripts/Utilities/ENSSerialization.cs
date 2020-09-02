@@ -337,6 +337,87 @@ namespace EntityNetworkingSystems
             return new SteamAuthPacket(authData,steamID);
         }
 
+        //RPCPacketData Serializer - Minimum Calculatable Bytes: 10 bytes
+        // - packetOwnerID int16, 2 bytes
+        // - networkObjectID int32, 4 bytes
+        // - rpcIndex int16, 2 bytes
+        // - parameters string list
+        //   - element count int32, 4 bytes
+        //      - element byte length int32, 4 bytes
+        //      - element string, ? bytes
+        // - paramTypes string list
+        //   - element count int32, 4 bytes
+        //      - element byte length int32, 4 bytes
+        //      - element string,  ? bytes
+
+        public static byte[] SerializeRPCPacketData(RPCPacketData rpc)
+        {
+            List<byte> objectAsBytes = new List<byte>();
+
+            //Packet OwnerID as a SHORT
+            byte[] packetOwnerID = System.BitConverter.GetBytes((short)rpc.packetOwnerID);
+            objectAsBytes.AddRange(packetOwnerID);
+            //NetworkObjectID int32
+            byte[] networkObjectID = System.BitConverter.GetBytes(rpc.networkObjectID);
+            objectAsBytes.AddRange(networkObjectID);
+            //RPC Index as a short
+            byte[] rpcIndex = System.BitConverter.GetBytes((short)rpc.rpcIndex);
+            objectAsBytes.AddRange(rpcIndex);
+
+            //Parameters
+            byte[] parameterElementCount = System.BitConverter.GetBytes(rpc.parameters.Count);
+            objectAsBytes.AddRange(parameterElementCount);
+            for (int i = 0; i < rpc.parameters.Count; i++)
+            {
+                byte[] arrayElement = Encoding.ASCII.GetBytes(rpc.parameters[i]);
+                objectAsBytes.AddRange(System.BitConverter.GetBytes(arrayElement.Length)); //Element length
+                objectAsBytes.AddRange(arrayElement);
+
+            }
+            //ParamTypes
+            byte[] paramTypeElementCount = System.BitConverter.GetBytes(rpc.paramTypes.Count);
+            objectAsBytes.AddRange(paramTypeElementCount);
+            for (int i = 0; i < rpc.parameters.Count; i++)
+            {
+                byte[] arrayElement = Encoding.ASCII.GetBytes(rpc.paramTypes[i]);
+                objectAsBytes.AddRange(System.BitConverter.GetBytes(arrayElement.Length)); //Element length
+                objectAsBytes.AddRange(arrayElement);
+
+            }
+
+            return objectAsBytes.ToArray();
+        }
+
+        public static RPCPacketData DeserializeRPCPacketData(byte[] givenBytes)
+        {
+            List<byte> rpcBytes = new List<byte>(); rpcBytes.AddRange(givenBytes);
+            int intIndex = 0;
+
+            int packetOwnerID = System.BitConverter.ToInt16(rpcBytes.GetRange(intIndex, 2).ToArray(), 0); intIndex += 2;
+            int networkObjectID = System.BitConverter.ToInt32(rpcBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            int rpcIndex = System.BitConverter.ToInt16(rpcBytes.GetRange(intIndex, 2).ToArray(), 0); intIndex += 2;
+            RPCPacketData rpc = new RPCPacketData(networkObjectID,rpcIndex,packetOwnerID);
+
+            //Parameter List
+            int parameterElementCount = System.BitConverter.ToInt32(rpcBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            for (int i = 0; i < parameterElementCount; i++)
+            {
+                int byteLength = System.BitConverter.ToInt32(rpcBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+                string element = Encoding.ASCII.GetString(rpcBytes.GetRange(intIndex, byteLength).ToArray()); intIndex += byteLength;
+                rpc.parameters.Add(element);
+            }
+            //ParamType List
+            int paraTypeElementCount = System.BitConverter.ToInt32(rpcBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            for (int i = 0; i < paraTypeElementCount; i++)
+            {
+                int byteLength = System.BitConverter.ToInt32(rpcBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+                string element = Encoding.ASCII.GetString(rpcBytes.GetRange(intIndex, byteLength).ToArray()); intIndex += byteLength;
+                rpc.paramTypes.Add(element);
+            }
+
+
+            return rpc;
+        }
 
 
         //Use not recommended as the BinaryFormatter has a bunch of overhead...

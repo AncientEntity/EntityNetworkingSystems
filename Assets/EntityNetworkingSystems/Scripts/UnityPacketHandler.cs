@@ -11,7 +11,9 @@ namespace EntityNetworkingSystems
         public static UnityPacketHandler instance = null;
         public bool handlerRunning = false;
         public List<Packet> packetQueue = new List<Packet>();
-        public int amountPerUpdate = 85;
+        public bool dynamicUpdateRate = true;
+        public int amountPerUpdate = 50;
+        public int maxPerFrame = 200;
         bool syncingBuffered = false;
 #if UNITY_EDITOR
         [Space]
@@ -19,6 +21,8 @@ namespace EntityNetworkingSystems
 #endif
 
         Coroutine runningHandler = null;
+        private int baseAmounts;
+
 
         void Awake()
         {
@@ -30,6 +34,8 @@ namespace EntityNetworkingSystems
             {
                 Destroy(this);
             }
+
+            baseAmounts = amountPerUpdate;
         }
 
         void CheckForHandlerCrash()
@@ -70,6 +76,18 @@ namespace EntityNetworkingSystems
                         //For some reason the packetQueue already had nothing.
                     }
 
+                    if (dynamicUpdateRate)
+                    {
+                        if (packetQueue.Count > amountPerUpdate)
+                        {
+                            amountPerUpdate = Mathf.Clamp(amountPerUpdate + 3, baseAmounts, maxPerFrame);
+                        }
+                        else
+                        {
+                            amountPerUpdate = Mathf.Clamp(amountPerUpdate - 3, baseAmounts, maxPerFrame);
+                        }
+                    }
+                    
                     if (curPacket == null)
                     {
                         continue;
