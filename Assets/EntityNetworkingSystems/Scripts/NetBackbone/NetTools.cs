@@ -60,9 +60,7 @@ namespace EntityNetworkingSystems
                 gOID.netObjID = netObjID;
                 gOID.fieldDefaults = fieldDefaults;
 
-                Packet p = new Packet(gOID);
-                p.packetType = Packet.pType.gOInstantiate;
-                p.packetSendType = sT;
+                Packet p = new Packet(Packet.pType.gOInstantiate,Packet.sendType.buffered,gOID);
 
 
                 //if(sT == Packet.sendType.buffered && isServer)

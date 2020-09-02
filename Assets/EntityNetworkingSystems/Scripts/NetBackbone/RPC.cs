@@ -27,7 +27,7 @@ namespace EntityNetworkingSystems
 
             if (NetTools.IsMultiplayerGame() == false)
             {
-                InvokeRPC(((RPCPacketData)p.GetPacketData()).ReturnArgs());
+                InvokeRPC(p.GetPacketData<RPCPacketData>().ReturnArgs());
                 return;
             }
 

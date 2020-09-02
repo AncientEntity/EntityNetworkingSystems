@@ -12,7 +12,7 @@ namespace EntityNetworkingSystems
     [System.Serializable]
     public class Packet
     {
-        //public static BinaryFormatter bF = null;
+        public static BinaryFormatter bF = new BinaryFormatter();
 
         [System.Serializable]
         public enum sendType
@@ -40,9 +40,11 @@ namespace EntityNetworkingSystems
         }
         public pType packetType = pType.unassigned;
 
-        public string jsonData;
-        public string jsonDataTypeName;
+        //public string jsonData;
+        //public string jsonDataTypeName;
 
+        public byte[] packetData;
+        
         public int packetOwnerID = NetTools.clientID; //If the client tries lying to server, the server verifies it in NetServer anyways...
         public bool serverAuthority = false; //Manually changed in NetServer. Client changing it wont effect other clients/server.
         public bool sendToAll = true;
@@ -58,106 +60,97 @@ namespace EntityNetworkingSystems
             SetPacketData(obj);
         }
 
-        public Packet(object obj)
+        //Not a good way to do it, suggested is making a custom serializor and using SetPacketData(byte[] data)
+        public void SetPacketData(object obj)
         {
-            SetPacketData(obj);
-        }
+            byte[] objectAsBytes;
 
-        public void SetPacketData(object data)
-        {
-            object formattedData = data;
-            jsonDataTypeName = data.GetType().ToString();
-
-
-            if (data.GetType().ToString() == "System.Int32" || data.GetType().ToString() == "System.Int16" || data.GetType().ToString() == "System.Int64")
+            using(MemoryStream ms = new MemoryStream())
             {
-                //Automatically put it into an IntPacket so JsonUtility will jsonify it.
-                formattedData = new IntPacket((int)data);
-                jsonDataTypeName = formattedData.GetType().ToString();
+                bF.Serialize(ms, obj);
+                objectAsBytes = ms.ToArray();
             }
 
-            jsonData = JsonUtility.ToJson(formattedData);
-
+            SetPacketData(objectAsBytes);
         }
 
-        public object GetPacketData()
+        public void SetPacketData(byte[] data)
         {
-            System.Type t = System.Type.GetType(jsonDataTypeName);
-            //Debug.Log(t);
-            if (t.ToString() == "EntityNetworkingSystems.IntPacket")
-            {
-                //If integer you must first convert it out of a IntPacket.
-                return JsonUtility.FromJson<IntPacket>(jsonData).integer;
-            }
-            else
-            {
-                return JsonUtility.FromJson(jsonData, t);
-            }
-        }
+            packetData = data;
 
-        public static Packet DeJsonifyPacket(string jsonPacket)
-        {
-            //int lastJsonIndex = jsonPacket.LastIndexOf("}");
-            //jsonPacket = jsonPacket.Substring(0, lastJsonIndex);
+            //object formattedData = data;
+            //jsonDataTypeName = data.GetType().ToString();
 
 
-            try
-            {
-                //Debug.Log(jsonPacket);
-                return JsonUtility.FromJson<Packet>(jsonPacket);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError(e);
-                //Debug.LogError("Error Dejsonify. Length: "+jsonPacket.Length+": " + jsonPacket);
-#if UNITY_EDITOR
-                NetworkData.instance.errorJson = jsonPacket;
-#endif
-                return null;
-            }
-        }
-
-        public static string JsonifyPacket(Packet packet)
-        {
-            return JsonUtility.ToJson(packet);
-        }
-
-        public static object DeserializeObject(byte[] serialized)
-        {
-            BinaryFormatter bF = new BinaryFormatter();
-            //if (bF == null)
+            //if (data.GetType().ToString() == "System.Int32" || data.GetType().ToString() == "System.Int16" || data.GetType().ToString() == "System.Int64")
             //{
-            //    bF = new BinaryFormatter();
+            //    //Automatically put it into an IntPacket so JsonUtility will jsonify it.
+            //    formattedData = new IntPacket((int)data);
+            //    jsonDataTypeName = formattedData.GetType().ToString();
             //}
 
-            using (MemoryStream ms = new MemoryStream(serialized))
-            {
-                //byte[] b = new byte[ms.Length];
-                //ms.Seek(0, SeekOrigin.Begin);
-                //Debug.Log(serialized.Length);
-                Packet decoded = (Packet)bF.Deserialize(ms);
-                return decoded;
-            }
+            //packetData = Encoding.ASCII.GetBytes(JsonUtility.ToJson(formattedData));
+
         }
 
-
-        public static byte[] SerializeObject(object packet)
+        public T GetPacketData<T>()
         {
-
-            BinaryFormatter bF = new BinaryFormatter();
-
-            using (MemoryStream ms = new MemoryStream())
+            try
             {
-                bF.Serialize(ms, packet);
-                return ms.ToArray();
+                return (T)System.Convert.ChangeType(packetData, typeof(T));
+            } catch
+            {
+                object o = null;
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    ms.Write(packetData, 0, packetData.Length);
+                    ms.Seek(0,SeekOrigin.Begin);
+                    o = bF.Deserialize(ms);
+                }
+                return (T)o;
             }
-
+            //System.Type t = System.Type.GetType(jsonDataTypeName);
+            ////Debug.Log(t);
+            //if (t.ToString() == "EntityNetworkingSystems.IntPacket")
+            //{
+            //    //If integer you must first convert it out of a IntPacket.
+            //    return JsonUtility.FromJson<IntPacket>(jsonData).integer;
+            //}
+            //else
+            //{
+            //    return JsonUtility.FromJson(jsonData, t);
+            //}
         }
 
-        public byte[] SelfSerialize()
-        {
-            return SerializeObject(this);
-        }
+
+
+//        public static Packet DeJsonifyPacket(string jsonPacket)
+//        {
+//            //int lastJsonIndex = jsonPacket.LastIndexOf("}");
+//            //jsonPacket = jsonPacket.Substring(0, lastJsonIndex);
+
+
+//            try
+//            {
+//                //Debug.Log(jsonPacket);
+//                return JsonUtility.FromJson<Packet>(jsonPacket);
+//            }
+//            catch (Exception e)
+//            {
+//                Debug.LogError(e);
+//                //Debug.LogError("Error Dejsonify. Length: "+jsonPacket.Length+": " + jsonPacket);
+//#if UNITY_EDITOR
+//                NetworkData.instance.errorJson = jsonPacket;
+//#endif
+//                return null;
+//            }
+//        }
+
+//        public static string JsonifyPacket(Packet packet)
+//        {
+//            return JsonUtility.ToJson(packet);
+//        }
+        
 
     }
 
@@ -180,6 +173,27 @@ namespace EntityNetworkingSystems
         public bool doImmediate = true;
 
         public List<NetworkFieldPacket> fieldDefaults = new List<NetworkFieldPacket>();
+
+        //Serialization Order
+
+
+        public static byte[] Serialize(GameObjectInstantiateData gOID)
+        {
+            List<byte> byteObject = new List<byte>();
+
+
+
+
+            return byteObject.ToArray();
+        }
+
+        public static GameObjectInstantiateData Deserialize(byte[] gOIDBytes)
+        {
+            GameObjectInstantiateData gOID = new GameObjectInstantiateData();
+
+            return gOID;
+        }
+
 
     }
 

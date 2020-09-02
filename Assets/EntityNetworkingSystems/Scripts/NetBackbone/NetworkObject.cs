@@ -112,7 +112,7 @@ namespace EntityNetworkingSystems
                 yield return new WaitUntil(() => queuedNetworkPackets.Count > 0);
 
                 Packet curPacket = queuedNetworkPackets[0];
-                NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.GetPacketData();
+                NetworkFieldPacket nFP = curPacket.GetPacketData<NetworkFieldPacket>();
 
                 if ((ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !sharedObject) || (curPacket.packetOwnerID == NetTools.clientID && nFP.immediateOnSelf))
                 {
@@ -442,11 +442,13 @@ namespace EntityNetworkingSystems
             {
                 return true;
             }
-            if(fieldName.Contains("ENS_") && netObj.IsOwner())
-            {
-                specialFieldsInitialized = true;
-                return true;
-            }
+
+            //Turns out this can break stuff, so leave it disabled for now.
+            //if(fieldName.Contains("ENS_") && netObj.IsOwner())
+            //{
+            //    specialFieldsInitialized = true;
+            //    return true;
+            //}
 
 
             if (fieldName == "ENS_Position")

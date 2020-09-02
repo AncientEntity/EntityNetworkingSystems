@@ -20,5 +20,9 @@ public class ExampleMoving : MonoBehaviour
         {
             return;
         }
+        //if(net.IsOwner() && Input.GetKey(KeyCode.J))
+        //{
+        //    net.UpdateField("ENS_Position",)
+        //}
     }
 }
