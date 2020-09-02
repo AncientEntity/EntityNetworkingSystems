@@ -265,9 +265,9 @@ namespace EntityNetworkingSystems
 
             //Thread.Sleep(100);
             //Send login info
-            PlayerLoginData pLD = new PlayerLoginData();
-            pLD.playerNetworkID = client.clientID;
-            Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, pLD);
+            //PlayerLoginData pLD = new PlayerLoginData();
+            //pLD.playerNetworkID = client.clientID;
+            Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, System.BitConverter.GetBytes((short)client.clientID));
             loginPacket.packetOwnerID = -1;
             loginPacket.sendToAll = false;
             SendPacket(client, loginPacket);

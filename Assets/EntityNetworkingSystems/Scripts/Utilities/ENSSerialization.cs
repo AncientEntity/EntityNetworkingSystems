@@ -1,12 +1,17 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 
 namespace EntityNetworkingSystems
 {
     public class ENSSerialization
     {
-        //Packet Serialization Data - Total Minimum Bytes: 38 bytes.
+        public static BinaryFormatter bF = new BinaryFormatter();
+
+
+        //Packet Serialization Data - Total Minimum Bytes: 30 bytes.
         // - sendType int8, 1 byte
         // - packetType int8, 1 byte
         // - packetOwnerID int16, 2 bytes
@@ -109,7 +114,124 @@ namespace EntityNetworkingSystems
             return packet;
         }
 
+        //GOID Serialization Data - Total Minimum Bytes: 42 bytes
+        // - PrefabDomainID int32, 4 bytes
+        // - PrefabID int32, 4 bytes
+        // - Position sVec, 12 bytes
+        // - Rotation sQuat, 16 bytes
+        // - NetObjID int32, 4 bytes - consider just using relatedNetObjID instead
+        // - isShared bool, 1 byte
+        // - doImmediate bool, 1 byte
+        // - NetFieldDefaults List
+        //   - List Element Count int32, 4 bytes
+        //      - Byte array length of element int32, 4 bytes
+        //      - NetFieldPacket BinaryFormattered, ? bytes
 
+        public static byte[] SerializeGOID(GameObjectInstantiateData gOID)
+        {
+            List<byte> objectAsBytes = new List<byte>();
+
+            //Basic Fields
+
+            byte[] prefabDomainID = System.BitConverter.GetBytes(gOID.prefabDomainID);
+            objectAsBytes.AddRange(prefabDomainID);
+            byte[] prefabID = System.BitConverter.GetBytes(gOID.prefabID);
+            objectAsBytes.AddRange(prefabID);
+
+            List<byte> positionBytes = new List<byte>();
+            positionBytes.AddRange(System.BitConverter.GetBytes(gOID.position.x));
+            positionBytes.AddRange(System.BitConverter.GetBytes(gOID.position.y));
+            positionBytes.AddRange(System.BitConverter.GetBytes(gOID.position.z));
+            objectAsBytes.AddRange(positionBytes);
+
+            List<byte> rotationBytes = new List<byte>();
+            rotationBytes.AddRange(System.BitConverter.GetBytes(gOID.rotation.x));
+            rotationBytes.AddRange(System.BitConverter.GetBytes(gOID.rotation.y));
+            rotationBytes.AddRange(System.BitConverter.GetBytes(gOID.rotation.z));
+            rotationBytes.AddRange(System.BitConverter.GetBytes(gOID.rotation.w));
+            objectAsBytes.AddRange(rotationBytes);
+
+            byte[] netObjID = System.BitConverter.GetBytes(gOID.netObjID);
+            objectAsBytes.AddRange(netObjID);
+
+            objectAsBytes.AddRange(System.BitConverter.GetBytes(gOID.isShared));
+            objectAsBytes.AddRange(System.BitConverter.GetBytes(gOID.doImmediate));
+
+            //networkFieldPacket List
+            //Amount of field defaults.
+            if(gOID.fieldDefaults == null)
+            {
+                gOID.fieldDefaults = new List<NetworkFieldPacket>();
+            }
+
+
+            objectAsBytes.AddRange(System.BitConverter.GetBytes(gOID.fieldDefaults.Count));
+            foreach(NetworkFieldPacket nFP in gOID.fieldDefaults)
+            {
+                //The use of the BinaryFormatter here (inside SerializeObject()) is temporary, I want a custom
+                //Serializer for NetworkFieldPackets.
+                byte[] serializedField = SerializeObject(nFP);
+                objectAsBytes.AddRange(System.BitConverter.GetBytes(serializedField.Length)); //Length of serialized Network Field Packet
+                objectAsBytes.AddRange(serializedField);
+
+            }
+
+            return objectAsBytes.ToArray();
+        }
+
+
+        public static GameObjectInstantiateData DeserializeGOID(byte[] givenBytes)
+        {
+            List<byte> gOIDBytes = new List<byte>();
+            gOIDBytes.AddRange(givenBytes);
+
+            GameObjectInstantiateData gOID = new GameObjectInstantiateData();
+            int intIndex = 0;
+
+            //Prefab info
+            gOID.prefabDomainID = System.BitConverter.ToInt32(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            gOID.prefabID = System.BitConverter.ToInt32(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+
+            //Vector3 position
+            SerializableVector vec = new SerializableVector(0, 0, 0);
+            vec.x = System.BitConverter.ToSingle(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            vec.y = System.BitConverter.ToSingle(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            vec.z = System.BitConverter.ToSingle(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            gOID.position = vec;
+
+            //Quaternion rotation
+            SerializableQuaternion rot = new SerializableQuaternion(0,0,0,0);
+            rot.x = System.BitConverter.ToSingle(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            rot.y = System.BitConverter.ToSingle(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            rot.z = System.BitConverter.ToSingle(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            rot.w = System.BitConverter.ToSingle(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            gOID.rotation = rot;
+
+            //NetObjID
+            gOID.netObjID = System.BitConverter.ToInt32(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+
+            //isShared/doImmediate booleans
+            gOID.isShared = System.BitConverter.ToBoolean(gOIDBytes.GetRange(intIndex, 1).ToArray(), 0); intIndex += 1;
+            gOID.doImmediate = System.BitConverter.ToBoolean(gOIDBytes.GetRange(intIndex, 1).ToArray(), 0); intIndex += 1;
+
+            //NetworkFieldDefaults List
+            List<NetworkFieldPacket> nFPs = new List<NetworkFieldPacket>();
+            int nFPCount = System.BitConverter.ToInt32(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            for(int i = 0; i < nFPCount; i++)
+            {
+                int serializeLength = System.BitConverter.ToInt32(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+                NetworkFieldPacket netFieldPacket = DeserializeObject<NetworkFieldPacket>(gOIDBytes.GetRange(intIndex, serializeLength).ToArray());
+                intIndex += serializeLength;
+            }
+
+
+
+            return gOID;
+        }
+
+
+
+        //Serialize int - Total Minimum Bytes: 4 bytes
         public static byte[] SerializeInt(int intValue)
         {
             byte[] bytes = new byte[4];
@@ -134,6 +256,42 @@ namespace EntityNetworkingSystems
             return outInt;
         }
 
+
+
+
+
+
+        //Use not recommended as the BinaryFormatter has a bunch of overhead...
+        //Try to make your own like above!
+        //Some things like NetworkFieldPackets may be using this however in the future
+        //I wanna transition them to using a custom serialization as the overhead is
+        //intense. (28 byte overhead for an empty byte array :O)
+        public static byte[] SerializeObject(object obj)
+        {
+            byte[] objectAsBytes;
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                bF.Serialize(ms, obj);
+                objectAsBytes = ms.ToArray();
+            }
+
+            return objectAsBytes;
+        }
+
+        //Same as the comments for SerializeObject, I don't recommend using this, read those
+        //commments to know why...
+        public static T DeserializeObject<T>(byte[] byteObject)
+        {
+            object o = null;
+            using (MemoryStream ms = new MemoryStream())
+            {
+                ms.Write(byteObject, 0, byteObject.Length);
+                ms.Seek(0, SeekOrigin.Begin);
+                o = bF.Deserialize(ms);
+            }
+            return (T)o;
+        }
 
     }
 }

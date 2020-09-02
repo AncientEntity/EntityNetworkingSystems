@@ -12,7 +12,6 @@ namespace EntityNetworkingSystems
     [System.Serializable]
     public class Packet
     {
-        public static BinaryFormatter bF = new BinaryFormatter();
 
         [System.Serializable]
         public enum sendType
@@ -53,6 +52,13 @@ namespace EntityNetworkingSystems
 
         public SerializableVector packetPosition;
 
+        public Packet(pType packetType, sendType typeOfSend, byte b)
+        {
+            this.packetType = packetType;
+            this.packetSendType = typeOfSend;
+            SetPacketData(new byte[] {b});
+        }
+
         public Packet(pType packetType, sendType typeOfSend, byte[] obj)
         {
             this.packetType = packetType;
@@ -74,15 +80,7 @@ namespace EntityNetworkingSystems
         //Not a good way to do it, suggested is making a custom serializor and using SetPacketData(byte[] data)
         public void SetPacketData(object obj)
         {
-            byte[] objectAsBytes;
-
-            using(MemoryStream ms = new MemoryStream())
-            {
-                bF.Serialize(ms, obj);
-                objectAsBytes = ms.ToArray();
-            }
-
-            SetPacketData(objectAsBytes);
+            SetPacketData(ENSSerialization.SerializeObject(obj));
         }
 
         public void SetPacketData(byte[] data)
@@ -104,6 +102,7 @@ namespace EntityNetworkingSystems
 
         }
 
+        [Obsolete("This uses the BinaryFormatter. It is recommended to make your own serializer and use that instead. Then just set packetData manually.")]
         public T GetPacketData<T>()
         {
             try
@@ -111,14 +110,7 @@ namespace EntityNetworkingSystems
                 return (T)System.Convert.ChangeType(packetData, typeof(T));
             } catch
             {
-                object o = null;
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    ms.Write(packetData, 0, packetData.Length);
-                    ms.Seek(0,SeekOrigin.Begin);
-                    o = bF.Deserialize(ms);
-                }
-                return (T)o;
+                return ENSSerialization.DeserializeObject<T>(packetData);
             }
             //System.Type t = System.Type.GetType(jsonDataTypeName);
             ////Debug.Log(t);
@@ -185,25 +177,6 @@ namespace EntityNetworkingSystems
 
         public List<NetworkFieldPacket> fieldDefaults = new List<NetworkFieldPacket>();
 
-        //Serialization Order
-
-
-        public static byte[] Serialize(GameObjectInstantiateData gOID)
-        {
-            List<byte> byteObject = new List<byte>();
-
-
-
-
-            return byteObject.ToArray();
-        }
-
-        public static GameObjectInstantiateData Deserialize(byte[] gOIDBytes)
-        {
-            GameObjectInstantiateData gOID = new GameObjectInstantiateData();
-
-            return gOID;
-        }
 
 
     }
@@ -242,6 +215,14 @@ namespace EntityNetworkingSystems
         public float y = 0f;
         public float z = 0f;
         public float w = 0f;
+
+        public SerializableQuaternion(float x, float y, float z, float w)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.w = w;
+        }
 
         public SerializableQuaternion(Quaternion q)
         {

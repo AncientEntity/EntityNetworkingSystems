@@ -81,7 +81,9 @@ namespace EntityNetworkingSystems
                     } catch (System.Exception e)
                     {
                         Debug.LogError("Error handling packet." + e);
+#if UNITY_EDITOR
                         problemPackets.Add(curPacket);
+#endif
                     }
 
                     countTillUpdate++;
@@ -115,12 +117,10 @@ namespace EntityNetworkingSystems
             if (curPacket.packetType == Packet.pType.gOInstantiate) //It gets instantiated NetTools.
             {
                 NetworkObject nObj = null;
-                GameObjectInstantiateData gOID = curPacket.GetPacketData<GameObjectInstantiateData>();
-                //GameObjectInstantiateData gOID = (GameObjectInstantiateData)JsonUtility.FromJson<GameObjectInstantiateData>(curPacket.jsonData);
+                GameObjectInstantiateData gOID = ENSSerialization.DeserializeGOID(curPacket.packetData);
 
                 if (NetTools.clientID != curPacket.packetOwnerID || NetworkObject.NetObjFromNetID(gOID.netObjID) == null)
                 {
-                    //GameObjectInstantiateData gOID = (GameObjectInstantiateData)curPacket.GetPacketData();
                     GameObject g = null;
                     try
                     {
@@ -204,7 +204,7 @@ namespace EntityNetworkingSystems
             else if (curPacket.packetType == Packet.pType.loginInfo)
             {
                 //Debug.Log("Login Info Packet Recieved.");
-                NetTools.clientID = (curPacket.GetPacketData<PlayerLoginData>()).playerNetworkID;
+                NetTools.clientID = System.BitConverter.ToInt16(curPacket.packetData,0);//(curPacket.GetPacketData<PlayerLoginData>()).playerNetworkID;
                 NetClient.instanceClient.clientID = NetTools.clientID;
 
                 NetTools.onJoinServer.Invoke();
