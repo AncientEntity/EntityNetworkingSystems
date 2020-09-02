@@ -180,10 +180,14 @@ namespace EntityNetworkingSystems
             {
                 //Debug.Log(curPacket.jsonData);
                 //Debug.Log(curPacket.GetPacketData());
-                NetworkObject found = NetworkObject.NetObjFromNetID(curPacket.GetPacketData<int>());
+                //int netID = ENSSerialization.DeserializeInt(curPacket.packetData);
+                NetworkObject found = NetworkObject.NetObjFromNetID(curPacket.relatesToNetObjID);
                 if (found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.serverAuthority || found.sharedObject))
                 {
                     Destroy(found.gameObject);
+                } else if (found == null)
+                {
+                    Debug.LogWarning("Couldn't find NetworkObject of ID: " + curPacket.relatesToNetObjID);
                 }
             }
             else if (curPacket.packetType == Packet.pType.multiPacket)

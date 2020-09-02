@@ -820,6 +820,7 @@ namespace EntityNetworkingSystems
             data = val;
             this.immediateOnSelf = immediateOnSelf;
         }
+
         
 
     }

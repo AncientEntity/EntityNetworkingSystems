@@ -134,7 +134,7 @@ namespace EntityNetworkingSystems
             {
                 //Destroy(netObj.gameObject);
 
-                Packet p = new Packet(Packet.pType.gODestroy, sT, netObj.networkID);
+                Packet p = new Packet(Packet.pType.gODestroy, sT, new byte[0]);
                 p.relatesToNetObjID = netID;
                 p.packetOwnerID = clientID;
                 NetClient.instanceClient.SendPacket(p);

@@ -110,7 +110,29 @@ namespace EntityNetworkingSystems
         }
 
 
+        public static byte[] SerializeInt(int intValue)
+        {
+            byte[] bytes = new byte[4];
 
+            bytes[0] = (byte)(intValue >> 24);
+            bytes[1] = (byte)(intValue >> 16);
+            bytes[2] = (byte)(intValue >> 8);
+            bytes[3] = (byte)intValue;
+
+            return bytes;
+        }
+
+        public static int DeserializeInt(byte[] intBytes)
+        {
+            int outInt = 0;
+
+            outInt += (intBytes[0] << 24);
+            outInt += (intBytes[1] << 16);
+            outInt += (intBytes[2] << 8);
+            outInt += intBytes[3];
+
+            return outInt;
+        }
 
 
     }

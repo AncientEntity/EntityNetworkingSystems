@@ -31,6 +31,8 @@ public class ExampleClient : MonoBehaviour
 
     void InitializePlayer()
     {
+        NetClient.instanceClient.SendPacket(new Packet(Packet.pType.unassigned, Packet.sendType.buffered, 0));
+
         NetTools.NetInstantiate(0, 1, new Vector3(Random.Range(-4.0f, 4.0f), Random.Range(-4.0f, 4.0f)),Quaternion.identity);
     }
 

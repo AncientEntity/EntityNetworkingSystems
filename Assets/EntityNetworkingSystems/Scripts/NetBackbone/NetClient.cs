@@ -244,6 +244,7 @@ namespace EntityNetworkingSystems
                     if (trackOverhead)
                     {
                         packetByteLength = packetByteLength + array.Length + ",";
+                        Debug.Log("JustData: " + packet.packetData.Length + ", All: " + array.Length);
                     }
 #endif
                     //First send packet size
