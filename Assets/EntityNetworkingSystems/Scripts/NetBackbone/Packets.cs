@@ -80,6 +80,12 @@ namespace EntityNetworkingSystems
         //Not a good way to do it, suggested is making a custom serializor and using SetPacketData(byte[] data)
         public void SetPacketData(object obj)
         {
+            if(obj.GetType().ToString() == "EntityNetworkingSystems.NetworkFieldPacket")
+            {
+                SetPacketData(ENSSerialization.SerializeNetworkFieldPacket((NetworkFieldPacket)obj));
+                return;
+            }
+
             SetPacketData(ENSSerialization.SerializeObject(obj));
         }
 

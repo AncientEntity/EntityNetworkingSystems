@@ -247,7 +247,7 @@ namespace EntityNetworkingSystems
                         if (overheadFilter == Packet.pType.unassigned || overheadFilter == packet.packetType)
                         {
                             packetByteLength = packetByteLength + array.Length + ",";
-                            Debug.Log("JustData: " + packet.packetData.Length + ", All: " + array.Length);
+                            //Debug.Log("JustData: " + packet.packetData.Length + ", All: " + array.Length);
                         }
                     }
 #endif
@@ -297,7 +297,7 @@ namespace EntityNetworkingSystems
                 if(overheadFilter == Packet.pType.unassigned || overheadFilter == finalPacket.packetType)
                 {
                     packetByteLength = packetByteLength + pSize + ",";
-                    Debug.Log("JustData: " + finalPacket.packetData.Length + ", All: " + byteMessage.Length);
+                    //Debug.Log("JustData: " + finalPacket.packetData.Length + ", All: " + byteMessage.Length);
                 }
 
             }

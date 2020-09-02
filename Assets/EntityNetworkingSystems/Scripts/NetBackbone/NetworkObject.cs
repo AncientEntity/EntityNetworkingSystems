@@ -317,7 +317,7 @@ namespace EntityNetworkingSystems
                 }
 
                 Packet packet = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
-                    new NetworkFieldPacket(networkID, netField.fieldName,jPO,false));
+                    ENSSerialization.SerializeNetworkFieldPacket(new NetworkFieldPacket(networkID, netField.fieldName,jPO,false)));
                 fieldPackets.Add(packet);
                 //print("Adding netfield: " + netField.fieldName);
             }
@@ -611,7 +611,7 @@ namespace EntityNetworkingSystems
 
 
             Packet pack = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
-                new NetworkFieldPacket(netObjID, fieldName, jPO,immediateOnSelf));
+                ENSSerialization.SerializeNetworkFieldPacket(new NetworkFieldPacket(netObjID, fieldName, jPO, immediateOnSelf)));
             pack.relatesToNetObjID = netObjID;
             if(shouldBeProximity && netObj != null)
             {

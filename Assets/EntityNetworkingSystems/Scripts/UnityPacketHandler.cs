@@ -216,11 +216,10 @@ namespace EntityNetworkingSystems
             }
             else if (curPacket.packetType == Packet.pType.netVarEdit)
             {
-                //As of 2020-06-24 netVar's are handled in NetworkObject, but queued from here. This prevents preinitialized packets from getting through.
-
-                NetworkFieldPacket nFP = curPacket.GetPacketData<NetworkFieldPacket>();
+                
+                NetworkFieldPacket nFP = ENSSerialization.DeserializeNetworkFieldPacket(curPacket.packetData);
                 NetworkObject netObj = NetworkObject.NetObjFromNetID(nFP.networkObjID);
-
+                
                 if(netObj == null)
                 {
                     return;

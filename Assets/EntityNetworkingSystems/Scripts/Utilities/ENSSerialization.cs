@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
 using UnityEngine;
 
 namespace EntityNetworkingSystems
@@ -168,9 +169,7 @@ namespace EntityNetworkingSystems
             objectAsBytes.AddRange(System.BitConverter.GetBytes(gOID.fieldDefaults.Count));
             foreach(NetworkFieldPacket nFP in gOID.fieldDefaults)
             {
-                //The use of the BinaryFormatter here (inside SerializeObject()) is temporary, I want a custom
-                //Serializer for NetworkFieldPackets.
-                byte[] serializedField = SerializeObject(nFP);
+                byte[] serializedField = SerializeNetworkFieldPacket(nFP);
                 objectAsBytes.AddRange(System.BitConverter.GetBytes(serializedField.Length)); //Length of serialized Network Field Packet
                 objectAsBytes.AddRange(serializedField);
 
@@ -220,7 +219,7 @@ namespace EntityNetworkingSystems
             for(int i = 0; i < nFPCount; i++)
             {
                 int serializeLength = System.BitConverter.ToInt32(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
-                NetworkFieldPacket netFieldPacket = DeserializeObject<NetworkFieldPacket>(gOIDBytes.GetRange(intIndex, serializeLength).ToArray());
+                NetworkFieldPacket netFieldPacket = DeserializeNetworkFieldPacket(gOIDBytes.GetRange(intIndex, serializeLength).ToArray());
                 intIndex += serializeLength;
             }
 
@@ -231,8 +230,11 @@ namespace EntityNetworkingSystems
 
         //NetworkFieldPacket Serializer - Total Minimum Calculatable Bytes: 9 bytes
         // - networkObjID int32, 4 bytes
-        // - fieldIndex int32, 4 bytes
+        // - fieldName string byte length int16, 4 byte
+        // - fieldName string, ? bytes
+        // - jsonData string byte length int16, 4 byte
         // - jsonData string, ? bytes
+        // - jsonDataTypeName string byte length int16, 4 byte
         // - jsonDataTypeName string, ? bytes
         // - immediateOnSelf boolean, 1 byte
 
@@ -240,15 +242,64 @@ namespace EntityNetworkingSystems
         {
             List<byte> objectAsBytes = new List<byte>();
 
-
+            //NetObjID int32
             byte[] networkObjID = System.BitConverter.GetBytes(nFP.networkObjID);
             objectAsBytes.AddRange(networkObjID);
 
+            //FieldName String
+            byte[] fieldNameString = Encoding.ASCII.GetBytes(nFP.fieldName);
+            byte[] fieldNameLength = System.BitConverter.GetBytes((short)fieldNameString.Length);
+            objectAsBytes.AddRange(fieldNameLength);
+            objectAsBytes.AddRange(fieldNameString);
+
+            //JsonData string
+            byte[] jsonData = Encoding.ASCII.GetBytes(nFP.data.jsonData);
+            byte[] jsonDataLength = System.BitConverter.GetBytes((short)jsonData.Length);
+            objectAsBytes.AddRange(jsonDataLength);
+            objectAsBytes.AddRange(jsonData);
+
+            //JsonDataTypeName string
+            byte[] jsonDataTypeName = Encoding.ASCII.GetBytes(nFP.data.jsonDataTypeName);
+            byte[] jsonDataTypeNameLength = System.BitConverter.GetBytes((short)jsonDataTypeName.Length);
+            objectAsBytes.AddRange(jsonDataTypeNameLength);
+            objectAsBytes.AddRange(jsonDataTypeName);
+
+            //immediateOnSelf
+            byte[] immediateOnSelf = System.BitConverter.GetBytes(nFP.immediateOnSelf);
+            objectAsBytes.AddRange(immediateOnSelf);
 
 
             return objectAsBytes.ToArray();
         }
 
+        public static NetworkFieldPacket DeserializeNetworkFieldPacket(byte[] givenBytes)
+        {
+            List<byte> nFPBytes = new List<byte>();
+            nFPBytes.AddRange(givenBytes);
+            NetworkFieldPacket nFP = new NetworkFieldPacket(-1,"",new JsonPacketObject("",""),false);
+            int intIndex = 0;
+
+            //Network Object ID
+            nFP.networkObjID = System.BitConverter.ToInt32(nFPBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+
+            //FieldName String
+            short stringByteLength = System.BitConverter.ToInt16(nFPBytes.GetRange(intIndex, 2).ToArray(), 0); intIndex += 2;
+            string fieldName = Encoding.ASCII.GetString(nFPBytes.GetRange(intIndex, stringByteLength).ToArray()); intIndex += stringByteLength;
+            nFP.fieldName = fieldName;
+
+            //JsonData String
+            short jsonDataLength = System.BitConverter.ToInt16(nFPBytes.GetRange(intIndex, 2).ToArray(), 0); intIndex += 2;
+            string jsonData = Encoding.ASCII.GetString(nFPBytes.GetRange(intIndex, jsonDataLength).ToArray()); intIndex += jsonDataLength;
+            nFP.data.jsonData = jsonData;
+
+            //JsonDataTypeName String
+            short jsonDataTypeNameLength = System.BitConverter.ToInt16(nFPBytes.GetRange(intIndex, 2).ToArray(), 0); intIndex += 2;
+            string jsonDataTypeName = Encoding.ASCII.GetString(nFPBytes.GetRange(intIndex, jsonDataTypeNameLength).ToArray()); intIndex += jsonDataTypeNameLength;
+            nFP.data.jsonDataTypeName = jsonDataTypeName;
+
+
+            return nFP;
+        }
 
 
 
