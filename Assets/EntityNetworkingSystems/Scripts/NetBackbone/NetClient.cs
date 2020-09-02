@@ -27,6 +27,11 @@ namespace EntityNetworkingSystems
 
         public bool useSteamworks = false;
         public int steamAppID = -1; //If -1 it wont initialize and you'll need to do it somewhere else :)
+        [Space]
+#if UNITY_EDITOR
+        public bool trackOverhead = false;
+        public string packetByteLength = "";
+#endif
 
         public void Initialize()
         {
@@ -235,8 +240,12 @@ namespace EntityNetworkingSystems
                 lock (client)
                 {
                     byte[] array = ENSSerialization.SerializePacket(packet);//Packet.SerializeObject(packet);
-
-
+#if UNITY_EDITOR
+                    if (trackOverhead)
+                    {
+                        packetByteLength = packetByteLength + array.Length + ",";
+                    }
+#endif
                     //First send packet size
                     byte[] arraySize = new byte[4];
                     arraySize = System.BitConverter.GetBytes(array.Length);
