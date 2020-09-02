@@ -574,6 +574,10 @@ namespace EntityNetworkingSystems
             return null;
         }
 
+        public Thread GetServerThread()
+        {
+            return connectionHandler;
+        }
 
     }
 
@@ -602,5 +606,6 @@ namespace EntityNetworkingSystems
         }
 
     }
+
 
 }
