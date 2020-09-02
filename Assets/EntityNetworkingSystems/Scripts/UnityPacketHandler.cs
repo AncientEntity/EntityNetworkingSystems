@@ -11,10 +11,19 @@ namespace EntityNetworkingSystems
         public static UnityPacketHandler instance = null;
         public bool handlerRunning = false;
         public List<Packet> packetQueue = new List<Packet>();
-        public int amountPerUpdate = 85;
+        public bool dynamicUpdateRate = true;
+        public int amountPerUpdate = 50;
+        public int maxPerFrame = 200;
         bool syncingBuffered = false;
+#if UNITY_EDITOR
+        [Space]
+        public List<Packet> problemPackets = new List<Packet>();
+        public RPCPacketData lastRPCPacket;
+#endif
 
         Coroutine runningHandler = null;
+        private int baseAmounts;
+
 
         void Awake()
         {
@@ -26,6 +35,8 @@ namespace EntityNetworkingSystems
             {
                 Destroy(this);
             }
+
+            baseAmounts = amountPerUpdate;
         }
 
         void CheckForHandlerCrash()
@@ -66,13 +77,33 @@ namespace EntityNetworkingSystems
                         //For some reason the packetQueue already had nothing.
                     }
 
+                    if (dynamicUpdateRate)
+                    {
+                        if (packetQueue.Count > amountPerUpdate)
+                        {
+                            amountPerUpdate = Mathf.Clamp(amountPerUpdate + 3, baseAmounts, maxPerFrame);
+                        }
+                        else
+                        {
+                            amountPerUpdate = Mathf.Clamp(amountPerUpdate - 3, baseAmounts, maxPerFrame);
+                        }
+                    }
+                    
                     if (curPacket == null)
                     {
                         continue;
                     }
 
-                    ExecutePacket(curPacket);
-
+                    try
+                    {
+                        ExecutePacket(curPacket);
+                    } catch (System.Exception e)
+                    {
+                        Debug.LogError("Error handling packet." + e);
+#if UNITY_EDITOR
+                        problemPackets.Add(curPacket);
+#endif
+                    }
 
                     countTillUpdate++;
                     if (packetQueue.Count < 0 || countTillUpdate >= amountPerUpdate)
@@ -105,11 +136,10 @@ namespace EntityNetworkingSystems
             if (curPacket.packetType == Packet.pType.gOInstantiate) //It gets instantiated NetTools.
             {
                 NetworkObject nObj = null;
-                GameObjectInstantiateData gOID = (GameObjectInstantiateData)JsonUtility.FromJson<GameObjectInstantiateData>(curPacket.jsonData);
+                GameObjectInstantiateData gOID = ENSSerialization.DeserializeGOID(curPacket.packetData);
 
                 if (NetTools.clientID != curPacket.packetOwnerID || NetworkObject.NetObjFromNetID(gOID.netObjID) == null)
                 {
-                    //GameObjectInstantiateData gOID = (GameObjectInstantiateData)curPacket.GetPacketData();
                     GameObject g = null;
                     try
                     {
@@ -169,19 +199,26 @@ namespace EntityNetworkingSystems
             {
                 //Debug.Log(curPacket.jsonData);
                 //Debug.Log(curPacket.GetPacketData());
-                NetworkObject found = NetworkObject.NetObjFromNetID((int)curPacket.GetPacketData());
+                //int netID = ENSSerialization.DeserializeInt(curPacket.packetData);
+                NetworkObject found = NetworkObject.NetObjFromNetID(curPacket.relatesToNetObjID);
                 if (found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.serverAuthority || found.sharedObject))
                 {
                     Destroy(found.gameObject);
+                } else if (found == null)
+                {
+                    Debug.LogWarning("Couldn't find NetworkObject of ID: " + curPacket.relatesToNetObjID);
                 }
             }
             else if (curPacket.packetType == Packet.pType.multiPacket)
             {
                 //Debug.Log("Recieved buffered packets.");
-                List<Packet> packetInfo = ((PacketListPacket)curPacket.GetPacketData()).packets;
+                List<byte[]> packetByteInfo = (curPacket.GetPacketData<PacketListPacket>()).packets;
                 lock (packetQueue)
                 {
-                    packetQueue.AddRange(packetInfo);
+                    foreach(byte[] packetByte in packetByteInfo)
+                    {
+                        packetQueue.Add(ENSSerialization.DeserializePacket(packetByte));
+                    }
                 }
 
                 syncingBuffered = true;
@@ -189,7 +226,7 @@ namespace EntityNetworkingSystems
             else if (curPacket.packetType == Packet.pType.loginInfo)
             {
                 //Debug.Log("Login Info Packet Recieved.");
-                NetTools.clientID = ((PlayerLoginData)curPacket.GetPacketData()).playerNetworkID;
+                NetTools.clientID = System.BitConverter.ToInt16(curPacket.packetData,0);//(curPacket.GetPacketData<PlayerLoginData>()).playerNetworkID;
                 NetClient.instanceClient.clientID = NetTools.clientID;
 
                 NetTools.onJoinServer.Invoke();
@@ -198,11 +235,10 @@ namespace EntityNetworkingSystems
             }
             else if (curPacket.packetType == Packet.pType.netVarEdit)
             {
-                //As of 2020-06-24 netVar's are handled in NetworkObject, but queued from here. This prevents preinitialized packets from getting through.
-
-                NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.GetPacketData();
+                
+                NetworkFieldPacket nFP = ENSSerialization.DeserializeNetworkFieldPacket(curPacket.packetData);
                 NetworkObject netObj = NetworkObject.NetObjFromNetID(nFP.networkObjID);
-
+                
                 if(netObj == null)
                 {
                     return;
@@ -233,13 +269,19 @@ namespace EntityNetworkingSystems
             else if (curPacket.packetType == Packet.pType.rpc)
             {
                 //Debug.Log(curPacket.jsonData);
-                RPCPacketData rPD = (RPCPacketData)curPacket.GetPacketData();
+                RPCPacketData rPD = ENSSerialization.DeserializeRPCPacketData(curPacket.packetData);
                 NetworkObject nObj = NetworkObject.NetObjFromNetID(rPD.networkObjectID);
+
+#if UNITY_EDITOR
+                lastRPCPacket = rPD;
+#endif
+
                 if (nObj == null || (nObj.rpcs[rPD.rpcIndex].serverAuthorityRequired && !curPacket.serverAuthority) || (nObj.ownerID != curPacket.packetOwnerID && !nObj.sharedObject))
                 {
                     return; //Means only server can run it.
                 }
                 nObj.rpcs[rPD.rpcIndex].InvokeRPC(rPD.ReturnArgs());
+
             }
         }
 

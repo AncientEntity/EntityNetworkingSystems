@@ -77,6 +77,7 @@
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Steam\SteamInteraction.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\UnityPacketHandler.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\Animation\AnimationNetworker.cs" />
+    <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\ENSSerialization.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\ENSUtils.cs" />
     <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Posix.xml" />
     <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Win64.xml" />

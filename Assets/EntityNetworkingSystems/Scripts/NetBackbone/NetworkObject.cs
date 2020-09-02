@@ -112,7 +112,7 @@ namespace EntityNetworkingSystems
                 yield return new WaitUntil(() => queuedNetworkPackets.Count > 0);
 
                 Packet curPacket = queuedNetworkPackets[0];
-                NetworkFieldPacket nFP = (NetworkFieldPacket)curPacket.GetPacketData();
+                NetworkFieldPacket nFP = ENSSerialization.DeserializeNetworkFieldPacket(curPacket.packetData);
 
                 if ((ownerID != curPacket.packetOwnerID && !curPacket.serverAuthority && !sharedObject) || (curPacket.packetOwnerID == NetTools.clientID && nFP.immediateOnSelf))
                 {
@@ -317,7 +317,7 @@ namespace EntityNetworkingSystems
                 }
 
                 Packet packet = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
-                    new NetworkFieldPacket(networkID, netField.fieldName,jPO,false));
+                    ENSSerialization.SerializeNetworkFieldPacket(new NetworkFieldPacket(networkID, netField.fieldName,jPO,false)));
                 fieldPackets.Add(packet);
                 //print("Adding netfield: " + netField.fieldName);
             }
@@ -442,11 +442,13 @@ namespace EntityNetworkingSystems
             {
                 return true;
             }
-            if(fieldName.Contains("ENS_") && netObj.IsOwner())
-            {
-                specialFieldsInitialized = true;
-                return true;
-            }
+
+            //Turns out this can break stuff, so leave it disabled for now.
+            //if(fieldName.Contains("ENS_") && netObj.IsOwner())
+            //{
+            //    specialFieldsInitialized = true;
+            //    return true;
+            //}
 
 
             if (fieldName == "ENS_Position")
@@ -609,7 +611,7 @@ namespace EntityNetworkingSystems
 
 
             Packet pack = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
-                new NetworkFieldPacket(netObjID, fieldName, jPO,immediateOnSelf));
+                ENSSerialization.SerializeNetworkFieldPacket(new NetworkFieldPacket(netObjID, fieldName, jPO, immediateOnSelf)));
             pack.relatesToNetObjID = netObjID;
             if(shouldBeProximity && netObj != null)
             {
@@ -818,6 +820,7 @@ namespace EntityNetworkingSystems
             data = val;
             this.immediateOnSelf = immediateOnSelf;
         }
+
         
 
     }

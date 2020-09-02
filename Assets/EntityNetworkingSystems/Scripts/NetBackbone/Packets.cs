@@ -12,7 +12,6 @@ namespace EntityNetworkingSystems
     [System.Serializable]
     public class Packet
     {
-        //public static BinaryFormatter bF = null;
 
         [System.Serializable]
         public enum sendType
@@ -27,22 +26,23 @@ namespace EntityNetworkingSystems
         [System.Serializable]
         public enum pType
         {
-            gOInstantiate,
-            gODestroy,
-            netVarEdit,
-            rpc,
+            gOInstantiate, // Custom serializer done, 76 minimum bytes.
+            gODestroy, // 38 bytes per destroy.
+            netVarEdit, //100 bytes or so
+            rpc, //100 bytes or so to transmit a Color over the network
             message, //doesnt go anywhere
             unassigned, //doesnt go anywhere
-            multiPacket,
-            loginInfo,
-            netObjNetStartInvoke, 
+            multiPacket, //Optimized for the new packet serializers
+            loginInfo, //Custom serializer done.
             steamAuth, //only is managed when the client first connects with the server. UnityPacketManager has no logic for it.
         }
         public pType packetType = pType.unassigned;
 
-        public string jsonData;
-        public string jsonDataTypeName;
+        //public string jsonData;
+        //public string jsonDataTypeName;
 
+        public byte[] packetData;
+        
         public int packetOwnerID = NetTools.clientID; //If the client tries lying to server, the server verifies it in NetServer anyways...
         public bool serverAuthority = false; //Manually changed in NetServer. Client changing it wont effect other clients/server.
         public bool sendToAll = true;
@@ -51,113 +51,123 @@ namespace EntityNetworkingSystems
 
         public SerializableVector packetPosition;
 
-        public Packet(pType packetType, sendType typeOfSend, object obj)
+        public Packet(pType packetType, sendType typeOfSend, byte b)
         {
             this.packetType = packetType;
             this.packetSendType = typeOfSend;
-            SetPacketData(obj);
+            SetPacketData(new byte[] {b});
         }
 
-        public Packet(object obj)
+        public Packet(pType packetType, sendType typeOfSend, byte[] obj)
         {
-            SetPacketData(obj);
+            this.packetType = packetType;
+            this.packetSendType = typeOfSend;
+            packetData = obj;
+            
         }
 
-        public void SetPacketData(object data)
+        public Packet(pType packetType, sendType typeOfSend, object obj = null)
         {
-            object formattedData = data;
-            jsonDataTypeName = data.GetType().ToString();
-
-
-            if (data.GetType().ToString() == "System.Int32" || data.GetType().ToString() == "System.Int16" || data.GetType().ToString() == "System.Int64")
+            this.packetType = packetType;
+            this.packetSendType = typeOfSend;
+            if (obj != null)
             {
-                //Automatically put it into an IntPacket so JsonUtility will jsonify it.
-                formattedData = new IntPacket((int)data);
-                jsonDataTypeName = formattedData.GetType().ToString();
-            }
-
-            jsonData = JsonUtility.ToJson(formattedData);
-
-        }
-
-        public object GetPacketData()
-        {
-            System.Type t = System.Type.GetType(jsonDataTypeName);
-            //Debug.Log(t);
-            if (t.ToString() == "EntityNetworkingSystems.IntPacket")
-            {
-                //If integer you must first convert it out of a IntPacket.
-                return JsonUtility.FromJson<IntPacket>(jsonData).integer;
-            }
-            else
-            {
-                return JsonUtility.FromJson(jsonData, t);
+                SetPacketData(obj);
             }
         }
 
-        public static Packet DeJsonifyPacket(string jsonPacket)
+        //Not a good way to do it, suggested is making a custom serializor and using SetPacketData(byte[] data)
+        public void SetPacketData(object obj)
         {
-            //int lastJsonIndex = jsonPacket.LastIndexOf("}");
-            //jsonPacket = jsonPacket.Substring(0, lastJsonIndex);
+            if(obj.GetType().ToString() == "EntityNetworkingSystems.NetworkFieldPacket")
+            {
+                SetPacketData(ENSSerialization.SerializeNetworkFieldPacket((NetworkFieldPacket)obj));
+                return;
+            }
+
+            SetPacketData(ENSSerialization.SerializeObject(obj));
+        }
+
+        public void SetPacketData(byte[] data)
+        {
+            packetData = data;
+
+            //object formattedData = data;
+            //jsonDataTypeName = data.GetType().ToString();
+
+
+            //if (data.GetType().ToString() == "System.Int32" || data.GetType().ToString() == "System.Int16" || data.GetType().ToString() == "System.Int64")
+            //{
+            //    //Automatically put it into an IntPacket so JsonUtility will jsonify it.
+            //    formattedData = new IntPacket((int)data);
+            //    jsonDataTypeName = formattedData.GetType().ToString();
+            //}
+
+            //packetData = Encoding.ASCII.GetBytes(JsonUtility.ToJson(formattedData));
+
+        }
+
+        [Obsolete("This uses the BinaryFormatter. It is recommended to make your own serializer and use that instead. Then just set packetData manually.")]
+        public T GetPacketData<T>()
+        {
+            if(typeof(T).ToString() == "EntityNetworkingSystems.NetworkFieldPacket")
+            {
+                return (T)System.Convert.ChangeType(ENSSerialization.DeserializeNetworkFieldPacket(packetData),typeof(T));
+            } else if (typeof(T).ToString() == "EntityNetworkingSystems.RPCPacketData")
+            {
+                return (T)System.Convert.ChangeType(ENSSerialization.DeserializeRPCPacketData(packetData), typeof(T));
+            }
 
 
             try
             {
-                //Debug.Log(jsonPacket);
-                return JsonUtility.FromJson<Packet>(jsonPacket);
-            }
-            catch (Exception e)
+                return (T)System.Convert.ChangeType(packetData, typeof(T));
+            } catch
             {
-                Debug.LogError(e);
-                //Debug.LogError("Error Dejsonify. Length: "+jsonPacket.Length+": " + jsonPacket);
-#if UNITY_EDITOR
-                NetworkData.instance.errorJson = jsonPacket;
-#endif
-                return null;
+                return ENSSerialization.DeserializeObject<T>(packetData);
             }
-        }
-
-        public static string JsonifyPacket(Packet packet)
-        {
-            return JsonUtility.ToJson(packet);
-        }
-
-        public static object DeserializeObject(byte[] serialized)
-        {
-            BinaryFormatter bF = new BinaryFormatter();
-            //if (bF == null)
+            //System.Type t = System.Type.GetType(jsonDataTypeName);
+            ////Debug.Log(t);
+            //if (t.ToString() == "EntityNetworkingSystems.IntPacket")
             //{
-            //    bF = new BinaryFormatter();
+            //    //If integer you must first convert it out of a IntPacket.
+            //    return JsonUtility.FromJson<IntPacket>(jsonData).integer;
             //}
-
-            using (MemoryStream ms = new MemoryStream(serialized))
-            {
-                //byte[] b = new byte[ms.Length];
-                //ms.Seek(0, SeekOrigin.Begin);
-                //Debug.Log(serialized.Length);
-                Packet decoded = (Packet)bF.Deserialize(ms);
-                return decoded;
-            }
+            //else
+            //{
+            //    return JsonUtility.FromJson(jsonData, t);
+            //}
         }
 
 
-        public static byte[] SerializeObject(object packet)
-        {
 
-            BinaryFormatter bF = new BinaryFormatter();
+//        public static Packet DeJsonifyPacket(string jsonPacket)
+//        {
+//            //int lastJsonIndex = jsonPacket.LastIndexOf("}");
+//            //jsonPacket = jsonPacket.Substring(0, lastJsonIndex);
 
-            using (MemoryStream ms = new MemoryStream())
-            {
-                bF.Serialize(ms, packet);
-                return ms.ToArray();
-            }
 
-        }
+//            try
+//            {
+//                //Debug.Log(jsonPacket);
+//                return JsonUtility.FromJson<Packet>(jsonPacket);
+//            }
+//            catch (Exception e)
+//            {
+//                Debug.LogError(e);
+//                //Debug.LogError("Error Dejsonify. Length: "+jsonPacket.Length+": " + jsonPacket);
+//#if UNITY_EDITOR
+//                NetworkData.instance.errorJson = jsonPacket;
+//#endif
+//                return null;
+//            }
+//        }
 
-        public byte[] SelfSerialize()
-        {
-            return SerializeObject(this);
-        }
+//        public static string JsonifyPacket(Packet packet)
+//        {
+//            return JsonUtility.ToJson(packet);
+//        }
+        
 
     }
 
@@ -180,6 +190,8 @@ namespace EntityNetworkingSystems
         public bool doImmediate = true;
 
         public List<NetworkFieldPacket> fieldDefaults = new List<NetworkFieldPacket>();
+
+
 
     }
 
@@ -217,6 +229,14 @@ namespace EntityNetworkingSystems
         public float y = 0f;
         public float z = 0f;
         public float w = 0f;
+
+        public SerializableQuaternion(float x, float y, float z, float w)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.w = w;
+        }
 
         public SerializableQuaternion(Quaternion q)
         {
@@ -263,11 +283,14 @@ namespace EntityNetworkingSystems
     [System.Serializable]
     public class PacketListPacket
     {
-        public List<Packet> packets = new List<Packet>();
+        public List<byte[]> packets = new List<byte[]>();
 
         public PacketListPacket(List<Packet> packets)
         {
-            this.packets = packets;
+            foreach(Packet p in packets)
+            {
+                this.packets.Add(ENSSerialization.SerializePacket(p));
+            }
         }
     }
 

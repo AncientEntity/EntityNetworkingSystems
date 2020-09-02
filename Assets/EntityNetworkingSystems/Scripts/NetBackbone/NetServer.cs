@@ -234,7 +234,7 @@ namespace EntityNetworkingSystems
                 if (p.packetType == Packet.pType.steamAuth)
                 {
                     //Debug.Log(p.jsonData);
-                    clientSteamAuthTicket = (SteamAuthPacket)p.GetPacketData();
+                    clientSteamAuthTicket = p.GetPacketData<SteamAuthPacket>();
                     client.steamID = clientSteamAuthTicket.steamID;
 
                     Thread.Sleep(1500); //Wait for steam to authenticate it. Will take around this time. Probably should add x attempts over a few seconds.
@@ -265,9 +265,9 @@ namespace EntityNetworkingSystems
 
             //Thread.Sleep(100);
             //Send login info
-            PlayerLoginData pLD = new PlayerLoginData();
-            pLD.playerNetworkID = client.clientID;
-            Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, pLD);
+            //PlayerLoginData pLD = new PlayerLoginData();
+            //pLD.playerNetworkID = client.clientID;
+            Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, System.BitConverter.GetBytes((short)client.clientID));
             loginPacket.packetOwnerID = -1;
             loginPacket.sendToAll = false;
             SendPacket(client, loginPacket);
@@ -297,7 +297,7 @@ namespace EntityNetworkingSystems
                 foreach (Packet p in packetsToSend)
                 {
                     tempPackets.Add(p);
-                    if (tempPackets.Count >= 60)
+                    if (tempPackets.Count >= 100)
                     {
                         Packet multiPack = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(tempPackets));
                         multiPack.sendToAll = false;
@@ -348,9 +348,9 @@ namespace EntityNetworkingSystems
 
                     if(pack.packetType == Packet.pType.rpc)
                     {
-                        RPCPacketData rPD = (RPCPacketData)pack.GetPacketData();
+                        RPCPacketData rPD = ENSSerialization.DeserializeRPCPacketData(pack.packetData);
                         rPD.packetOwnerID = client.clientID;
-                        pack.SetPacketData(rPD);
+                        pack.packetData = ENSSerialization.SerializeRPCPacketData(rPD);
                     }
 
                     if (pack.packetSendType == Packet.sendType.buffered || pack.packetSendType == Packet.sendType.culledbuffered)
@@ -369,14 +369,14 @@ namespace EntityNetworkingSystems
                                     if (buff.packetType == Packet.pType.netVarEdit)
                                     {
 
-                                        if (((NetworkFieldPacket)buff.GetPacketData()).fieldName == ((NetworkFieldPacket)pack.GetPacketData()).fieldName)
+                                        if (buff.GetPacketData<NetworkFieldPacket>().fieldName == pack.GetPacketData<NetworkField>().fieldName)
                                         {
                                             bufferedPackets.Remove(buff);
                                         }
                                     }
                                     else if (buff.packetType == Packet.pType.rpc)
                                     {
-                                        if (((RPCPacketData)buff.GetPacketData()).rpcIndex == ((RPCPacketData)pack.GetPacketData()).rpcIndex)
+                                        if (buff.GetPacketData<RPCPacketData>().rpcIndex == pack.GetPacketData<RPCPacketData>().rpcIndex)
                                         {
                                             bufferedPackets.Remove(buff);
                                         }
@@ -471,7 +471,7 @@ namespace EntityNetworkingSystems
             {
                 lock (player.tcpClient)
                 {
-                    byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));//Packet.SerializeObject(packet);
+                    byte[] array = ENSSerialization.SerializePacket(packet);//Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));//Packet.SerializeObject(packet);
 
                     //First send packet size
                     byte[] arraySize = new byte[4];
@@ -501,7 +501,7 @@ namespace EntityNetworkingSystems
             player.tcpClient.ReceiveBufferSize = pSize;
             byteMessage = RecieveSizeSpecificData(pSize, player.netStream);
             //player.netStream.Read(byteMessage, 0, byteMessage.Length);
-            return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));//(Packet)Packet.DeserializeObject(byteMessage);
+            return ENSSerialization.DeserializePacket(byteMessage); //Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));//(Packet)Packet.DeserializeObject(byteMessage);
         }
 
         byte[] RecieveSizeSpecificData(int byteCountToGet, NetworkStream netStream)
@@ -574,6 +574,10 @@ namespace EntityNetworkingSystems
             return null;
         }
 
+        public Thread GetServerThread()
+        {
+            return connectionHandler;
+        }
 
     }
 
@@ -602,5 +606,6 @@ namespace EntityNetworkingSystems
         }
 
     }
+
 
 }

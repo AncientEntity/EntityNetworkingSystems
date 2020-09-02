@@ -27,6 +27,12 @@ namespace EntityNetworkingSystems
 
         public bool useSteamworks = false;
         public int steamAppID = -1; //If -1 it wont initialize and you'll need to do it somewhere else :)
+#if UNITY_EDITOR
+        [Space]
+        public bool trackOverhead = false;
+        public Packet.pType overheadFilter = Packet.pType.unassigned;
+        public string packetByteLength = "";
+#endif
 
         public void Initialize()
         {
@@ -109,9 +115,9 @@ namespace EntityNetworkingSystems
 
             NetServer.serverInstance.connections.Add(player);
 
-            PlayerLoginData pLD = new PlayerLoginData();
-            pLD.playerNetworkID = 0;
-            Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, pLD);
+            //PlayerLoginData pLD = new PlayerLoginData();
+            //pLD.playerNetworkID = 0;
+            Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, System.BitConverter.GetBytes((short)0));
             loginPacket.packetOwnerID = -1;
             loginPacket.sendToAll = false;
             NetServer.serverInstance.SendPacket(player, loginPacket);
@@ -234,9 +240,17 @@ namespace EntityNetworkingSystems
             lock (netStream){
                 lock (client)
                 {
-                    byte[] array = Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));//Packet.SerializeObject(packet);
-
-
+                    byte[] array = ENSSerialization.SerializePacket(packet);//Packet.SerializeObject(packet);
+#if UNITY_EDITOR
+                    if (trackOverhead)
+                    {
+                        if (overheadFilter == Packet.pType.unassigned || overheadFilter == packet.packetType)
+                        {
+                            packetByteLength = packetByteLength + array.Length + ",";
+                            //Debug.Log("JustData: " + packet.packetData.Length + ", All: " + array.Length);
+                        }
+                    }
+#endif
                     //First send packet size
                     byte[] arraySize = new byte[4];
                     arraySize = System.BitConverter.GetBytes(array.Length);
@@ -273,9 +287,24 @@ namespace EntityNetworkingSystems
             //Get packet
             byte[] byteMessage = new byte[pSize];
             byteMessage = RecieveSizeSpecificData(pSize, netStream);
-            //netStream.Read(byteMessage, 0, byteMessage.Length);
-            //Debug.Log(Encoding.ASCII.GetString(byteMessage));
-            return Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));//(Packet)Packet.DeserializeObject(byteMessage);
+
+
+#if UNITY_EDITOR
+            Packet finalPacket = ENSSerialization.DeserializePacket(byteMessage);
+
+            if (trackOverhead)
+            {
+                if(overheadFilter == Packet.pType.unassigned || overheadFilter == finalPacket.packetType)
+                {
+                    packetByteLength = packetByteLength + pSize + ",";
+                    //Debug.Log("JustData: " + finalPacket.packetData.Length + ", All: " + byteMessage.Length);
+                }
+
+            }
+            return finalPacket;
+#else
+            return ENSSerialization.DeserializePacket(byteMessage);//Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));//(Packet)Packet.DeserializeObject(byteMessage);
+#endif
         }
 
 

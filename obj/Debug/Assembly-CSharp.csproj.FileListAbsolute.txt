@@ -262,3 +262,7 @@ G:\EntityNetworkingSystems\EntityNetworkingSystems\Temp\bin\Debug\Facepunch.Stea
 G:\EntityNetworkingSystems\EntityNetworkingSystems\Temp\bin\Debug\Facepunch.Steamworks.Win64.pdb
 G:\EntityNetworkingSystems\EntityNetworkingSystems\Temp\bin\Debug\Facepunch.Steamworks.Win64.xml
 G:\EntityNetworkingSystems\EntityNetworkingSystems\obj\Debug\Assembly-CSharp.csprojResolveAssemblyReference.cache
+C:\Users\Ryan\Desktop\EntityNetworkingSystems\obj\Debug\Assembly-CSharp.csprojAssemblyReference.cache
+C:\Users\Ryan\Desktop\EntityNetworkingSystems\obj\Debug\Assembly-CSharp.csproj.CoreCompileInputs.cache
+C:\Users\Ryan\Desktop\EntityNetworkingSystems\obj\Debug\Assembly-CSharp.dll
+C:\Users\Ryan\Desktop\EntityNetworkingSystems\obj\Debug\Assembly-CSharp.pdb
