@@ -55,6 +55,7 @@ MonoBehaviour:
     modDir: spacewar
     gameDesc: spacewar
     mapName: world1
+    connections: []
     bufferedPackets: []
 --- !u!114 &7745350244653862989
 MonoBehaviour:
@@ -73,7 +74,9 @@ MonoBehaviour:
     clientID: -1
     useSteamworks: 0
     steamAppID: 480
-    queuedSendingPackets: []
+    trackOverhead: 1
+    overheadFilter: 5
+    packetByteLength: 
   owned: []
   ip: 127.0.0.1
   port: 44594
@@ -92,8 +95,17 @@ MonoBehaviour:
   networkPrefabList:
   - domainName: Essentials
     prefabList:
-    - {fileID: 9011985434738064851, guid: 70452bd0dea00604286d02a40203d350, type: 3}
-    - {fileID: 4803165501484243487, guid: dd0284277d85d674285e3c5399970144, type: 3}
+    - prefabName: Movable
+      prefab: {fileID: 9011985434738064851, guid: 70452bd0dea00604286d02a40203d350,
+        type: 3}
+      poolAmount: 0
+      resetPoolMethods: []
+    - prefabName: Player
+      prefab: {fileID: 4803165501484243487, guid: dd0284277d85d674285e3c5399970144,
+        type: 3}
+      poolAmount: 300
+      resetPoolMethods: []
+    detectNetworkStarts: 0
     defaultFields: []
     defaultRpcs: []
   errorJson: 

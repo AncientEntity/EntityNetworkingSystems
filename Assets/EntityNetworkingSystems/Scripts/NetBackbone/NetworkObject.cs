@@ -415,6 +415,7 @@ namespace EntityNetworkingSystems
     public class NetworkField
     {
         public string fieldName;
+        public bool reliable = true; //If should use TCP or UDP.
         public enum valueInitializer
         {
             INT,
@@ -627,7 +628,7 @@ namespace EntityNetworkingSystems
             }
             if (NetClient.instanceClient != null && !netObj.updateFieldsThroughServer)
             {
-                NetClient.instanceClient.SendPacket(pack);
+                NetClient.instanceClient.SendPacket(pack,reliable);
             } else if(NetServer.serverInstance != null)
             {
                 foreach (NetworkPlayer player in NetServer.serverInstance.connections) {
@@ -639,7 +640,7 @@ namespace EntityNetworkingSystems
                     {
                         continue;
                     }
-                    NetServer.serverInstance.SendPacket(player, pack);
+                    NetServer.serverInstance.SendPacket(player, pack,reliable);
                 }
             }
             if (immediateOnSelf)
