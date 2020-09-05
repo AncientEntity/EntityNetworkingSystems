@@ -20,9 +20,17 @@ namespace EntityNetworkingSystems {
         private bool lastSpriteFlipXValue = false;
         private bool lastSpriteFlipYValue = false;
 
-        
+        private bool initialized = false;
 
-        void Start()
+        private void Start()
+        {
+            if(!initialized)
+            {
+                Initialize(); //Gets ran in the NetworkObject's Initialize() if added.
+            }
+        }
+
+        public void Initialize()
         {
             anim = GetComponent<Animator>();
             net = GetComponent<NetworkObject>();
@@ -64,7 +72,8 @@ namespace EntityNetworkingSystems {
             {
                 StartCoroutine(HandleAnimationBoolPackets());
             }
-            
+
+            initialized = true;
         }
 
         //IEnumerator CheckToDoAnim()

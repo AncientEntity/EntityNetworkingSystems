@@ -105,6 +105,15 @@ namespace EntityNetworkingSystems
 
             connectedToServer = true;
 
+            if (NetworkData.instance != null)
+            {
+                NetworkData.instance.GeneratePooledObjects();
+            }
+            else
+            {
+                Debug.LogWarning("There is no loaded NetworkData in the scene. This may break some features.");
+            }
+
             NetworkPlayer player = new NetworkPlayer(null);
             player.clientID = 0;
 
@@ -150,6 +159,16 @@ namespace EntityNetworkingSystems
             }
             Debug.Log("Connection Accepted");
             netStream = client.GetStream();
+
+            if (NetworkData.instance != null)
+            {
+                NetworkData.instance.GeneratePooledObjects();
+            }
+            else
+            {
+                Debug.LogWarning("There is no loaded NetworkData in the scene. This may break some features.");
+            }
+
             UnityPacketHandler.instance.StartHandler();
 
             //NetTools.isSingleplayer = false;

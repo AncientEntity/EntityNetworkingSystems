@@ -126,7 +126,13 @@ namespace EntityNetworkingSystems
 
         public void StartServer(bool isSingleplayer=false)
         {
-            
+            if(NetworkData.instance != null)
+            {
+                NetworkData.instance.GeneratePooledObjects();
+            } else
+            {
+                Debug.LogWarning("There is no loaded NetworkData in the scene. This may break some features.");
+            }
 
             if(NetTools.isSingleplayer)
             {

@@ -15,10 +15,15 @@ namespace EntityNetworkingSystems
         public int amountPerUpdate = 50;
         public int maxPerFrame = 200;
         bool syncingBuffered = false;
+        [Space]
+        public bool disableBeforeDestroy = true; //To prevent lag, disable the object, then queue it up to be destroyed.
+        public int amountToDestroyPerFrame = 3;
+        public List<GameObject> destroyQueue = new List<GameObject>();
+
 #if UNITY_EDITOR
         [Space]
         public List<Packet> problemPackets = new List<Packet>();
-        public RPCPacketData lastRPCPacket;
+        //public RPCPacketData lastRPCPacket;
 #endif
 
         Coroutine runningHandler = null;
@@ -36,7 +41,7 @@ namespace EntityNetworkingSystems
                 Destroy(this);
             }
 
-            baseAmounts = amountPerUpdate;
+            baseAmounts = amountPerUpdate / 2;
         }
 
         void CheckForHandlerCrash()
@@ -88,6 +93,8 @@ namespace EntityNetworkingSystems
                             amountPerUpdate = Mathf.Clamp(amountPerUpdate - 3, baseAmounts, maxPerFrame);
                         }
                     }
+
+
                     
                     if (curPacket == null)
                     {
@@ -107,7 +114,16 @@ namespace EntityNetworkingSystems
 
                     countTillUpdate++;
                     if (packetQueue.Count < 0 || countTillUpdate >= amountPerUpdate)
-                    {
+                    {                    
+                        //Destroy queued objects
+                        if (disableBeforeDestroy && destroyQueue.Count > 0)
+                        {
+                            for (int i = 0; i < Mathf.Clamp(amountToDestroyPerFrame, 0, destroyQueue.Count); i++)
+                            {
+                                Destroy(destroyQueue[0]);
+                                destroyQueue.RemoveAt(0);
+                            }
+                        }
                         yield return new WaitForFixedUpdate();
                         countTillUpdate = 0;
                     }
@@ -135,19 +151,30 @@ namespace EntityNetworkingSystems
         {
             if (curPacket.packetType == Packet.pType.gOInstantiate) //It gets instantiated NetTools.
             {
+
                 NetworkObject nObj = null;
                 GameObjectInstantiateData gOID = ENSSerialization.DeserializeGOID(curPacket.packetData);
 
+                //Debug.Log(NetTools.clientID + ", " + curPacket.packetOwnerID);
                 if (NetTools.clientID != curPacket.packetOwnerID || NetworkObject.NetObjFromNetID(gOID.netObjID) == null)
                 {
-                    GameObject g = null;
-                    try
+                    GameObject g = NetworkData.instance.RequestPooledObject(gOID.prefabDomainID,gOID.prefabID);
+                    if (g == null) //If a pooled object couldn't be found, make a new one.
                     {
-                        g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(), gOID.rotation.ToQuaternion());
-                    } catch
+                        try
+                        {
+                            g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID].prefab, gOID.position.ToVec3(), gOID.rotation.ToQuaternion());
+                        }
+                        catch
+                        {
+                            Debug.Log("Error NetInstantiating: domainID: " + gOID.prefabDomainID + ", prefabID: " + gOID.prefabID);
+                            return;
+                        }
+                    } else
                     {
-                        Debug.Log("Error NetInstantiating: domainID: " + gOID.prefabDomainID + ", prefabID: " + gOID.prefabID);
-                        return;
+                        //If pooled apply required position/rotation/etc.
+                        g.transform.position = gOID.position.ToVec3();
+                        g.transform.rotation = gOID.rotation.ToQuaternion();
                     }
                     nObj = g.GetComponent<NetworkObject>();
                     if (nObj == null)
@@ -186,7 +213,7 @@ namespace EntityNetworkingSystems
                         {
                             nFP.networkObjID = gOID.netObjID;
                             //Debug.Log(nFP.data);
-                            nObj.UpdateField(nFP.fieldName, nFP.data.ToObject(), nFP.immediateOnSelf);
+                            nObj.SetFieldLocal(nFP.fieldName, nFP.data.ToObject());
                         }
                     }
 
@@ -203,7 +230,20 @@ namespace EntityNetworkingSystems
                 NetworkObject found = NetworkObject.NetObjFromNetID(curPacket.relatesToNetObjID);
                 if (found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.serverAuthority || found.sharedObject))
                 {
-                    Destroy(found.gameObject);
+                    if (disableBeforeDestroy)
+                    {
+                        if (NetworkData.instance.ResetPooledObject(found) == false)
+                        {
+                            destroyQueue.Add(found.gameObject);
+                        }
+
+                    }
+                    else
+                    {
+                        if (NetworkData.instance.ResetPooledObject(found) == false) {
+                            Destroy(found.gameObject);
+                        }
+                    }
                 } else if (found == null)
                 {
                     Debug.LogWarning("Couldn't find NetworkObject of ID: " + curPacket.relatesToNetObjID);
@@ -273,7 +313,7 @@ namespace EntityNetworkingSystems
                 NetworkObject nObj = NetworkObject.NetObjFromNetID(rPD.networkObjectID);
 
 #if UNITY_EDITOR
-                lastRPCPacket = rPD;
+                //lastRPCPacket = rPD;
 #endif
 
                 if (nObj == null || (nObj.rpcs[rPD.rpcIndex].serverAuthorityRequired && !curPacket.serverAuthority) || (nObj.ownerID != curPacket.packetOwnerID && !nObj.sharedObject))

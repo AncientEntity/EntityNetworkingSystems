@@ -12,6 +12,7 @@ namespace EntityNetworkingSystems
         //NETWORK OBJECT AUTOMATICALLY GETS ADDED TO PREFAB WHEN INSTANTIATED OVER THE NETWORK IF THE PREFAB DOESN'T ALREADY CONTAIN ONE.
 
         public static List<NetworkObject> allNetObjs = new List<NetworkObject>();
+        public static List<int> sessionNetIDHistory = new List<int>(); //All network IDs that have been used over the duration of the server's session.
 
         public bool initialized = false; //Has it been initialized on the network?
         [Space]
@@ -21,6 +22,7 @@ namespace EntityNetworkingSystems
         public bool trackPlayerProxPos = false; //If true, and there is ENS_Position it'll be tracked as the players proximity position.
         public bool detectNetworkStarts = false;
         public bool updateFieldsThroughServer = false;
+        public bool blockNetworkAnimator = false; //Block a NetworkAnimator from being added to the GameObject when applicable.
         public List<NetworkField> fields = new List<NetworkField>();
         public List<RPC> rpcs = new List<RPC>();
         [Space]
@@ -57,6 +59,7 @@ namespace EntityNetworkingSystems
             if (networkID == -1)
             {
                 networkID = NetTools.GenerateNetworkObjectID();
+                sessionNetIDHistory.Add(networkID);
             }
 
 
@@ -95,10 +98,11 @@ namespace EntityNetworkingSystems
             }
 
             //If you want automatic Animator networking, a little buggy.
-            if (NetTools.IsMultiplayerGame() && GetComponent<Animator>() != null && GetComponent<AnimationNetworker>() == null)
+            if (!blockNetworkAnimator && NetTools.IsMultiplayerGame() && GetComponent<Animator>() != null && GetComponent<AnimationNetworker>() == null)
             {
                 //If it is singleplayer game it doesn't need this so it doesn't add one automatically.
-                gameObject.AddComponent<AnimationNetworker>();
+                AnimationNetworker aN = gameObject.AddComponent<AnimationNetworker>();
+                aN.Initialize();
             }
 
             //StartCoroutine(NetworkFieldPacketHandler());
@@ -215,7 +219,8 @@ namespace EntityNetworkingSystems
                 newField.shouldBeProximity = isProximity;
                 if (value != null)
                 {
-                    newField.UpdateField(value, this);
+                    //newField.UpdateField(value, this);
+                    newField.LocalFieldSet(value,false);
                 }
                 else
                 {
@@ -372,6 +377,7 @@ namespace EntityNetworkingSystems
                 }
             }
         }
+        
 
         //A premade "on value change" method for positional network fields. Gets added to fields named ENS_Position
         public void ManagePositionField(FieldArgs args)
@@ -426,6 +432,7 @@ namespace EntityNetworkingSystems
         public OnFieldChange onValueChange = new OnFieldChange();
         public List<OnValueMethodData> onValueChangeMethods = new List<OnValueMethodData>();
         public bool shouldBeProximity = false;
+        public bool disableChangeEvents = false;
         private string jsonData = "notinitialized";
         private string jsonDataTypeName = "notinitialized";
         private bool initialized = false;
@@ -640,7 +647,7 @@ namespace EntityNetworkingSystems
                 LocalFieldSet(newValue);
             }
         }
-
+        
 
         public void LocalFieldSet<T>(T newValue, bool invokeOnChange = true)
         {
@@ -662,7 +669,7 @@ namespace EntityNetworkingSystems
             constructedArgs.fieldValue = newValue;
 
             initialized = true;
-            if (invokeOnChange)
+            if (invokeOnChange && !disableChangeEvents)
             {
                 onValueChange.Invoke(constructedArgs);
 

@@ -36,7 +36,7 @@ namespace EntityNetworkingSystems
             }
             else
             {
-                return Instantiate(NetworkData.instance.networkPrefabList[prefabDomain].prefabList[prefabID], position, rotation);
+                return Instantiate(NetworkData.instance.networkPrefabList[prefabDomain].prefabList[prefabID].prefab, position, rotation);
             }
 
         }
@@ -70,8 +70,19 @@ namespace EntityNetworkingSystems
                 NetClient.instanceClient.SendPacket(p);
                 
             }
+            //Try to get a pooled one first.
+            GameObject g = NetworkData.instance.RequestPooledObject(prefabDomain,prefabID);
 
-            GameObject g = Instantiate(NetworkData.instance.networkPrefabList[prefabDomain].prefabList[prefabID],position, rotation);
+            if (g == null) //If there is no pooled remaining make a new one.
+            {
+                g = Instantiate(NetworkData.instance.networkPrefabList[prefabDomain].prefabList[prefabID].prefab, position, rotation);
+            }
+            else
+            {
+                //If pooled apply required position/rotation
+                g.transform.position = position;
+                g.transform.rotation = rotation;
+            }
             NetworkObject nObj = g.GetComponent<NetworkObject>();
             if (nObj == null)
             {
@@ -100,7 +111,9 @@ namespace EntityNetworkingSystems
                 foreach (NetworkFieldPacket nFP in fieldDefaults)
                 {
                     nFP.networkObjID = netObjID;
-                    nObj.UpdateField(nFP.fieldName, nFP.data.ToObject(), nFP.immediateOnSelf);
+                    nObj.SetFieldLocal(nFP.fieldName,nFP.data.ToObject());
+                    //Instead just update it in UnityPacketHandler for everyone else, preventing extra packets and data from being send and lagging.
+                    //nObj.UpdateField(nFP.fieldName, nFP.data.ToObject(), nFP.immediateOnSelf);
                 }
             }
 
@@ -141,7 +154,21 @@ namespace EntityNetworkingSystems
 
                 if(destroyImmediate)
                 {
-                    Destroy(netObj);
+                    if (!UnityPacketHandler.instance.disableBeforeDestroy)
+                    {
+                        //Pool the object, if it doesn't pool, destroy it.
+                        if (NetworkData.instance.ResetPooledObject(netObj) == false)
+                        {
+                            Destroy(netObj);
+                        }
+                    } else
+                    {
+                        if (NetworkData.instance.ResetPooledObject(netObj) == false)
+                        {
+                            UnityPacketHandler.instance.destroyQueue.Insert(0, netObj.gameObject);
+                            netObj.gameObject.SetActive(false);
+                        }
+                    }
                 }
 
             }
@@ -177,13 +204,13 @@ namespace EntityNetworkingSystems
             return objPackets;
         }
 
-        public static int GenerateNetworkObjectID()
+        public static int GenerateNetworkObjectID(bool doSafetyCheck=false)
         {
             bool found = false;
             while (found == false)
             {
-                int random = Random.Range(0, int.MaxValue);
-                if (NetworkData.usedNetworkObjectInstances.Contains(random) == false)
+                int random = Random.Range(int.MinValue, int.MaxValue);
+                if (!doSafetyCheck || NetworkData.usedNetworkObjectInstances.Contains(random) == false)
                 {
                     found = true;
                     return random;
