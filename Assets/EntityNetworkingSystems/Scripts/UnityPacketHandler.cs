@@ -16,6 +16,8 @@ namespace EntityNetworkingSystems
         public int maxPerFrame = 200;
         bool syncingBuffered = false;
         [Space]
+        public bool errorUnreliable = false; //Error UDP packets that fail or not.
+        [Space]
         public bool disableBeforeDestroy = true; //To prevent lag, disable the object, then queue it up to be destroyed.
         public int amountToDestroyPerFrame = 3;
         public List<GameObject> destroyQueue = new List<GameObject>();
@@ -95,7 +97,7 @@ namespace EntityNetworkingSystems
                     }
 
 
-                    
+
                     if (curPacket == null)
                     {
                         continue;
@@ -106,10 +108,14 @@ namespace EntityNetworkingSystems
                         ExecutePacket(curPacket);
                     } catch (System.Exception e)
                     {
-                        Debug.LogError("Error handling packet." + e);
+                        if (curPacket.reliable || errorUnreliable)
+                        {
+                            Debug.LogError("Error handling packet." + e);
+
 #if UNITY_EDITOR
-                        problemPackets.Add(curPacket);
+                            problemPackets.Add(curPacket);
 #endif
+                        }
                     }
 
                     countTillUpdate++;

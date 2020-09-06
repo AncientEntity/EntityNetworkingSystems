@@ -38,9 +38,10 @@ public class ExampleClient : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            for (int i = 0; i < 50; i++)
+            for (int i = 0; i < 10; i++)
             {
                 GameObject g = NetTools.NetInstantiate(0, 0, new Vector3(Random.Range(-4.0f, 4.0f), Random.Range(-4.0f, 4.0f), 0), Quaternion.identity);
+                g.GetComponent<NetworkObject>().fields[0].disableChangeEvents = true; //ENS_Position, owner doesn't need to update in this case.
                 owned.Add(g.GetComponent<NetworkObject>());
             }
         }
@@ -56,7 +57,8 @@ public class ExampleClient : MonoBehaviour
         {
             foreach (NetworkObject nO in owned)
             {
-                nO.fields[0].UpdateField(new SerializableVector(nO.transform.position.x, nO.transform.position.y + 0.04f, 0f), nO);
+                nO.transform.position = new Vector3(nO.transform.position.x, nO.transform.position.y + 0.04f, 0f);
+                nO.fields[0].UpdateField(new SerializableVector(nO.transform.position), nO);
             }
         }
 
