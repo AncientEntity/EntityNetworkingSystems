@@ -103,17 +103,14 @@ MonoBehaviour:
   trackPlayerProxPos: 0
   detectNetworkStarts: 0
   updateFieldsThroughServer: 0
-  blockNetworkAnimator: 0
   fields:
   - fieldName: ENS_Position
-    reliable: 0
     defaultValue: 6
     onValueChange:
       m_PersistentCalls:
         m_Calls: []
     onValueChangeMethods: []
     shouldBeProximity: 0
-    disableChangeEvents: 0
     netObj: {fileID: 0}
   rpcs: []
   onNetworkStart:

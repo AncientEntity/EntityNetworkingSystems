@@ -11,8 +11,7 @@ public class ExamplePlayerController : MonoBehaviour
     {
         sR = GetComponent<SpriteRenderer>();
         net = GetComponent<NetworkObject>();
-        //net.onNetworkStart.AddListener(OnNetStart);
-        OnNetStart();
+        net.onNetworkStart.AddListener(OnNetStart);
 
         InvokeRepeating("SetRandomColor", 0f, 1f);
     }

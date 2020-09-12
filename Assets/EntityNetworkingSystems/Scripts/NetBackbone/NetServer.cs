@@ -31,21 +31,18 @@ namespace EntityNetworkingSystems
         public List<NetworkPlayer> connections = new List<NetworkPlayer>();
         public List<Packet> bufferedPackets = new List<Packet>();
 
-        UdpClient udpHost = null;
-        IPEndPoint udpEndPoint = null;
         TcpListener server = null;
         List<Thread> connThreads = new List<Thread>();
         Thread connectionHandler = null;
         //Thread packetSendHandler = null;
         //Dictionary<Packet, NetworkPlayer> queuedSendPackets = new Dictionary<Packet, NetworkPlayer>();
 
-        int udpPort = 44595;
         int lastPlayerID = -1;
 
 
         public void Initialize()
         {
-            
+
             if (IsInitialized())
             {
                 return;
@@ -71,8 +68,6 @@ namespace EntityNetworkingSystems
             {
                 hostPort = 44594;
             }
-            udpPort = hostPort + 1;
-            udpEndPoint = new IPEndPoint(IPAddress.Any, udpPort);
 
             if (UnityPacketHandler.instance == null)
             {
@@ -157,8 +152,6 @@ namespace EntityNetworkingSystems
             {
                 server = new TcpListener(IPAddress.Parse(hostAddress), hostPort);
             }
-            udpHost = new UdpClient(udpPort);
-            
             server.Start();
             Debug.Log("Server started successfully.");
             NetTools.isServer = true;
@@ -235,26 +228,6 @@ namespace EntityNetworkingSystems
 
             }
             Debug.Log("NetServer.ConnectionHandler() thread has successfully finished.");
-        }
-
-        public void UDPCommunicator(NetworkPlayer client)
-        {
-            bool clientRunning = true;
-
-            while (client != null && server != null && clientRunning)
-            {
-                try
-                {
-                    Packet p = RecvUDPPacket(client);
-                    HandleRecievedPacket(p, client,false);
-                }
-                catch (System.Exception e)
-                {
-                    Debug.LogError(e);
-                }
-            }
-
-            Debug.Log("NetServer.UDPCommunicator() thread has successfully finished.");
         }
 
         public void ClientHandler(NetworkPlayer client)
@@ -360,8 +333,86 @@ namespace EntityNetworkingSystems
                 {
                     //Thread.Sleep(50);
                     Packet pack = RecvPacket(client);
-                    HandleRecievedPacket(pack, client,true);
- 
+
+                    if(pack == null)
+                    {
+                        continue;
+                    }
+
+                    if (pack.packetOwnerID != client.clientID)// && client.tcpClient == NetClient.instanceClient.client) //if server dont change cause if it is -1 it has all authority.
+                    {
+                        pack.packetOwnerID = client.clientID;
+                    }
+                    if (client.clientID == NetClient.instanceClient.clientID) //Setup server authority.
+                    {
+                        pack.serverAuthority = true;
+                    }
+                    else
+                    {
+                        pack.serverAuthority = false;
+                    }
+
+                    if(pack.packetType == Packet.pType.rpc)
+                    {
+                        RPCPacketData rPD = ENSSerialization.DeserializeRPCPacketData(pack.packetData);
+                        rPD.packetOwnerID = client.clientID;
+                        pack.packetData = ENSSerialization.SerializeRPCPacketData(rPD);
+                    }
+
+                    if (pack.packetSendType == Packet.sendType.buffered || pack.packetSendType == Packet.sendType.culledbuffered)
+                    {
+
+                        //If it is a culledbuffered packet, if it is a netVarEdit packet, and it relates to the same netObj and is the RPC.
+                        //Then cull the previous of the same RPC to prevent RPC spam
+                        //This also happens with NetworkFields, even though network fields are generally *not buffered* the logic is here.
+                        //The reason NetworkFields aren't buffered is because the NetServer already syncs them when a client joins.
+                        if (pack.packetSendType == Packet.sendType.culledbuffered && (pack.packetType == Packet.pType.netVarEdit || pack.packetType == Packet.pType.rpc))
+                        {
+                            foreach (Packet buff in bufferedPackets.ToArray())
+                            {
+                                if (buff.relatesToNetObjID == pack.relatesToNetObjID && buff.packetType == pack.packetType)
+                                {
+                                    if (buff.packetType == Packet.pType.netVarEdit)
+                                    {
+
+                                        if (buff.GetPacketData<NetworkFieldPacket>().fieldName == pack.GetPacketData<NetworkField>().fieldName)
+                                        {
+                                            bufferedPackets.Remove(buff);
+                                        }
+                                    }
+                                    else if (buff.packetType == Packet.pType.rpc)
+                                    {
+                                        if (buff.GetPacketData<RPCPacketData>().rpcIndex == pack.GetPacketData<RPCPacketData>().rpcIndex)
+                                        {
+                                            bufferedPackets.Remove(buff);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        //Debug.Log("Buffered Packet");
+                        bufferedPackets.Add(pack);
+                    }
+
+                    UnityPacketHandler.instance.QueuePacket(pack);
+                    if (pack.sendToAll || pack.usersToRecieve.Count > 0)
+                    {
+                        foreach (NetworkPlayer player in connections.ToArray())
+                        {
+                            //Debug.Log(player.clientID + " " + NetTools.clientID);
+                            if (player == null || player.tcpClient == null || (player.clientID == NetTools.clientID))
+                            {
+                                continue;
+                            }
+
+                            if (pack.sendToAll == true || pack.usersToRecieve.Contains(player.clientID))
+                            {
+                                SendPacket(player, pack);
+                            }
+
+                        }
+                    }
                 }
                 catch (System.Exception e)
                 {
@@ -375,89 +426,6 @@ namespace EntityNetworkingSystems
             client.netStream.Close();
             client.playerConnected = false;
             NetTools.onPlayerDisconnect.Invoke(client);
-        }
-
-        public void HandleRecievedPacket(Packet pack, NetworkPlayer client, bool reliable)
-        {
-            if (pack == null)
-            {
-                return;
-            }
-
-            if (pack.packetOwnerID != client.clientID)// && client.tcpClient == NetClient.instanceClient.client) //if server dont change cause if it is -1 it has all authority.
-            {
-                pack.packetOwnerID = client.clientID;
-            }
-            if (client.clientID == NetClient.instanceClient.clientID) //Setup server authority.
-            {
-                pack.serverAuthority = true;
-            }
-            else
-            {
-                pack.serverAuthority = false;
-            }
-
-            if (pack.packetType == Packet.pType.rpc)
-            {
-                RPCPacketData rPD = ENSSerialization.DeserializeRPCPacketData(pack.packetData);
-                rPD.packetOwnerID = client.clientID;
-                pack.packetData = ENSSerialization.SerializeRPCPacketData(rPD);
-            }
-
-            if (pack.packetSendType == Packet.sendType.buffered || pack.packetSendType == Packet.sendType.culledbuffered)
-            {
-
-                //If it is a culledbuffered packet, if it is a netVarEdit packet, and it relates to the same netObj and is the RPC.
-                //Then cull the previous of the same RPC to prevent RPC spam
-                //This also happens with NetworkFields, even though network fields are generally *not buffered* the logic is here.
-                //The reason NetworkFields aren't buffered is because the NetServer already syncs them when a client joins.
-                if (pack.packetSendType == Packet.sendType.culledbuffered && (pack.packetType == Packet.pType.netVarEdit || pack.packetType == Packet.pType.rpc))
-                {
-                    foreach (Packet buff in bufferedPackets.ToArray())
-                    {
-                        if (buff.relatesToNetObjID == pack.relatesToNetObjID && buff.packetType == pack.packetType)
-                        {
-                            if (buff.packetType == Packet.pType.netVarEdit)
-                            {
-
-                                if (buff.GetPacketData<NetworkFieldPacket>().fieldName == pack.GetPacketData<NetworkField>().fieldName)
-                                {
-                                    bufferedPackets.Remove(buff);
-                                }
-                            }
-                            else if (buff.packetType == Packet.pType.rpc)
-                            {
-                                if (buff.GetPacketData<RPCPacketData>().rpcIndex == pack.GetPacketData<RPCPacketData>().rpcIndex)
-                                {
-                                    bufferedPackets.Remove(buff);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                //Debug.Log("Buffered Packet");
-                bufferedPackets.Add(pack);
-            }
-
-            UnityPacketHandler.instance.QueuePacket(pack);
-            if (pack.sendToAll || pack.usersToRecieve.Count > 0)
-            {
-                foreach (NetworkPlayer player in connections.ToArray())
-                {
-                    //Debug.Log(player.clientID + " " + NetTools.clientID);
-                    if (player == null || player.tcpClient == null || (player.clientID == NetTools.clientID))
-                    {
-                        continue;
-                    }
-
-                    if (pack.sendToAll == true || pack.usersToRecieve.Contains(player.clientID))
-                    {
-                        SendPacket(player, pack,reliable);
-                    }
-
-                }
-            }
         }
 
         public bool IsInitialized()
@@ -477,29 +445,8 @@ namespace EntityNetworkingSystems
             return connections.Count;
         }
 
-        public void SendPacket(NetworkPlayer player, Packet packet, bool reliable=true)
-        {
-            if(reliable)
-            {
-                SendTCPPacket(player, packet);
-            } else
-            {
-                SendUDPPacket(player, packet);
-            }
-        }
 
-        public Packet RecvPacket(NetworkPlayer player, bool reliable=true)
-        {
-            if(reliable)
-            {
-                return RecvTCPPacket(player);
-            } else
-            {
-                return RecvUDPPacket(player);
-            }
-        }
-
-        void SendTCPPacket(NetworkPlayer player, Packet packet)//, bool queuedPacket = false)
+        public void SendPacket(NetworkPlayer player, Packet packet)//, bool queuedPacket = false)
         {
             //if(!queuedPacket)
             //{
@@ -546,7 +493,7 @@ namespace EntityNetworkingSystems
             }
         }
 
-        Packet RecvTCPPacket(NetworkPlayer player)
+        public Packet RecvPacket(NetworkPlayer player)
         {
             //First get packet size
             //byte[] packetSize = new byte[4];
@@ -561,32 +508,6 @@ namespace EntityNetworkingSystems
             byteMessage = RecieveSizeSpecificData(pSize, player.netStream);
             //player.netStream.Read(byteMessage, 0, byteMessage.Length);
             return ENSSerialization.DeserializePacket(byteMessage); //Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));//(Packet)Packet.DeserializeObject(byteMessage);
-        }
-
-        void SendUDPPacket(NetworkPlayer player, Packet packet)
-        {
-            if (packet.packetSendType == Packet.sendType.proximity)
-            {
-                if (Vector3.Distance(player.proximityPosition, packet.packetPosition.ToVec3()) >= player.loadProximity)
-                {
-                    return;
-                }
-            }
-
-            if (NetTools.isSingleplayer)
-            {
-                UnityPacketHandler.instance.QueuePacket(packet);
-                return;
-            }
-
-            byte[] serializedPacket = ENSSerialization.SerializePacket(packet);
-            udpHost.Send(serializedPacket, serializedPacket.Length, player.udpEndpoint);
-        }
-
-        Packet RecvUDPPacket(NetworkPlayer player)
-        {
-            byte[] message = udpHost.Receive(ref player.udpEndpoint);
-            return ENSSerialization.DeserializePacket(message);
         }
 
         byte[] RecieveSizeSpecificData(int byteCountToGet, NetworkStream netStream)
@@ -671,7 +592,6 @@ namespace EntityNetworkingSystems
     {
         public int clientID = -1;
         public TcpClient tcpClient;
-        public IPEndPoint udpEndpoint;
         public NetworkStream netStream;
         public Vector3 proximityPosition = Vector3.zero;
         public float loadProximity = 15f;
@@ -689,8 +609,6 @@ namespace EntityNetworkingSystems
 
             this.tcpClient = client;
             this.netStream = client.GetStream();
-            this.udpEndpoint = (IPEndPoint)client.Client.RemoteEndPoint;
-            this.udpEndpoint.Port += 1; //The UDP port is always +1 than the TCP.
         }
 
     }

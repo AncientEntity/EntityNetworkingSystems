@@ -20,7 +20,6 @@ namespace EntityNetworkingSystems
 
         public bool connectedToServer = false;
         public TcpClient client = null;
-        public UdpClient udpClient = null;
         public NetworkStream netStream;
         Thread connectionHandler = null;
         [Space]
@@ -34,8 +33,6 @@ namespace EntityNetworkingSystems
         public Packet.pType overheadFilter = Packet.pType.unassigned;
         public string packetByteLength = "";
 #endif
-
-        private IPEndPoint serverEndpoint = null;
 
         public void Initialize()
         {
@@ -52,7 +49,6 @@ namespace EntityNetworkingSystems
             }
 
             client = new TcpClient();
-            udpClient = new UdpClient();
             NetTools.isClient = true;
 
             if (useSteamworks)
@@ -78,25 +74,6 @@ namespace EntityNetworkingSystems
         
         }
 
-        public void UDPCommunicator(NetworkPlayer client)
-        {
-            bool clientRunning = true;
-
-            while (client != null && clientRunning)
-            {
-                try
-                {
-                    Packet p = RecvUDPPacket();
-                    UnityPacketHandler.instance.QueuePacket(p);
-                }
-                catch (System.Exception e)
-                {
-                    Debug.LogError(e);
-                }
-            }
-
-            Debug.Log("NetServer.UDPCommunicator() thread has successfully finished.");
-        }
 
         public void ConnectionHandler()
         {
@@ -165,10 +142,6 @@ namespace EntityNetworkingSystems
                 client = new TcpClient();
                 NetTools.isClient = true;
             }
-            if(udpClient == null)
-            {
-                udpClient = new UdpClient(port+1);
-            }
 
             Debug.Log("Attempting Connection");
             try
@@ -185,7 +158,6 @@ namespace EntityNetworkingSystems
                 return;
             }
             Debug.Log("Connection Accepted");
-            serverEndpoint = new IPEndPoint(IPAddress.Parse(ip), port+1);
             netStream = client.GetStream();
 
             if (NetworkData.instance != null)
@@ -247,31 +219,7 @@ namespace EntityNetworkingSystems
             
         }
 
-        public void SendPacket(Packet packet, bool reliable = true)
-        {
-            if (reliable)
-            {
-                SendTCPPacket(packet);
-            }
-            else
-            {
-                SendUDPPacket(packet);
-            }
-        }
-
-        public Packet RecvPacket(bool reliable = true)
-        {
-            if (reliable)
-            {
-                return RecvTCPPacket();
-            }
-            else
-            {
-                return RecvUDPPacket();
-            }
-        }
-
-        public void SendTCPPacket(Packet packet)//, bool queuedPacket = false)
+        public void SendPacket(Packet packet)//, bool queuedPacket = false)
         {
 
             //Debug.Log(NetTools.isSingleplayer);
@@ -345,7 +293,7 @@ namespace EntityNetworkingSystems
             }
         }
 
-        public Packet RecvTCPPacket()
+        public Packet RecvPacket()
         {
             //First get packet size
             //byte[] packetSize = new byte[4];
@@ -376,38 +324,6 @@ namespace EntityNetworkingSystems
 #else
             return ENSSerialization.DeserializePacket(byteMessage);//Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));//(Packet)Packet.DeserializeObject(byteMessage);
 #endif
-        }
-
-        public void SendUDPPacket(Packet packet)
-        {
-            if (NetTools.isSingleplayer)
-            {
-                if (packet.packetSendType == Packet.sendType.proximity)
-                {
-                    if (NetServer.serverInstance.connections.Count > 0)
-                    {
-                        if (Vector3.Distance(packet.packetPosition.ToVec3(), NetServer.serverInstance.connections[0].proximityPosition) > NetServer.serverInstance.connections[0].loadProximity)
-                        {
-                            return;
-                        }
-                    }
-                }
-                //if(packet.packetType == Packet.pType.netVarEdit && ((NetworkFieldPacket)packet.GetPacketData()).immediateOnSelf)
-                //{
-                //    return; //basically would be a double sync. No reason to.
-                //}
-                UnityPacketHandler.instance.QueuePacket(packet);
-                return;
-            }
-
-            byte[] serializedPacket = ENSSerialization.SerializePacket(packet);
-            udpClient.Send(serializedPacket, serializedPacket.Length, serverEndpoint);
-        }
-
-        public Packet RecvUDPPacket()
-        {
-            byte[] message = udpClient.Receive(ref serverEndpoint);
-            return ENSSerialization.DeserializePacket(message);
         }
 
 
