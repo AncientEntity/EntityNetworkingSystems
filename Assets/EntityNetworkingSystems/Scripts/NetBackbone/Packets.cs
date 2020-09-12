@@ -42,9 +42,7 @@ namespace EntityNetworkingSystems
         //public string jsonDataTypeName;
 
         public byte[] packetData;
-
-        public bool reliable = true; //If recieved in NetServer.UDPCommunication or NetClient.UDPConnection this gets changed to false.
-
+        
         public int packetOwnerID = NetTools.clientID; //If the client tries lying to server, the server verifies it in NetServer anyways...
         public bool serverAuthority = false; //Manually changed in NetServer. Client changing it wont effect other clients/server.
         public bool sendToAll = true;
@@ -109,12 +107,7 @@ namespace EntityNetworkingSystems
 
         }
 
-        //[Obsolete("This uses the BinaryFormatter. It is recommended to make your own serializer and use that instead. Then just set packetData manually.")]
-        /// <summary>
-        /// Unrecommended to use, It is recommended you make your own Serializator and send the bytes directly to Packet.packetData.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
+        [Obsolete("This uses the BinaryFormatter. It is recommended to make your own serializer and use that instead. Then just set packetData manually.")]
         public T GetPacketData<T>()
         {
             if(typeof(T).ToString() == "EntityNetworkingSystems.NetworkFieldPacket")

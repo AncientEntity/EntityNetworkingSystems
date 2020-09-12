@@ -23,7 +23,6 @@ namespace EntityNetworkingSystems
         public UdpClient udpClient = null;
         public NetworkStream netStream;
         Thread connectionHandler = null;
-        Thread udpHandler = null;
         [Space]
         public int clientID = -1;
 
@@ -79,18 +78,15 @@ namespace EntityNetworkingSystems
         
         }
 
-        public void UDPCommunicator()
+        public void UDPCommunicator(NetworkPlayer client)
         {
             bool clientRunning = true;
-
-            SendUDPPacket(new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, new byte[0])); //We need to send an initialization packet, otherwise RecvUDPPacket errors.
 
             while (client != null && clientRunning)
             {
                 try
                 {
                     Packet p = RecvUDPPacket();
-                    p.reliable = false;
                     UnityPacketHandler.instance.QueuePacket(p);
                 }
                 catch (System.Exception e)
@@ -171,7 +167,7 @@ namespace EntityNetworkingSystems
             }
             if(udpClient == null)
             {
-                udpClient = new UdpClient(port-1);//new UdpClient(new IPEndPoint(IPAddress.Parse("0.0.0.0"),port+1));//new UdpClient(port+1);
+                udpClient = new UdpClient(port+1);
             }
 
             Debug.Log("Attempting Connection");
@@ -189,8 +185,7 @@ namespace EntityNetworkingSystems
                 return;
             }
             Debug.Log("Connection Accepted");
-            serverEndpoint = (IPEndPoint)client.Client.RemoteEndPoint;
-            serverEndpoint.Port += 1;
+            serverEndpoint = new IPEndPoint(IPAddress.Parse(ip), port+1);
             netStream = client.GetStream();
 
             if (NetworkData.instance != null)
@@ -226,8 +221,6 @@ namespace EntityNetworkingSystems
             //packetSendHandler.Start();
             connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
             connectionHandler.Start();
-            udpHandler = new Thread(() => UDPCommunicator());
-            udpHandler.Start();
         }
 
         public void DisconnectFromServer()
@@ -236,8 +229,6 @@ namespace EntityNetworkingSystems
             {
                 Debug.Log("Disconnecting From Server");
                 NetTools.onLeaveServer.Invoke("disconnect");
-                udpClient.Close();
-                udpHandler.Abort();
                 client.GetStream().Close();
                 client.Close();
                 client = null;

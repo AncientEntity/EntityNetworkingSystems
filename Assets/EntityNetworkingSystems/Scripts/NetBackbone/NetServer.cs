@@ -131,12 +131,18 @@ namespace EntityNetworkingSystems
 
         public void StartServer(bool isSingleplayer=false)
         {
+            if(NetworkData.instance != null)
+            {
+                NetworkData.instance.GeneratePooledObjects();
+            } else
+            {
+                Debug.LogWarning("There is no loaded NetworkData in the scene. This may break some features.");
+            }
 
             if(NetTools.isSingleplayer)
             {
                 NetTools.clientID = 0;
                 NetTools.isServer = true;
-                NetworkData.instance.GeneratePooledObjects();
                 UnityPacketHandler.instance.StartHandler();
                 Debug.Log("Server started in Singleplayer Mode.");
                 return;
@@ -144,8 +150,6 @@ namespace EntityNetworkingSystems
 
             //Create server
             //Debug.Log(IPAddress.Parse(hostAddress));
-            udpHost = new UdpClient(udpPort);
-            //udpHost.Connect(IPAddress.Any, udpPort);
             if (hostAddress == "Any")
             {
                 server = new TcpListener(IPAddress.Any, hostPort);
@@ -153,7 +157,7 @@ namespace EntityNetworkingSystems
             {
                 server = new TcpListener(IPAddress.Parse(hostAddress), hostPort);
             }
-
+            udpHost = new UdpClient(udpPort);
             
             server.Start();
             Debug.Log("Server started successfully.");
@@ -165,7 +169,7 @@ namespace EntityNetworkingSystems
             connectionHandler.Start();
             //packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
             //packetSendHandler.Start();
-            NetworkData.instance.GeneratePooledObjects();
+
 
         }
 
@@ -175,8 +179,6 @@ namespace EntityNetworkingSystems
             {
                 foreach (NetworkPlayer client in connections)
                 {
-                    client.UDPHandler.Abort();
-                    udpHost.Close();
                     client.tcpClient.Close();
                 }
                 server.Stop();
@@ -230,10 +232,6 @@ namespace EntityNetworkingSystems
 
                 Thread connThread = new Thread(() => ClientHandler(netClient));
                 connThread.Start();
-                netClient.threadHandlingClient = connThread;
-                Thread udpThread = new Thread(() => UDPCommunicator(netClient));
-                udpThread.Start();
-                netClient.UDPHandler = udpThread;
 
             }
             Debug.Log("NetServer.ConnectionHandler() thread has successfully finished.");
@@ -243,14 +241,11 @@ namespace EntityNetworkingSystems
         {
             bool clientRunning = true;
 
-            //SendUDPPacket(client,new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, new byte[0])); //We need to send an initialization packet, otherwise RecvUDPPacket errors.
-
             while (client != null && server != null && clientRunning)
             {
                 try
                 {
                     Packet p = RecvUDPPacket(client);
-                    p.reliable = false;
                     HandleRecievedPacket(p, client,false);
                 }
                 catch (System.Exception e)
@@ -681,7 +676,6 @@ namespace EntityNetworkingSystems
         public Vector3 proximityPosition = Vector3.zero;
         public float loadProximity = 15f;
         public Thread threadHandlingClient;
-        public Thread UDPHandler;
         public ulong steamID;
 
         public bool playerConnected = true;
@@ -692,10 +686,11 @@ namespace EntityNetworkingSystems
             {
                 return;
             }
+
             this.tcpClient = client;
             this.netStream = client.GetStream();
             this.udpEndpoint = (IPEndPoint)client.Client.RemoteEndPoint;
-            this.udpEndpoint.Port -= 1; //The Client UDP port is always -1 than the TCP.
+            this.udpEndpoint.Port += 1; //The UDP port is always +1 than the TCP.
         }
 
     }

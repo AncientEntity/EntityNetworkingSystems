@@ -49,7 +49,7 @@ namespace EntityNetworkingSystems
             try
             {
                 return instance.networkPrefabList[prefabDomain].prefabList[prefabID].prefab;
-            } catch 
+            } catch (System.Exception e)
             {
                 Debug.LogError("Error Instantiating: pDomain: " + prefabDomain + ", prefabID: " + prefabID);
                 return null;
