@@ -37,6 +37,7 @@ namespace EntityNetworkingSystems
             steamAuth, //only is managed when the client first connects with the server. UnityPacketManager has no logic for it.
         }
         public pType packetType = pType.unassigned;
+        public bool reliable = true;
 
         //public string jsonData;
         //public string jsonDataTypeName;

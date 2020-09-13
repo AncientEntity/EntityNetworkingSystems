@@ -415,6 +415,7 @@ namespace EntityNetworkingSystems
     public class NetworkField
     {
         public string fieldName;
+        public bool reliable = true;
         public enum valueInitializer
         {
             INT,
@@ -619,6 +620,7 @@ namespace EntityNetworkingSystems
 
             Packet pack = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
                 ENSSerialization.SerializeNetworkFieldPacket(new NetworkFieldPacket(netObjID, fieldName, jPO, immediateOnSelf)));
+            pack.reliable = reliable;
             pack.relatesToNetObjID = netObjID;
             if(shouldBeProximity && netObj != null)
             {

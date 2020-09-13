@@ -219,6 +219,8 @@ namespace EntityNetworkingSystems
                 TcpClient tcpClient = server.AcceptTcpClient();
                 NetworkPlayer netClient = new NetworkPlayer(tcpClient);
                 netClient.clientID = lastPlayerID + 1;
+                netClient.udpEndpoint = (IPEndPoint)tcpClient.Client.RemoteEndPoint;
+                netClient.udpEndpoint.Port += 1;
                 lastPlayerID += 1;
                 connections.Add(netClient);
                 Debug.Log("New Client Connected Successfully.");
@@ -567,6 +569,18 @@ namespace EntityNetworkingSystems
         //    client.netStream.Read(message, 0, message.Length);
         //    return message;
         //}
+        public NetworkPlayer GetPlayerByUDPEndpoint(IPEndPoint endPoint)
+        {
+            foreach(NetworkPlayer player in connections)
+            {
+                if(player.udpEndpoint == endPoint)
+                {
+                    return player;
+                }
+            }
+            return null;
+        }
+
 
         public NetworkPlayer GetPlayerByID(int id)
         {
@@ -598,6 +612,8 @@ namespace EntityNetworkingSystems
         public Thread threadHandlingClient;
         public ulong steamID;
 
+        public IPEndPoint udpEndpoint;
+
         public bool playerConnected = true;
 
         public NetworkPlayer(TcpClient client)
@@ -609,6 +625,7 @@ namespace EntityNetworkingSystems
 
             this.tcpClient = client;
             this.netStream = client.GetStream();
+            this.udpEndpoint = (IPEndPoint)client.Client.RemoteEndPoint;
         }
 
     }
