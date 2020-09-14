@@ -12,12 +12,11 @@ namespace EntityNetworkingSystems.UDP
         public int portToUse = 44595;
         public UdpClient udpServer = null;
 
-        private NetServer parent = null;
+        
 
         public UDPListener(NetServer netServer)
         {
-            parent = netServer;
-            portToUse = parent.hostPort + 1;
+            portToUse = NetServer.serverInstance.hostPort + 1;
         }
 
         public void Start()
@@ -31,12 +30,13 @@ namespace EntityNetworkingSystems.UDP
             {
                 return;
             }
+            udpServer.Close();
             udpServer.Dispose();
         }
 
         public void SendPacket(Packet packet)
         {
-            foreach(NetworkPlayer player in parent.connections)
+            foreach(NetworkPlayer player in NetServer.serverInstance.connections)
             {
                 if(packet.sendToAll || packet.usersToRecieve.Contains(player.clientID))
                 {
@@ -68,9 +68,9 @@ namespace EntityNetworkingSystems.UDP
         {
             IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, portToUse);
             byte[] recieved = udpServer.Receive(ref remoteEP);
-            Debug.Log(remoteEP.ToString());
+            //Debug.Log(remoteEP.ToString());
 
-            return new KeyValuePair<NetworkPlayer, byte[]>(parent.GetPlayerByUDPEndpoint(remoteEP),recieved);
+            return new KeyValuePair<NetworkPlayer, byte[]>(NetServer.serverInstance.GetPlayerByUDPEndpoint(remoteEP),recieved);
         }
 
     }
@@ -82,21 +82,16 @@ namespace EntityNetworkingSystems.UDP
         public int portToUse = 44595;
         public UdpClient client;
 
-        private NetClient parent;
         private IPEndPoint serverEndpoint;
 
-        public UDPPlayer(NetClient parent, IPEndPoint serverEndpoint)
+        public UDPPlayer(IPEndPoint serverEndpoint)
         {
-            this.parent = parent;
             portToUse = serverEndpoint.Port + 1;
 
-            this.serverEndpoint = serverEndpoint;
+            this.serverEndpoint = new IPEndPoint(serverEndpoint.Address, portToUse);
+            client = new UdpClient();
         }
 
-        public void Start()
-        {
-            client = new UdpClient(portToUse);
-        }
 
         public void Stop()
         {
@@ -121,6 +116,7 @@ namespace EntityNetworkingSystems.UDP
 
         byte[] RecieveMessage()
         {
+            //Debug.Log(serverEndpoint.ToString());
             return client.Receive(ref serverEndpoint);
         }
 

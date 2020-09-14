@@ -9,6 +9,7 @@ using System.IO;
 using System.Text;
 using Steamworks;
 using System.Linq;
+using EntityNetworkingSystems.UDP;
 
 namespace EntityNetworkingSystems
 {
@@ -31,9 +32,11 @@ namespace EntityNetworkingSystems
         public List<NetworkPlayer> connections = new List<NetworkPlayer>();
         public List<Packet> bufferedPackets = new List<Packet>();
 
+        UDPListener udpListener = null;
         TcpListener server = null;
         List<Thread> connThreads = new List<Thread>();
         Thread connectionHandler = null;
+        Thread udpHandler = null;
         //Thread packetSendHandler = null;
         //Dictionary<Packet, NetworkPlayer> queuedSendPackets = new Dictionary<Packet, NetworkPlayer>();
 
@@ -124,6 +127,17 @@ namespace EntityNetworkingSystems
         //}
 
 
+        public void UDPHandler()
+        {
+            while(udpListener != null)
+            {
+                KeyValuePair<NetworkPlayer, Packet> recieved = udpListener.RecievePacket();
+                udpListener.SendPacket(recieved.Value);
+            }
+        }
+
+
+
         public void StartServer(bool isSingleplayer=false)
         {
             if(NetworkData.instance != null)
@@ -152,7 +166,9 @@ namespace EntityNetworkingSystems
             {
                 server = new TcpListener(IPAddress.Parse(hostAddress), hostPort);
             }
+            udpListener = new UDPListener(this);
             server.Start();
+            udpListener.Start();
             Debug.Log("Server started successfully.");
             NetTools.isServer = true;
 
@@ -160,6 +176,8 @@ namespace EntityNetworkingSystems
 
             connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
             connectionHandler.Start();
+            udpHandler = new Thread(new ThreadStart(UDPHandler));
+            udpHandler.Start();
             //packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
             //packetSendHandler.Start();
 
@@ -182,10 +200,18 @@ namespace EntityNetworkingSystems
                 //    SteamInteraction.instance.ShutdownServer();
                 //}
             }
+            udpListener.Stop();
+            udpListener = null;
+
             if (connectionHandler != null)
             {
                 connectionHandler.Abort();
                 connectionHandler = null;
+            }
+            if(udpHandler != null)
+            {
+                udpHandler.Abort();
+                udpHandler = null;
             }
 
             if (GameObject.FindObjectOfType<UnityPacketHandler>() != null)
@@ -221,6 +247,7 @@ namespace EntityNetworkingSystems
                 netClient.clientID = lastPlayerID + 1;
                 netClient.udpEndpoint = (IPEndPoint)tcpClient.Client.RemoteEndPoint;
                 netClient.udpEndpoint.Port += 1;
+                SendPacket(netClient, new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, 0));
                 lastPlayerID += 1;
                 connections.Add(netClient);
                 Debug.Log("New Client Connected Successfully.");
@@ -447,23 +474,12 @@ namespace EntityNetworkingSystems
             return connections.Count;
         }
 
-
-        public void SendPacket(NetworkPlayer player, Packet packet)//, bool queuedPacket = false)
+        public void SendPacket(NetworkPlayer player, Packet packet)
         {
-            //if(!queuedPacket)
-            //{
-            //    queuedSendingPackets.Add(packet, player);
-            //    return;
-            //}
-
-            //if(packet.packetType == Packet.pType.netVarEdit && player.clientID == NetTools.clientID)
-            //{
-            //    return; //No need to double sync it.
-            //}
 
             if (packet.packetSendType == Packet.sendType.proximity)
             {
-                if(Vector3.Distance(player.proximityPosition,packet.packetPosition.ToVec3()) >= player.loadProximity)
+                if (Vector3.Distance(player.proximityPosition, packet.packetPosition.ToVec3()) >= player.loadProximity)
                 {
                     return;
                 }
@@ -475,6 +491,29 @@ namespace EntityNetworkingSystems
                 return;
             }
 
+
+            if (packet.reliable)
+            {
+                SendTCPPacket(player, packet);
+            } else
+            {
+                udpListener.SendPacket(packet);
+            }
+        }
+
+
+        public void SendTCPPacket(NetworkPlayer player, Packet packet)//, bool queuedPacket = false)
+        {
+            //if(!queuedPacket)
+            //{
+            //    queuedSendingPackets.Add(packet, player);
+            //    return;
+            //}
+
+            //if(packet.packetType == Packet.pType.netVarEdit && player.clientID == NetTools.clientID)
+            //{
+            //    return; //No need to double sync it.
+            //}
             lock (player.netStream)
             {
                 lock (player.tcpClient)

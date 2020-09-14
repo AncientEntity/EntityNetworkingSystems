@@ -1456,6 +1456,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7745350244653862988, guid: 02188897ea456634dbc92f4ced9a9f72,
+        type: 3}
+      propertyPath: netServer.hostPort
+      value: 44594
+      objectReference: {fileID: 0}
     - target: {fileID: 7745350244653862990, guid: 02188897ea456634dbc92f4ced9a9f72,
         type: 3}
       propertyPath: m_Name

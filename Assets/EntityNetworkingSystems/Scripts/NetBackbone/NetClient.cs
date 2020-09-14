@@ -9,6 +9,7 @@ using System;
 using UnityEngine.Events;
 using System.Runtime.Serialization.Formatters.Binary;
 using Steamworks;
+using EntityNetworkingSystems.UDP;
 
 namespace EntityNetworkingSystems
 {
@@ -20,8 +21,10 @@ namespace EntityNetworkingSystems
 
         public bool connectedToServer = false;
         public TcpClient client = null;
+        public UDPPlayer udpPlayer = null;
         public NetworkStream netStream;
         Thread connectionHandler = null;
+        Thread udpHandler = null;
         [Space]
         public int clientID = -1;
 
@@ -72,6 +75,24 @@ namespace EntityNetworkingSystems
             }
 
         
+        }
+
+
+        public void UDPHandler()
+        {
+            Thread.Sleep(1000);
+
+            udpPlayer.SendPacket(new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, new byte[0]));
+
+            while (udpPlayer != null)
+            {
+                try {
+                    UnityPacketHandler.instance.QueuePacket(udpPlayer.RecievePacket());
+                } catch (System.Exception e)
+                {
+                    Debug.LogError(e);
+                }
+            }
         }
 
 
@@ -142,6 +163,8 @@ namespace EntityNetworkingSystems
                 client = new TcpClient();
                 NetTools.isClient = true;
             }
+            udpPlayer = new UDPPlayer(new IPEndPoint(IPAddress.Parse(ip), port));
+            
 
             Debug.Log("Attempting Connection");
             try
@@ -193,6 +216,8 @@ namespace EntityNetworkingSystems
             //packetSendHandler.Start();
             connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
             connectionHandler.Start();
+            udpHandler = new Thread(new ThreadStart(UDPHandler));
+            udpHandler.Start();
         }
 
         public void DisconnectFromServer()
@@ -205,6 +230,8 @@ namespace EntityNetworkingSystems
                 client.Close();
                 client = null;
                 connectionHandler.Abort();
+                udpHandler.Abort();
+                udpPlayer.Stop();
                 //if (useSteamworks)
                 //{
                 //    SteamInteraction.instance.StopClient();
@@ -219,7 +246,44 @@ namespace EntityNetworkingSystems
             
         }
 
-        public void SendPacket(Packet packet)//, bool queuedPacket = false)
+        public void SendPacket(Packet packet)
+        {
+            if (NetTools.isSingleplayer)
+            {
+                if (packet.packetSendType == Packet.sendType.proximity)
+                {
+                    if (NetServer.serverInstance.connections.Count > 0)
+                    {
+                        if (Vector3.Distance(packet.packetPosition.ToVec3(), NetServer.serverInstance.connections[0].proximityPosition) > NetServer.serverInstance.connections[0].loadProximity)
+                        {
+                            return;
+                        }
+                    }
+                }
+                //if(packet.packetType == Packet.pType.netVarEdit && ((NetworkFieldPacket)packet.GetPacketData()).immediateOnSelf)
+                //{
+                //    return; //basically would be a double sync. No reason to.
+                //}
+                UnityPacketHandler.instance.QueuePacket(packet);
+                return;
+            }
+
+
+            if (packet.reliable)
+            {
+                SendTCPPacket(packet);
+            } else
+            {
+                SendUDPPacket(packet);
+            }
+        }
+
+        void SendUDPPacket(Packet packet)
+        {
+            udpPlayer.SendPacket(packet);
+        }
+
+        void SendTCPPacket(Packet packet)//, bool queuedPacket = false)
         {
 
             //Debug.Log(NetTools.isSingleplayer);
@@ -233,26 +297,6 @@ namespace EntityNetworkingSystems
             //{
             //    NetTools.isSingleplayer = true;
             //}
-
-            if (NetTools.isSingleplayer)
-            {
-                if(packet.packetSendType == Packet.sendType.proximity)
-                {
-                    if(NetServer.serverInstance.connections.Count > 0)
-                    {
-                        if(Vector3.Distance(packet.packetPosition.ToVec3(), NetServer.serverInstance.connections[0].proximityPosition) > NetServer.serverInstance.connections[0].loadProximity)
-                        {
-                            return;
-                        }
-                    }
-                }
-                //if(packet.packetType == Packet.pType.netVarEdit && ((NetworkFieldPacket)packet.GetPacketData()).immediateOnSelf)
-                //{
-                //    return; //basically would be a double sync. No reason to.
-                //}
-                UnityPacketHandler.instance.QueuePacket(packet);
-                return;
-            }
 
             
 
