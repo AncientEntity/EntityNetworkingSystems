@@ -90,7 +90,10 @@ namespace EntityNetworkingSystems
                     UnityPacketHandler.instance.QueuePacket(udpPlayer.RecievePacket());
                 } catch (System.Exception e)
                 {
-                    Debug.LogError(e);
+                    if(!e.ToString().Contains("ThreadAbortException")) //Game stopped in Editor play mode.
+                    {
+                        Debug.LogError(e);
+                    }
                 }
             }
         }

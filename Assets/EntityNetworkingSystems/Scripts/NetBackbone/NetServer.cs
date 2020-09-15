@@ -446,7 +446,10 @@ namespace EntityNetworkingSystems
                 catch (System.Exception e)
                 {
                     //Something went wrong with packet deserialization or connection closed.
-                    Debug.LogError(e);
+                    if (!e.ToString().Contains("WSACancelBlockingCall")) //Server closed
+                    { 
+                        Debug.LogError(e);
+                    }
                     clientRunning = false; //Basically end the thread.
 
                 }

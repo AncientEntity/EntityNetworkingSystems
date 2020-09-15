@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5980072988778505489}
   - component: {fileID: 7666372133974133271}
   - component: {fileID: -3667445291438537542}
+  - component: {fileID: -7625149096482828559}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -102,14 +103,17 @@ MonoBehaviour:
   trackPlayerProxPos: 0
   detectNetworkStarts: 0
   updateFieldsThroughServer: 0
+  blockNetworkAnimator: 0
   fields:
   - fieldName: ENS_Position
+    reliable: 1
     defaultValue: 6
     onValueChange:
       m_PersistentCalls:
         m_Calls: []
     onValueChangeMethods: []
     shouldBeProximity: 0
+    disableChangeEvents: 0
     netObj: {fileID: 0}
   rpcs:
   - rpcName: RandomColor
@@ -147,3 +151,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dc4ef303c419f024db82724044e0bf89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &-7625149096482828559
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4803165501484243487}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00d84e2f110dead4c97a2bd851389382, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  keys:
+  - displayName: W
+    key: 119
+    keyDown: 0
+    keyPressed: 0
+    keyUp: 0
+    isNetworked: 1
+  doInputDetection: 1

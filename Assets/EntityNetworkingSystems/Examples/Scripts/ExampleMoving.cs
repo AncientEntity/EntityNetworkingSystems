@@ -11,6 +11,15 @@ public class ExampleMoving : MonoBehaviour
     void Start()
     {
         net = GetComponent<NetworkObject>();
+
+        foreach(ExamplePlayerController e in ExamplePlayerController.controllers)
+        {
+            if(e.GetComponent<NetworkObject>().IsOwner())
+            {
+                e.owned.Add(net);
+                break;
+            }
+        }
     }
 
     // Update is called once per frame
