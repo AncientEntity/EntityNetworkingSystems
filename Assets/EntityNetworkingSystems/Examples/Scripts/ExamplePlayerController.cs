@@ -28,6 +28,8 @@ public class ExamplePlayerController : MonoBehaviour
         net.onNetworkStart.AddListener(OnNetStart);
 
         InvokeRepeating("SetRandomColor", 0f, 1f);
+
+
     }
 
     public void RandomColor(RPCArgs args)
@@ -52,7 +54,19 @@ public class ExamplePlayerController : MonoBehaviour
 
     void OnNetStart()
     {
-        net.UpdateField("ENS_Position", new SerializableVector(transform.position),immediateOnSelf:true);
+        if (net.IsOwner())
+        {
+            net.UpdateField("ENS_Position", new SerializableVector(transform.position), immediateOnSelf: true);
+        }
+
+        //foreach (ExampleMoving eM in FindObjectsOfType<ExampleMoving>())
+        //{
+        //    if (eM.GetComponent<NetworkObject>().ownerID == net.ownerID)
+        //    {
+        //        owned.Add(eM.GetComponent<NetworkObject>());
+        //        break;
+        //    }
+        //}
     }
 
     void FixedUpdate()

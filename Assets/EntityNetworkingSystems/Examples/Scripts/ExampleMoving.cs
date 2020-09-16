@@ -14,7 +14,7 @@ public class ExampleMoving : MonoBehaviour
 
         foreach(ExamplePlayerController e in ExamplePlayerController.controllers)
         {
-            if(e.GetComponent<NetworkObject>().IsOwner())
+            if(e.GetComponent<NetworkObject>().ownerID == net.ownerID)
             {
                 e.owned.Add(net);
                 break;
