@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class ExampleClient : MonoBehaviour
 {
@@ -17,13 +18,13 @@ public class ExampleClient : MonoBehaviour
         netClient.Initialize();
         netClient.ConnectToServer(ip,port);
         NetTools.onJoinServer.AddListener(delegate { InitializePlayer(); });
+        NetTools.onLeaveServer.AddListener(delegate { SceneManager.LoadSceneAsync("TestScene", LoadSceneMode.Single); });
     }
 
     public void Disconnect()
     {
         netClient.DisconnectFromServer();
     }
-
 
     //void Update()
     //{

@@ -97,7 +97,14 @@ namespace EntityNetworkingSystems
 
         public GameObject RequestPooledObject(int prefabID)
         {
-            return prefabList[prefabID].RequestPooledObject();
+            try
+            {
+                return prefabList[prefabID].RequestPooledObject();
+            } catch
+            {
+                Debug.LogError("Error Requesting Pooled Object. PrefabID: " + prefabID + ", PrefabDomain: " + domainName);
+                return null;
+            }
         }
 
         public bool ResetPooledObject(GameObject obj)

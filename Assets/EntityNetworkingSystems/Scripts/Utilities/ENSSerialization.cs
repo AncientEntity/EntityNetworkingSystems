@@ -307,7 +307,7 @@ namespace EntityNetworkingSystems
         //   - the information in bytes, ? bytes
         // - steamID ulong, 8 bytes.
         
-        public static byte[] SerializeSteamAuth(SteamAuthPacket sAP)
+        public static byte[] SerializeAuthPacket(NetworkAuthPacket sAP)
         {
             List<byte> objectAsBytes = new List<byte>();
 
@@ -318,12 +318,14 @@ namespace EntityNetworkingSystems
             byte[] steamID = System.BitConverter.GetBytes(sAP.steamID);
             objectAsBytes.AddRange(steamID);
 
+            byte[] udpPort = System.BitConverter.GetBytes(sAP.udpPort);
+            objectAsBytes.AddRange(udpPort);
 
 
             return objectAsBytes.ToArray();
         }
 
-        public static SteamAuthPacket DeserializeSteamAuth(byte[] sAPBytes)
+        public static NetworkAuthPacket DeserializeAuthPacket(byte[] sAPBytes)
         {
             List<byte> byteObject = new List<byte>();
             byteObject.AddRange(sAPBytes);
@@ -334,7 +336,9 @@ namespace EntityNetworkingSystems
 
             ulong steamID = System.BitConverter.ToUInt64(byteObject.GetRange(intIndex,8).ToArray(),0); intIndex += 8;
 
-            return new SteamAuthPacket(authData,steamID);
+            int udpPort = System.BitConverter.ToInt32(byteObject.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+
+            return new NetworkAuthPacket(authData,steamID, udpPort);
         }
 
         //RPCPacketData Serializer - Minimum Calculatable Bytes: 10 bytes

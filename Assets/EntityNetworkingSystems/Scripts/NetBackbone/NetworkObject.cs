@@ -209,7 +209,7 @@ namespace EntityNetworkingSystems
         }
 
         
-        public void CreateField(string fieldName, object value = null, NetworkField.valueInitializer init = NetworkField.valueInitializer.None, bool isProximity=false)
+        public NetworkField CreateField(string fieldName, object value = null, NetworkField.valueInitializer init = NetworkField.valueInitializer.None, bool isProximity=false)
         {
             if (FieldExists(fieldName) == false)
             {
@@ -230,7 +230,9 @@ namespace EntityNetworkingSystems
                     }
                 }
                 fields.Add(newField);
+                return newField;
             }
+            return null;
         }
 
         public void CreateRPC(string rpcName, RPCEvent events)
@@ -617,7 +619,6 @@ namespace EntityNetworkingSystems
                 return;
             }
 
-
             Packet pack = new Packet(Packet.pType.netVarEdit, Packet.sendType.nonbuffered,
                 ENSSerialization.SerializeNetworkFieldPacket(new NetworkFieldPacket(netObjID, fieldName, jPO, immediateOnSelf)));
             pack.reliable = reliable;
@@ -733,6 +734,7 @@ namespace EntityNetworkingSystems
             newField.shouldBeProximity = shouldBeProximity;
             newField.specialFieldsInitialized = false;
             newField.onValueChangeMethods = onValueChangeMethods;
+            newField.reliable = reliable;
             return newField;
         }
         public static NetworkFieldPacket GenerateNFP<T>(string fieldName, T newValue, bool immediateOnSelf = false, int netObjID=-1)
@@ -760,7 +762,13 @@ namespace EntityNetworkingSystems
                 {
                     if (netObj.GetComponent(methodData.componentTypeName) != null)
                     {
-                        netObj.GetComponent(methodData.componentTypeName).SendMessage(methodData.methodName, constructedArgs);
+                        try
+                        {
+                            netObj.GetComponent(methodData.componentTypeName).SendMessage(methodData.methodName, constructedArgs);
+                        } catch
+                        {
+                            
+                        }
                     }
                 }
             }

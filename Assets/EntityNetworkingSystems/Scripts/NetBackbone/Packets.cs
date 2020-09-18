@@ -34,7 +34,7 @@ namespace EntityNetworkingSystems
             unassigned, //doesnt go anywhere
             multiPacket, //Optimized for the new packet serializers
             loginInfo, //Custom serializer done.
-            steamAuth, //only is managed when the client first connects with the server. UnityPacketManager has no logic for it.
+            networkAuth, //only is managed when the client first connects with the server. UnityPacketManager has no logic for it.
         }
         public pType packetType = pType.unassigned;
         public bool reliable = true;
@@ -320,15 +320,17 @@ namespace EntityNetworkingSystems
     }
 
     [System.Serializable]
-    public class SteamAuthPacket
+    public class NetworkAuthPacket
     {
         public byte[] authData;
         public ulong steamID;
+        public int udpPort;
 
-        public SteamAuthPacket(byte[] data, ulong sID)
+        public NetworkAuthPacket(byte[] data, ulong sID, int udpPort)
         {
             authData = data;
             steamID = sID;
+            this.udpPort = udpPort;
         }
     }
 

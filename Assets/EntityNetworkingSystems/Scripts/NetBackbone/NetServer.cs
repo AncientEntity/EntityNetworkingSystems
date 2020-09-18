@@ -132,6 +132,7 @@ namespace EntityNetworkingSystems
             while(udpListener != null)
             {
                 KeyValuePair<NetworkPlayer, Packet> recieved = udpListener.RecievePacket();
+                //Debug.Log("Recieved Packet: " + recieved.Key.udpEndpoint.ToString() + ", " + recieved.Value.packetType);
                 udpListener.SendPacket(recieved.Value);
             }
         }
@@ -261,20 +262,21 @@ namespace EntityNetworkingSystems
 
         public void ClientHandler(NetworkPlayer client)
         {
-            if (useSteamworks)
+            //VERIFY AUTH TICKET FIRST.
+            NetworkAuthPacket clientAuthPacket;
+            Packet actualAuthPacket = RecvPacket(client);
+            if (actualAuthPacket.packetType == Packet.pType.networkAuth)
             {
-                //VERIFY AUTH TICKET FIRST.
-                SteamAuthPacket clientSteamAuthTicket;
-                Packet p = RecvPacket(client);
-                if (p.packetType == Packet.pType.steamAuth)
+                //Debug.Log(p.jsonData);
+                clientAuthPacket = actualAuthPacket.GetPacketData<NetworkAuthPacket>();
+                client.steamID = clientAuthPacket.steamID;
+
+                Thread.Sleep(1500); //Wait for steam to authenticate it. Will take around this time. Probably should add x attempts over a few seconds.
+
+                client.udpEndpoint.Port = clientAuthPacket.udpPort;
+                if (useSteamworks)
                 {
-                    //Debug.Log(p.jsonData);
-                    clientSteamAuthTicket = p.GetPacketData<SteamAuthPacket>();
-                    client.steamID = clientSteamAuthTicket.steamID;
-
-                    Thread.Sleep(1500); //Wait for steam to authenticate it. Will take around this time. Probably should add x attempts over a few seconds.
-
-                    BeginAuthResult bAR = SteamUser.BeginAuthSession(clientSteamAuthTicket.authData, clientSteamAuthTicket.steamID);
+                    BeginAuthResult bAR = SteamUser.BeginAuthSession(clientAuthPacket.authData, clientAuthPacket.steamID);
 
                     //Debug.Log(clientSteamAuthTicket.steamID);
                     if (bAR != BeginAuthResult.OK)
@@ -282,15 +284,15 @@ namespace EntityNetworkingSystems
                         client.tcpClient.Close();
                         Debug.Log(bAR);
                         //Debug.Log("Invalid auth ticket from: " + clientSteamAuthTicket.steamID);
-                        SteamUser.EndAuthSession(clientSteamAuthTicket.steamID);
-                        SteamServer.EndSession(clientSteamAuthTicket.steamID);
+                        SteamUser.EndAuthSession(clientAuthPacket.steamID);
+                        SteamServer.EndSession(clientAuthPacket.steamID);
                         return; //Invalid ticket cancel connection.
                     }
                     else
                     {
-                        SteamServer.UpdatePlayer(clientSteamAuthTicket.steamID, "Player 1", 0);
+                        SteamServer.UpdatePlayer(clientAuthPacket.steamID, "Player 1", 0);
                         //Debug.Log("Recieved Valid Client Auth Ticket.");
-                        SteamInteraction.instance.connectedSteamIDs.Add(clientSteamAuthTicket.steamID);
+                        SteamInteraction.instance.connectedSteamIDs.Add(clientAuthPacket.steamID);
 
                         SteamServer.ForceHeartbeat();
                     }
@@ -615,7 +617,8 @@ namespace EntityNetworkingSystems
         {
             foreach(NetworkPlayer player in connections)
             {
-                if(player.udpEndpoint == endPoint)
+                //Debug.Log(player.udpEndpoint.ToString() + "|||" + endPoint.ToString());
+                if (player.udpEndpoint.ToString() == endPoint.ToString())
                 {
                     return player;
                 }

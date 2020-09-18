@@ -252,7 +252,7 @@ namespace EntityNetworkingSystems
             else if (curPacket.packetType == Packet.pType.multiPacket)
             {
                 //Debug.Log("Recieved buffered packets.");
-                List<byte[]> packetByteInfo = (curPacket.GetPacketData<PacketListPacket>()).packets;
+                List<byte[]> packetByteInfo = curPacket.GetPacketData<PacketListPacket>().packets;
                 lock (packetQueue)
                 {
                     foreach(byte[] packetByte in packetByteInfo)

@@ -198,21 +198,24 @@ namespace EntityNetworkingSystems
             UnityPacketHandler.instance.StartHandler();
 
             //NetTools.isSingleplayer = false;
-
+            ulong usedSteamID = 0;
+            byte[] steamAuthData = new byte[0];
             if (useSteamworks && !SteamInteraction.instance.initialized)
             {
                 SteamInteraction.instance.StartClient();
 
                 SteamInteraction.instance.clientAuth = SteamUser.GetAuthSessionTicket();
                 //SteamInteraction.instance.clientAuth = ticket;
-
-                //Debug.Log(SteamClient.SteamId.Value + " "+ SteamClient.SteamId.AccountId);
-                //SteamUser.BeginAuthSession(ticket.Data, SteamClient.SteamId.Value);
-
-                Packet authPacket = new Packet(Packet.pType.steamAuth, Packet.sendType.nonbuffered, new SteamAuthPacket(SteamInteraction.instance.clientAuth.Data, SteamClient.SteamId.Value));
-                authPacket.sendToAll = false;
-                SendPacket(authPacket);
+                steamAuthData = SteamInteraction.instance.clientAuth.Data;
+                usedSteamID = SteamClient.SteamId.Value;
             }
+            //Debug.Log(SteamClient.SteamId.Value + " "+ SteamClient.SteamId.AccountId);
+            //SteamUser.BeginAuthSession(ticket.Data, SteamClient.SteamId.Value);
+
+            Packet authPacket = new Packet(Packet.pType.networkAuth, Packet.sendType.nonbuffered, new NetworkAuthPacket(steamAuthData, usedSteamID, udpPlayer.portToUse));
+            authPacket.sendToAll = false;
+            SendPacket(authPacket);
+            
             //NetTools.onJoinServer.Invoke();
             connectedToServer = true;
             //packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));

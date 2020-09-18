@@ -56,10 +56,16 @@ namespace EntityNetworkingSystems.UDP
         {
             while (true)
             {
-                KeyValuePair<NetworkPlayer, byte[]> recieved = RecieveMessage();
-                if (recieved.Key != null)
+                try
                 {
-                    return recieved;
+                    KeyValuePair<NetworkPlayer, byte[]> recieved = RecieveMessage();
+                    if (recieved.Key != null)
+                    {
+                        return recieved;
+                    }
+                } catch
+                {
+                    
                 }
             }
         }
@@ -68,7 +74,6 @@ namespace EntityNetworkingSystems.UDP
         {
             IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, portToUse);
             byte[] recieved = udpServer.Receive(ref remoteEP);
-            //Debug.Log(remoteEP.ToString());
 
             return new KeyValuePair<NetworkPlayer, byte[]>(NetServer.serverInstance.GetPlayerByUDPEndpoint(remoteEP),recieved);
         }
@@ -89,7 +94,21 @@ namespace EntityNetworkingSystems.UDP
             portToUse = serverEndpoint.Port + 1;
 
             this.serverEndpoint = new IPEndPoint(serverEndpoint.Address, portToUse);
-            client = new UdpClient();
+            bool validPort = false;
+            while (!validPort)
+            {
+                try
+                {
+                    client = new UdpClient(portToUse);
+                    validPort = true;
+                } catch
+                {
+                    validPort = false;
+                    portToUse += 1;
+                }
+            }
+            //this.serverEndpoint.Port = portToUse;
+            //portToUse = ((IPEndPoint)client.Client.RemoteEndPoint).Port;
         }
 
 
@@ -106,6 +125,7 @@ namespace EntityNetworkingSystems.UDP
         {
             byte[] bytePacket = ENSSerialization.SerializePacket(packet);
             client.Send(bytePacket, bytePacket.Length, serverEndpoint);
+            //Debug.Log("Sent Packet: " + packet.packetSendType + ". To: "+serverEndpoint.ToString());
         }
 
         public Packet RecievePacket()
