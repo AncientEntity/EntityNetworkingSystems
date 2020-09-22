@@ -19,6 +19,7 @@ I am mainly using this for my project at https://epocria.net
 - EntityNetworkingSystems Namespace (Complete)
 - Documentation (Always being worked on)
 - [More Here](https://github.com/AncientEntity/EntityNetworkingSystems/wiki/Full-Todo-List)
+- InputWorker, manages input over the network (Complete)
 
 ## Extras
 - Buffered Packet Culling (Complete)
