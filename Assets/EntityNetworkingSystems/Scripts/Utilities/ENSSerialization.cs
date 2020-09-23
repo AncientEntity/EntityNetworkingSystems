@@ -44,6 +44,8 @@ namespace EntityNetworkingSystems
             objectAsBytes.AddRange(sendToAll);
             byte[] relatesToNetObjID = System.BitConverter.GetBytes(packet.relatesToNetObjID);
             objectAsBytes.AddRange(relatesToNetObjID);
+            byte[] packetTag = System.BitConverter.GetBytes(NetworkData.instance.PacketTagToID(packet.tag));
+            objectAsBytes.AddRange(packetTag);
 
             //Vector3 Packet Position
             if(packet.packetPosition == null)
@@ -88,6 +90,7 @@ namespace EntityNetworkingSystems
             packet.serverAuthority = System.BitConverter.ToBoolean(packetBytes.GetRange(intIndex, 1).ToArray(), 0); intIndex += 1;
             packet.sendToAll = System.BitConverter.ToBoolean(packetBytes.GetRange(intIndex, 1).ToArray(), 0); intIndex += 1;
             packet.relatesToNetObjID = System.BitConverter.ToInt32(packetBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            packet.tag = NetworkData.instance.TagIDToTagName(System.BitConverter.ToInt32(packetBytes.GetRange(intIndex, 4).ToArray(), 0)); intIndex += 4;
 
             //Vector3 packet position
             SerializableVector vec = new SerializableVector(0,0,0);

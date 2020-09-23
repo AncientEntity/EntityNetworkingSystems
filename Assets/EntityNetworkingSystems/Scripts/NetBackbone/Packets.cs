@@ -49,6 +49,7 @@ namespace EntityNetworkingSystems
         public bool sendToAll = true;
         public List<int> usersToRecieve = new List<int>(); //if send to all is false.
         public int relatesToNetObjID = -1;
+        public string tag = "None"; //A packet tag, used for identifying buffered packets. Completely optional. Tags are created in NetworkData
 
         public SerializableVector packetPosition;
 

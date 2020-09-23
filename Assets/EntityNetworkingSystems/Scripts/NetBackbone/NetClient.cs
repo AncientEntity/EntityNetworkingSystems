@@ -104,19 +104,15 @@ namespace EntityNetworkingSystems
             //Thread.Sleep(150);
             while (client != null)
             {
-                Packet packet = RecvPacket();
+                try
+                {
+                    Packet packet = RecvPacket();
+                    UnityPacketHandler.instance.QueuePacket(packet);
+                } catch
+                {
+                    //Debug.Log("Server closed");
+                }
 
-                //if (packet.packetType == Packet.pType.loginInfo)
-                //{
-                UnityPacketHandler.instance.QueuePacket(packet);
-                //} //Otherwise NetServer will run it. But since the server is sending the login info to the client, it'll only get it here.
-                //Thread.Sleep(50);
-
-                //if(packetSendHandler == null || packetSendHandler.IsAlive == false)
-                //{
-                //    packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
-                //    packetSendHandler.Start();
-                //}
             }
             Debug.Log("NetClient.ConnectionHandler() thread has successfully finished.");
         }
@@ -232,7 +228,10 @@ namespace EntityNetworkingSystems
             {
                 Debug.Log("Disconnecting From Server");
                 NetTools.onLeaveServer.Invoke("disconnect");
-                client.GetStream().Close();
+                if (!NetTools.isServer)
+                {
+                    client.GetStream().Close();
+                }
                 client.Close();
                 client = null;
                 connectionHandler.Abort();
@@ -329,10 +328,11 @@ namespace EntityNetworkingSystems
                         netStream.Write(arraySize, 0, arraySize.Length);
                     } catch (Exception e)
                     {
-                        if(e.ToString().Contains("SocketException"))
-                        {
-                            NetTools.onLeaveServer.Invoke(e.ToString());
-                        }
+                        //Moved to DisconnectFromServer
+                        //if(e.ToString().Contains("SocketException"))
+                        //{
+                        //    NetTools.onLeaveServer.Invoke(e.ToString());
+                        //}
                     }
 
 

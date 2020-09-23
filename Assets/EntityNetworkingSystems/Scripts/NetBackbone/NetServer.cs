@@ -30,7 +30,11 @@ namespace EntityNetworkingSystems
         public string mapName = "world1";
         [Space]
         public List<NetworkPlayer> connections = new List<NetworkPlayer>();
-        public List<Packet> bufferedPackets = new List<Packet>();
+#if UNITY_EDITOR
+        public List<BufferedPacketDisplay> bufferedDisplay = new List<BufferedPacketDisplay>();
+#endif
+        public Dictionary<string, List<Packet>> bufferedPackets = new Dictionary<string, List<Packet>>(); //Packet String Tag, List Of Packets with that tag.
+        //public List<Packet> bufferedPackets = new List<Packet>();
 
         UDPListener udpListener = null;
         TcpListener server = null;
@@ -201,8 +205,11 @@ namespace EntityNetworkingSystems
                 //    SteamInteraction.instance.ShutdownServer();
                 //}
             }
-            udpListener.Stop();
-            udpListener = null;
+            if (udpListener != null)
+            {
+                udpListener.Stop();
+                udpListener = null;
+            }
 
             if (connectionHandler != null)
             {
@@ -221,7 +228,7 @@ namespace EntityNetworkingSystems
             }
             //NetServer.serverInstance = null;
             connections = new List<NetworkPlayer>();
-            bufferedPackets = new List<Packet>();
+            bufferedPackets = new Dictionary<string, List<Packet>>();
 
             NetTools.isServer = false;
             NetTools.isSingleplayer = false;
@@ -315,7 +322,7 @@ namespace EntityNetworkingSystems
             if (bufferedPackets.Count > 0)
             {
                 List<Packet> packetsToSend = new List<Packet>(); //Will contain buffered packets and all network fields to be updated.
-                packetsToSend.AddRange(bufferedPackets.ToArray());
+                packetsToSend.AddRange(GetAllBufferedPackets());
                 //Debug.Log(packetsToSend.Count);
                 foreach (NetworkObject netObj in NetworkObject.allNetObjs.ToArray())
                 {
@@ -399,7 +406,15 @@ namespace EntityNetworkingSystems
                         //The reason NetworkFields aren't buffered is because the NetServer already syncs them when a client joins.
                         if (pack.packetSendType == Packet.sendType.culledbuffered && (pack.packetType == Packet.pType.netVarEdit || pack.packetType == Packet.pType.rpc))
                         {
-                            foreach (Packet buff in bufferedPackets.ToArray())
+                            List<Packet> related = new List<Packet>();
+                            if (bufferedPackets.ContainsKey(pack.relatesToNetObjID.ToString())) {
+                                related.AddRange(bufferedPackets[pack.relatesToNetObjID.ToString()]);
+                            }
+                            if (bufferedPackets.ContainsKey(pack.tag)) {
+                                related.AddRange(bufferedPackets[pack.tag]);
+                            }
+
+                            foreach (Packet buff in related)
                             {
                                 if (buff.relatesToNetObjID == pack.relatesToNetObjID && buff.packetType == pack.packetType)
                                 {
@@ -408,14 +423,14 @@ namespace EntityNetworkingSystems
 
                                         if (buff.GetPacketData<NetworkFieldPacket>().fieldName == pack.GetPacketData<NetworkField>().fieldName)
                                         {
-                                            bufferedPackets.Remove(buff);
+                                            RemoveBufferedPacket(buff);
                                         }
                                     }
                                     else if (buff.packetType == Packet.pType.rpc)
                                     {
                                         if (buff.GetPacketData<RPCPacketData>().rpcIndex == pack.GetPacketData<RPCPacketData>().rpcIndex)
                                         {
-                                            bufferedPackets.Remove(buff);
+                                            RemoveBufferedPacket(buff);
                                         }
                                     }
                                 }
@@ -423,7 +438,7 @@ namespace EntityNetworkingSystems
                         }
 
                         //Debug.Log("Buffered Packet");
-                        bufferedPackets.Add(pack);
+                        AddBufferedPacket(pack);
                     }
 
                     UnityPacketHandler.instance.QueuePacket(pack);
@@ -439,7 +454,23 @@ namespace EntityNetworkingSystems
 
                             if (pack.sendToAll == true || pack.usersToRecieve.Contains(player.clientID))
                             {
-                                SendPacket(player, pack);
+                                if (player.tcpClient.Connected)
+                                {
+                                    try
+                                    {
+                                        SendPacket(player, pack);
+                                    } catch (System.Exception e)
+                                    {
+                                        if(player.tcpClient.Connected)
+                                        {
+                                            Debug.LogError(e); //If we ain't connected anymore then it makes sense.
+                                            connections.Remove(player);
+                                        }
+                                    }
+                                } else
+                                {
+                                    connections.Remove(player);
+                                }
                             }
 
                         }
@@ -448,7 +479,7 @@ namespace EntityNetworkingSystems
                 catch (System.Exception e)
                 {
                     //Something went wrong with packet deserialization or connection closed.
-                    if (!e.ToString().Contains("WSACancelBlockingCall")) //Server closed
+                    if (!e.ToString().Contains("WSACancelBlockingCall") && !e.ToString().Contains("transport connection")) //Server closed
                     { 
                         Debug.LogError(e);
                     }
@@ -459,6 +490,10 @@ namespace EntityNetworkingSystems
             Debug.Log("NetServer.ClientHandler() thread has successfully finished.");
             client.netStream.Close();
             client.playerConnected = false;
+            if (connections.Contains(client))
+            {
+                connections.Remove(client);
+            }
             NetTools.onPlayerDisconnect.Invoke(client);
         }
 
@@ -613,6 +648,72 @@ namespace EntityNetworkingSystems
         //    client.netStream.Read(message, 0, message.Length);
         //    return message;
         //}
+
+        public List<Packet> GetAllBufferedPackets()
+        {
+            List<Packet> packets = new List<Packet>();
+            int count = 0;
+            foreach(List<Packet> p in bufferedPackets.Values.ToArray())
+            {
+                foreach(Packet newPacket in p)
+                {
+                    if(packets.Contains(newPacket))
+                    {
+                        continue;
+                    } else
+                    {
+                        packets.Add(newPacket);
+                    }
+                }
+                count += 1;
+            }
+            return packets;
+        }
+
+        public void AddBufferedPacket(Packet p)
+        {
+            string tag = p.relatesToNetObjID.ToString();
+            if (bufferedPackets.ContainsKey(tag))
+            {
+                bufferedPackets[tag].Add(p);
+            }
+            else
+            {
+                bufferedPackets[tag] = new List<Packet>();
+                bufferedPackets[tag].Add(p);
+#if UNITY_EDITOR
+                bufferedDisplay.Add(new BufferedPacketDisplay(tag));
+#endif
+            }
+            tag = p.tag.ToString();
+            if (bufferedPackets.ContainsKey(tag))
+            {
+                bufferedPackets[tag].Add(p);
+            }
+            else
+            {
+                bufferedPackets[tag] = new List<Packet>();
+                bufferedPackets[tag].Add(p);
+#if UNITY_EDITOR
+                bufferedDisplay.Add(new BufferedPacketDisplay(tag));
+#endif
+            }
+
+        }
+        
+        public void RemoveBufferedPacket(Packet p)
+        {
+            string tag = p.relatesToNetObjID.ToString();
+            if (bufferedPackets.ContainsKey(tag))
+            {
+                bufferedPackets[tag].Remove(p);
+            } else if (bufferedPackets.ContainsKey(p.tag.ToString()))
+            {
+                bufferedPackets[p.tag.ToString()].Remove(p);
+            }
+        }
+
+
         public NetworkPlayer GetPlayerByUDPEndpoint(IPEndPoint endPoint)
         {
             foreach(NetworkPlayer player in connections)
@@ -675,5 +776,20 @@ namespace EntityNetworkingSystems
 
     }
 
+#if UNITY_EDITOR
+
+    [System.Serializable]
+    public class BufferedPacketDisplay
+    {
+        public string tag;
+
+        public BufferedPacketDisplay(string tag)
+        {
+            this.tag = tag;
+        }
+    }
+
+
+#endif
 
 }

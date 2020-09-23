@@ -13,6 +13,8 @@ namespace EntityNetworkingSystems
         public static List<int> usedNetworkObjectInstances = new List<int>();
 
         public List<GameObjectList> networkPrefabList = new List<GameObjectList>();
+        [Space]
+        public List<PacketTag> packetTags = new List<PacketTag>();
 
 #if UNITY_EDITOR
         public string errorJson;
@@ -28,6 +30,7 @@ namespace EntityNetworkingSystems
             {
                 Destroy(this);
             }
+            
 
             //Initializing moved to just happening when instantiating over the network.
             //foreach(GameObjectList gOL in networkPrefabList)
@@ -74,6 +77,39 @@ namespace EntityNetworkingSystems
             return networkPrefabList[net.prefabDomainID].ResetPooledObject(net);
         }
 
+        public int PacketTagToID(string tagName)
+        {
+            if(tagName == "None")
+            {
+                return -1;
+            }
+
+            foreach (PacketTag pT in packetTags)
+            {
+                if (pT.displayName.ToLower() == tagName.ToLower())
+                {
+                    return pT.id;
+                }
+            }
+            return -1;
+        }
+        public string TagIDToTagName(int tagID)
+        {
+            if(tagID == -1)
+            {
+                return "None";
+            }
+
+            foreach (PacketTag pT in packetTags)
+            {
+                if (pT.id == tagID)
+                {
+                    return pT.displayName;
+                }
+            }
+            return "None";
+        }
+
     }
 
     [System.Serializable]
@@ -86,6 +122,7 @@ namespace EntityNetworkingSystems
         public bool detectNetworkStarts = false;
         public List<NetworkField> defaultFields;
         public RPC[] defaultRpcs;
+        public int defaultPacketTagID = -1;
 
         public void GeneratePooledObjectsAll()
         {
@@ -100,9 +137,9 @@ namespace EntityNetworkingSystems
             try
             {
                 return prefabList[prefabID].RequestPooledObject();
-            } catch
+            } catch (System.Exception e)
             {
-                Debug.LogError("Error Requesting Pooled Object. PrefabID: " + prefabID + ", PrefabDomain: " + domainName);
+                Debug.LogError("Error Requesting Pooled Object. PrefabID: " + prefabID + ", PrefabDomain: " + domainName + e);
                 return null;
             }
         }
@@ -254,5 +291,12 @@ namespace EntityNetworkingSystems
             }
         }
 
+    }
+
+    [System.Serializable]
+    public class PacketTag
+    {
+        public string displayName = "None";
+        public int id = -1;
     }
 }

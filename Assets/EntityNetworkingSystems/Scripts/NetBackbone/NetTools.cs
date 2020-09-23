@@ -61,6 +61,7 @@ namespace EntityNetworkingSystems
                 gOID.fieldDefaults = fieldDefaults;
 
                 Packet p = new Packet(Packet.pType.gOInstantiate,Packet.sendType.buffered,ENSSerialization.SerializeGOID(gOID));
+                p.tag = NetworkData.instance.TagIDToTagName(NetworkData.instance.networkPrefabList[prefabDomain].defaultPacketTagID);
 
 
                 //if(sT == Packet.sendType.buffered && isServer)
@@ -133,7 +134,7 @@ namespace EntityNetworkingSystems
             NetDestroy(netObj.networkID, sT);
         }
 
-        public static void NetDestroy(int netID, Packet.sendType sT = Packet.sendType.buffered, bool destroyImmediate=false)
+        public static void NetDestroy(int netID, Packet.sendType sT = Packet.sendType.buffered, bool destroyImmediate=false, bool cullRelatedPackets=true)
         {
             NetworkObject netObj = NetworkObject.NetObjFromNetID(netID);
 
@@ -147,9 +148,10 @@ namespace EntityNetworkingSystems
             {
                 //Destroy(netObj.gameObject);
 
-                Packet p = new Packet(Packet.pType.gODestroy, sT, new byte[0]);
+                Packet p = new Packet(Packet.pType.gODestroy, sT, System.BitConverter.GetBytes(cullRelatedPackets));
                 p.relatesToNetObjID = netID;
                 p.packetOwnerID = clientID;
+                p.tag = NetworkData.instance.TagIDToTagName(NetworkData.instance.networkPrefabList[netObj.prefabDomainID].defaultPacketTagID);
                 NetClient.instanceClient.SendPacket(p);
 
                 if(destroyImmediate)
@@ -230,7 +232,28 @@ namespace EntityNetworkingSystems
         {
             if (NetTools.isServer)
             {
-                NetServer.serverInstance.GetPlayerByID(clientID).proximityPosition = position;
+                NetworkPlayer netPlayer = NetServer.serverInstance.GetPlayerByID(clientID);
+                if(netPlayer != null)
+                {
+                    netPlayer.proximityPosition = position;
+                }
+            }
+        }
+
+        public static void CullPacketsByNetworkID(int networkID)
+        {
+            if (NetServer.serverInstance.bufferedPackets.ContainsKey(networkID.ToString()))
+            {
+                NetServer.serverInstance.bufferedPackets.Remove(networkID.ToString());
+            }
+        }
+
+        public static void CullPacketsByTag(string tag)
+        {
+            if(NetServer.serverInstance.bufferedPackets.ContainsKey(tag))
+            {
+                Debug.Log("Culled: " + NetServer.serverInstance.bufferedPackets[tag].Count + " packets.");
+                NetServer.serverInstance.bufferedPackets.Remove(tag);
             }
         }
 
