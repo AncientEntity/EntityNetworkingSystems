@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class ExampleClient : MonoBehaviour
 {
@@ -11,18 +12,19 @@ public class ExampleClient : MonoBehaviour
     public string ip;
     public int port;
 
+
     public void ConnectToServer()
     {
         netClient.Initialize();
         netClient.ConnectToServer(ip,port);
         NetTools.onJoinServer.AddListener(delegate { InitializePlayer(); });
+        NetTools.onLeaveServer.AddListener(delegate { SceneManager.LoadSceneAsync("TestScene", LoadSceneMode.Single); });
     }
 
     public void Disconnect()
     {
         netClient.DisconnectFromServer();
     }
-
 
     //void Update()
     //{
@@ -52,13 +54,6 @@ public class ExampleClient : MonoBehaviour
             Debug.Log(NetworkData.usedNetworkObjectInstances[randIndex]);
         }
 
-        if (Input.GetKey(KeyCode.W))
-        {
-            foreach (NetworkObject nO in owned)
-            {
-                nO.fields[0].UpdateField(new SerializableVector(nO.transform.position.x, nO.transform.position.y + 0.04f, 0f), nO);
-            }
-        }
 
 
         if (Input.GetKeyDown(KeyCode.F11))

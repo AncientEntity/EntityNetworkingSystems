@@ -9,6 +9,7 @@ using System.IO;
 using System.Text;
 using Steamworks;
 using System.Linq;
+using EntityNetworkingSystems.UDP;
 
 namespace EntityNetworkingSystems
 {
@@ -29,11 +30,17 @@ namespace EntityNetworkingSystems
         public string mapName = "world1";
         [Space]
         public List<NetworkPlayer> connections = new List<NetworkPlayer>();
-        public List<Packet> bufferedPackets = new List<Packet>();
+#if UNITY_EDITOR
+        public List<BufferedPacketDisplay> bufferedDisplay = new List<BufferedPacketDisplay>();
+#endif
+        public Dictionary<string, List<Packet>> bufferedPackets = new Dictionary<string, List<Packet>>(); //Packet String Tag, List Of Packets with that tag.
+        //public List<Packet> bufferedPackets = new List<Packet>();
 
+        UDPListener udpListener = null;
         TcpListener server = null;
         List<Thread> connThreads = new List<Thread>();
         Thread connectionHandler = null;
+        Thread udpHandler = null;
         //Thread packetSendHandler = null;
         //Dictionary<Packet, NetworkPlayer> queuedSendPackets = new Dictionary<Packet, NetworkPlayer>();
 
@@ -124,6 +131,18 @@ namespace EntityNetworkingSystems
         //}
 
 
+        public void UDPHandler()
+        {
+            while(udpListener != null)
+            {
+                KeyValuePair<NetworkPlayer, Packet> recieved = udpListener.RecievePacket();
+                //Debug.Log("Recieved Packet: " + recieved.Key.udpEndpoint.ToString() + ", " + recieved.Value.packetType);
+                udpListener.SendPacket(recieved.Value);
+            }
+        }
+
+
+
         public void StartServer(bool isSingleplayer=false)
         {
             if(NetworkData.instance != null)
@@ -152,7 +171,9 @@ namespace EntityNetworkingSystems
             {
                 server = new TcpListener(IPAddress.Parse(hostAddress), hostPort);
             }
+            udpListener = new UDPListener(this);
             server.Start();
+            udpListener.Start();
             Debug.Log("Server started successfully.");
             NetTools.isServer = true;
 
@@ -160,6 +181,8 @@ namespace EntityNetworkingSystems
 
             connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
             connectionHandler.Start();
+            udpHandler = new Thread(new ThreadStart(UDPHandler));
+            udpHandler.Start();
             //packetSendHandler = new Thread(new ThreadStart(SendingPacketHandler));
             //packetSendHandler.Start();
 
@@ -182,10 +205,21 @@ namespace EntityNetworkingSystems
                 //    SteamInteraction.instance.ShutdownServer();
                 //}
             }
+            if (udpListener != null)
+            {
+                udpListener.Stop();
+                udpListener = null;
+            }
+
             if (connectionHandler != null)
             {
                 connectionHandler.Abort();
                 connectionHandler = null;
+            }
+            if(udpHandler != null)
+            {
+                udpHandler.Abort();
+                udpHandler = null;
             }
 
             if (GameObject.FindObjectOfType<UnityPacketHandler>() != null)
@@ -194,7 +228,7 @@ namespace EntityNetworkingSystems
             }
             //NetServer.serverInstance = null;
             connections = new List<NetworkPlayer>();
-            bufferedPackets = new List<Packet>();
+            bufferedPackets = new Dictionary<string, List<Packet>>();
 
             NetTools.isServer = false;
             NetTools.isSingleplayer = false;
@@ -219,6 +253,9 @@ namespace EntityNetworkingSystems
                 TcpClient tcpClient = server.AcceptTcpClient();
                 NetworkPlayer netClient = new NetworkPlayer(tcpClient);
                 netClient.clientID = lastPlayerID + 1;
+                netClient.udpEndpoint = (IPEndPoint)tcpClient.Client.RemoteEndPoint;
+                netClient.udpEndpoint.Port += 1;
+                SendPacket(netClient, new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, 0));
                 lastPlayerID += 1;
                 connections.Add(netClient);
                 Debug.Log("New Client Connected Successfully.");
@@ -232,20 +269,21 @@ namespace EntityNetworkingSystems
 
         public void ClientHandler(NetworkPlayer client)
         {
-            if (useSteamworks)
+            //VERIFY AUTH TICKET FIRST.
+            NetworkAuthPacket clientAuthPacket;
+            Packet actualAuthPacket = RecvPacket(client);
+            if (actualAuthPacket.packetType == Packet.pType.networkAuth)
             {
-                //VERIFY AUTH TICKET FIRST.
-                SteamAuthPacket clientSteamAuthTicket;
-                Packet p = RecvPacket(client);
-                if (p.packetType == Packet.pType.steamAuth)
+                //Debug.Log(p.jsonData);
+                clientAuthPacket = actualAuthPacket.GetPacketData<NetworkAuthPacket>();
+                client.steamID = clientAuthPacket.steamID;
+
+                Thread.Sleep(1500); //Wait for steam to authenticate it. Will take around this time. Probably should add x attempts over a few seconds.
+
+                client.udpEndpoint.Port = clientAuthPacket.udpPort;
+                if (useSteamworks)
                 {
-                    //Debug.Log(p.jsonData);
-                    clientSteamAuthTicket = p.GetPacketData<SteamAuthPacket>();
-                    client.steamID = clientSteamAuthTicket.steamID;
-
-                    Thread.Sleep(1500); //Wait for steam to authenticate it. Will take around this time. Probably should add x attempts over a few seconds.
-
-                    BeginAuthResult bAR = SteamUser.BeginAuthSession(clientSteamAuthTicket.authData, clientSteamAuthTicket.steamID);
+                    BeginAuthResult bAR = SteamUser.BeginAuthSession(clientAuthPacket.authData, clientAuthPacket.steamID);
 
                     //Debug.Log(clientSteamAuthTicket.steamID);
                     if (bAR != BeginAuthResult.OK)
@@ -253,15 +291,15 @@ namespace EntityNetworkingSystems
                         client.tcpClient.Close();
                         Debug.Log(bAR);
                         //Debug.Log("Invalid auth ticket from: " + clientSteamAuthTicket.steamID);
-                        SteamUser.EndAuthSession(clientSteamAuthTicket.steamID);
-                        SteamServer.EndSession(clientSteamAuthTicket.steamID);
+                        SteamUser.EndAuthSession(clientAuthPacket.steamID);
+                        SteamServer.EndSession(clientAuthPacket.steamID);
                         return; //Invalid ticket cancel connection.
                     }
                     else
                     {
-                        SteamServer.UpdatePlayer(clientSteamAuthTicket.steamID, "Player 1", 0);
+                        SteamServer.UpdatePlayer(clientAuthPacket.steamID, "Player 1", 0);
                         //Debug.Log("Recieved Valid Client Auth Ticket.");
-                        SteamInteraction.instance.connectedSteamIDs.Add(clientSteamAuthTicket.steamID);
+                        SteamInteraction.instance.connectedSteamIDs.Add(clientAuthPacket.steamID);
 
                         SteamServer.ForceHeartbeat();
                     }
@@ -284,7 +322,7 @@ namespace EntityNetworkingSystems
             if (bufferedPackets.Count > 0)
             {
                 List<Packet> packetsToSend = new List<Packet>(); //Will contain buffered packets and all network fields to be updated.
-                packetsToSend.AddRange(bufferedPackets.ToArray());
+                packetsToSend.AddRange(GetAllBufferedPackets());
                 //Debug.Log(packetsToSend.Count);
                 foreach (NetworkObject netObj in NetworkObject.allNetObjs.ToArray())
                 {
@@ -368,7 +406,15 @@ namespace EntityNetworkingSystems
                         //The reason NetworkFields aren't buffered is because the NetServer already syncs them when a client joins.
                         if (pack.packetSendType == Packet.sendType.culledbuffered && (pack.packetType == Packet.pType.netVarEdit || pack.packetType == Packet.pType.rpc))
                         {
-                            foreach (Packet buff in bufferedPackets.ToArray())
+                            List<Packet> related = new List<Packet>();
+                            if (bufferedPackets.ContainsKey(pack.relatesToNetObjID.ToString())) {
+                                related.AddRange(bufferedPackets[pack.relatesToNetObjID.ToString()]);
+                            }
+                            if (bufferedPackets.ContainsKey(pack.tag)) {
+                                related.AddRange(bufferedPackets[pack.tag]);
+                            }
+
+                            foreach (Packet buff in related)
                             {
                                 if (buff.relatesToNetObjID == pack.relatesToNetObjID && buff.packetType == pack.packetType)
                                 {
@@ -377,14 +423,14 @@ namespace EntityNetworkingSystems
 
                                         if (buff.GetPacketData<NetworkFieldPacket>().fieldName == pack.GetPacketData<NetworkField>().fieldName)
                                         {
-                                            bufferedPackets.Remove(buff);
+                                            RemoveBufferedPacket(buff);
                                         }
                                     }
                                     else if (buff.packetType == Packet.pType.rpc)
                                     {
                                         if (buff.GetPacketData<RPCPacketData>().rpcIndex == pack.GetPacketData<RPCPacketData>().rpcIndex)
                                         {
-                                            bufferedPackets.Remove(buff);
+                                            RemoveBufferedPacket(buff);
                                         }
                                     }
                                 }
@@ -392,7 +438,7 @@ namespace EntityNetworkingSystems
                         }
 
                         //Debug.Log("Buffered Packet");
-                        bufferedPackets.Add(pack);
+                        AddBufferedPacket(pack);
                     }
 
                     UnityPacketHandler.instance.QueuePacket(pack);
@@ -408,7 +454,23 @@ namespace EntityNetworkingSystems
 
                             if (pack.sendToAll == true || pack.usersToRecieve.Contains(player.clientID))
                             {
-                                SendPacket(player, pack);
+                                if (player.tcpClient.Connected)
+                                {
+                                    try
+                                    {
+                                        SendPacket(player, pack);
+                                    } catch (System.Exception e)
+                                    {
+                                        if(player.tcpClient.Connected)
+                                        {
+                                            Debug.LogError(e); //If we ain't connected anymore then it makes sense.
+                                            connections.Remove(player);
+                                        }
+                                    }
+                                } else
+                                {
+                                    connections.Remove(player);
+                                }
                             }
 
                         }
@@ -417,7 +479,10 @@ namespace EntityNetworkingSystems
                 catch (System.Exception e)
                 {
                     //Something went wrong with packet deserialization or connection closed.
-                    Debug.LogError(e);
+                    if (!e.ToString().Contains("WSACancelBlockingCall") && !e.ToString().Contains("transport connection")) //Server closed
+                    { 
+                        Debug.LogError(e);
+                    }
                     clientRunning = false; //Basically end the thread.
 
                 }
@@ -425,6 +490,10 @@ namespace EntityNetworkingSystems
             Debug.Log("NetServer.ClientHandler() thread has successfully finished.");
             client.netStream.Close();
             client.playerConnected = false;
+            if (connections.Contains(client))
+            {
+                connections.Remove(client);
+            }
             NetTools.onPlayerDisconnect.Invoke(client);
         }
 
@@ -445,23 +514,12 @@ namespace EntityNetworkingSystems
             return connections.Count;
         }
 
-
-        public void SendPacket(NetworkPlayer player, Packet packet)//, bool queuedPacket = false)
+        public void SendPacket(NetworkPlayer player, Packet packet)
         {
-            //if(!queuedPacket)
-            //{
-            //    queuedSendingPackets.Add(packet, player);
-            //    return;
-            //}
-
-            //if(packet.packetType == Packet.pType.netVarEdit && player.clientID == NetTools.clientID)
-            //{
-            //    return; //No need to double sync it.
-            //}
 
             if (packet.packetSendType == Packet.sendType.proximity)
             {
-                if(Vector3.Distance(player.proximityPosition,packet.packetPosition.ToVec3()) >= player.loadProximity)
+                if (Vector3.Distance(player.proximityPosition, packet.packetPosition.ToVec3()) >= player.loadProximity)
                 {
                     return;
                 }
@@ -473,6 +531,29 @@ namespace EntityNetworkingSystems
                 return;
             }
 
+
+            if (packet.reliable)
+            {
+                SendTCPPacket(player, packet);
+            } else
+            {
+                udpListener.SendPacket(packet);
+            }
+        }
+
+
+        public void SendTCPPacket(NetworkPlayer player, Packet packet)//, bool queuedPacket = false)
+        {
+            //if(!queuedPacket)
+            //{
+            //    queuedSendingPackets.Add(packet, player);
+            //    return;
+            //}
+
+            //if(packet.packetType == Packet.pType.netVarEdit && player.clientID == NetTools.clientID)
+            //{
+            //    return; //No need to double sync it.
+            //}
             lock (player.netStream)
             {
                 lock (player.tcpClient)
@@ -568,6 +649,85 @@ namespace EntityNetworkingSystems
         //    return message;
         //}
 
+        public List<Packet> GetAllBufferedPackets()
+        {
+            List<Packet> packets = new List<Packet>();
+            int count = 0;
+            foreach(List<Packet> p in bufferedPackets.Values.ToArray())
+            {
+                foreach(Packet newPacket in p)
+                {
+                    if(packets.Contains(newPacket))
+                    {
+                        continue;
+                    } else
+                    {
+                        packets.Add(newPacket);
+                    }
+                }
+                count += 1;
+            }
+            return packets;
+        }
+
+        public void AddBufferedPacket(Packet p)
+        {
+            string tag = p.relatesToNetObjID.ToString();
+            if (bufferedPackets.ContainsKey(tag))
+            {
+                bufferedPackets[tag].Add(p);
+            }
+            else
+            {
+                bufferedPackets[tag] = new List<Packet>();
+                bufferedPackets[tag].Add(p);
+#if UNITY_EDITOR
+                bufferedDisplay.Add(new BufferedPacketDisplay(tag));
+#endif
+            }
+            tag = p.tag.ToString();
+            if (bufferedPackets.ContainsKey(tag))
+            {
+                bufferedPackets[tag].Add(p);
+            }
+            else
+            {
+                bufferedPackets[tag] = new List<Packet>();
+                bufferedPackets[tag].Add(p);
+#if UNITY_EDITOR
+                bufferedDisplay.Add(new BufferedPacketDisplay(tag));
+#endif
+            }
+
+        }
+        
+        public void RemoveBufferedPacket(Packet p)
+        {
+            string tag = p.relatesToNetObjID.ToString();
+            if (bufferedPackets.ContainsKey(tag))
+            {
+                bufferedPackets[tag].Remove(p);
+            } else if (bufferedPackets.ContainsKey(p.tag.ToString()))
+            {
+                bufferedPackets[p.tag.ToString()].Remove(p);
+            }
+        }
+
+
+        public NetworkPlayer GetPlayerByUDPEndpoint(IPEndPoint endPoint)
+        {
+            foreach(NetworkPlayer player in connections)
+            {
+                //Debug.Log(player.udpEndpoint.ToString() + "|||" + endPoint.ToString());
+                if (player.udpEndpoint.ToString() == endPoint.ToString())
+                {
+                    return player;
+                }
+            }
+            return null;
+        }
+
+
         public NetworkPlayer GetPlayerByID(int id)
         {
             foreach(NetworkPlayer player in connections)
@@ -598,6 +758,8 @@ namespace EntityNetworkingSystems
         public Thread threadHandlingClient;
         public ulong steamID;
 
+        public IPEndPoint udpEndpoint;
+
         public bool playerConnected = true;
 
         public NetworkPlayer(TcpClient client)
@@ -609,9 +771,25 @@ namespace EntityNetworkingSystems
 
             this.tcpClient = client;
             this.netStream = client.GetStream();
+            this.udpEndpoint = (IPEndPoint)client.Client.RemoteEndPoint;
         }
 
     }
 
+#if UNITY_EDITOR
+
+    [System.Serializable]
+    public class BufferedPacketDisplay
+    {
+        public string tag;
+
+        public BufferedPacketDisplay(string tag)
+        {
+            this.tag = tag;
+        }
+    }
+
+
+#endif
 
 }

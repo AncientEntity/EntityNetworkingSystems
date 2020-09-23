@@ -67,6 +67,7 @@
     <Compile Include="Assets\EntityNetworkingSystems\Examples\Scripts\ExampleHost.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Examples\Scripts\ExampleMoving.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Examples\Scripts\ExamplePlayerController.cs" />
+    <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\ENSUDP.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\NetClient.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\NetServer.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\NetTools.cs" />
@@ -79,41 +80,42 @@
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\Animation\AnimationNetworker.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\ENSSerialization.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\ENSUtils.cs" />
+    <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\InputWorker.cs" />
     <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Posix.xml" />
     <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Win64.xml" />
     <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Win32.xml" />
     <Reference Include="Unity.Timeline.Editor">
-      <HintPath>C:/Users/Ryan/Desktop/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
+      <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.VSCode.Editor">
-      <HintPath>C:/Users/Ryan/Desktop/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.VSCode.Editor.dll</HintPath>
+      <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.VSCode.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.TextMeshPro.Editor">
-      <HintPath>C:/Users/Ryan/Desktop/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
+      <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>C:/Users/Ryan/Desktop/EntityNetworkingSystems/Library/ScriptAssemblies/UnityEngine.UI.dll</HintPath>
+      <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/UnityEngine.UI.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Timeline">
-      <HintPath>C:/Users/Ryan/Desktop/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Timeline.dll</HintPath>
+      <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Timeline.dll</HintPath>
     </Reference>
     <Reference Include="Unity.CollabProxy.Editor">
-      <HintPath>C:/Users/Ryan/Desktop/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.CollabProxy.Editor.dll</HintPath>
+      <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.CollabProxy.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Rider.Editor">
-      <HintPath>C:/Users/Ryan/Desktop/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Rider.Editor.dll</HintPath>
+      <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.Rider.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.2D.Sprite.Editor">
-      <HintPath>C:/Users/Ryan/Desktop/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.2D.Sprite.Editor.dll</HintPath>
+      <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.2D.Sprite.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.2D.Tilemap.Editor">
-      <HintPath>C:/Users/Ryan/Desktop/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.2D.Tilemap.Editor.dll</HintPath>
+      <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.2D.Tilemap.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.TextMeshPro">
-      <HintPath>C:/Users/Ryan/Desktop/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.TextMeshPro.dll</HintPath>
+      <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/Unity.TextMeshPro.dll</HintPath>
     </Reference>
     <Reference Include="UnityEditor.UI">
-      <HintPath>C:/Users/Ryan/Desktop/EntityNetworkingSystems/Library/ScriptAssemblies/UnityEditor.UI.dll</HintPath>
+      <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Library/ScriptAssemblies/UnityEditor.UI.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AIModule">
       <HintPath>C:/Program Files/Unity/Hub/Editor/2019.3.8f1/Editor/Data/Managed/UnityEngine/UnityEngine.AIModule.dll</HintPath>
@@ -293,7 +295,13 @@
       <HintPath>C:/Program Files/Unity/Hub/Editor/2019.3.8f1/Editor/Data/Managed/UnityEngine/UnityEngine.XRModule.dll</HintPath>
     </Reference>
     <Reference Include="Facepunch.Steamworks.Win64">
-      <HintPath>C:/Users/Ryan/Desktop/EntityNetworkingSystems/Assets/EntityNetworkingSystems/Plugins/Facepunch.Steamworks/Facepunch.Steamworks.Win64.dll</HintPath>
+      <HintPath>G:/EntityNetworkingSystems/EntityNetworkingSystems/Assets/EntityNetworkingSystems/Plugins/Facepunch.Steamworks/Facepunch.Steamworks.Win64.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEditor.iOS.Extensions.Xcode">
+      <HintPath>C:/Program Files/Unity/Hub/Editor/2019.3.8f1/Editor/Data/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.Xcode.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEditor.iOS.Extensions.Common">
+      <HintPath>C:/Program Files/Unity/Hub/Editor/2019.3.8f1/Editor/Data/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.Common.dll</HintPath>
     </Reference>
     <Reference Include="netstandard">
       <HintPath>C:/Program Files/Unity/Hub/Editor/2019.3.8f1/Editor/Data/NetStandard/ref/2.0.0/netstandard.dll</HintPath>

@@ -165,9 +165,9 @@ namespace EntityNetworkingSystems
                         {
                             g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID].prefab, gOID.position.ToVec3(), gOID.rotation.ToQuaternion());
                         }
-                        catch
+                        catch(System.Exception e)
                         {
-                            Debug.Log("Error NetInstantiating: domainID: " + gOID.prefabDomainID + ", prefabID: " + gOID.prefabID);
+                            Debug.Log("Error NetInstantiating: domainID: " + gOID.prefabDomainID + ", prefabID: " + gOID.prefabID + e);
                             return;
                         }
                     } else
@@ -244,6 +244,12 @@ namespace EntityNetworkingSystems
                             Destroy(found.gameObject);
                         }
                     }
+
+                    if(NetTools.isServer && System.BitConverter.ToBoolean(curPacket.packetData,0)) //Check NetTools.NetDestroy but basically it is cullRelatedPackets.
+                    {
+                        NetTools.CullPacketsByNetworkID(curPacket.relatesToNetObjID);
+                    }
+
                 } else if (found == null)
                 {
                     Debug.LogWarning("Couldn't find NetworkObject of ID: " + curPacket.relatesToNetObjID);
@@ -252,7 +258,7 @@ namespace EntityNetworkingSystems
             else if (curPacket.packetType == Packet.pType.multiPacket)
             {
                 //Debug.Log("Recieved buffered packets.");
-                List<byte[]> packetByteInfo = (curPacket.GetPacketData<PacketListPacket>()).packets;
+                List<byte[]> packetByteInfo = curPacket.GetPacketData<PacketListPacket>().packets;
                 lock (packetQueue)
                 {
                     foreach(byte[] packetByte in packetByteInfo)
@@ -311,10 +317,6 @@ namespace EntityNetworkingSystems
                 //Debug.Log(curPacket.jsonData);
                 RPCPacketData rPD = ENSSerialization.DeserializeRPCPacketData(curPacket.packetData);
                 NetworkObject nObj = NetworkObject.NetObjFromNetID(rPD.networkObjectID);
-
-#if UNITY_EDITOR
-                //lastRPCPacket = rPD;
-#endif
 
                 if (nObj == null || (nObj.rpcs[rPD.rpcIndex].serverAuthorityRequired && !curPacket.serverAuthority) || (nObj.ownerID != curPacket.packetOwnerID && !nObj.sharedObject))
                 {

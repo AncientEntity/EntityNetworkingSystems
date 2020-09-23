@@ -34,9 +34,10 @@ namespace EntityNetworkingSystems
             unassigned, //doesnt go anywhere
             multiPacket, //Optimized for the new packet serializers
             loginInfo, //Custom serializer done.
-            steamAuth, //only is managed when the client first connects with the server. UnityPacketManager has no logic for it.
+            networkAuth, //only is managed when the client first connects with the server. UnityPacketManager has no logic for it.
         }
         public pType packetType = pType.unassigned;
+        public bool reliable = true;
 
         //public string jsonData;
         //public string jsonDataTypeName;
@@ -48,6 +49,7 @@ namespace EntityNetworkingSystems
         public bool sendToAll = true;
         public List<int> usersToRecieve = new List<int>(); //if send to all is false.
         public int relatesToNetObjID = -1;
+        public string tag = "None"; //A packet tag, used for identifying buffered packets. Completely optional. Tags are created in NetworkData
 
         public SerializableVector packetPosition;
 
@@ -319,15 +321,17 @@ namespace EntityNetworkingSystems
     }
 
     [System.Serializable]
-    public class SteamAuthPacket
+    public class NetworkAuthPacket
     {
         public byte[] authData;
         public ulong steamID;
+        public int udpPort;
 
-        public SteamAuthPacket(byte[] data, ulong sID)
+        public NetworkAuthPacket(byte[] data, ulong sID, int udpPort)
         {
             authData = data;
             steamID = sID;
+            this.udpPort = udpPort;
         }
     }
 

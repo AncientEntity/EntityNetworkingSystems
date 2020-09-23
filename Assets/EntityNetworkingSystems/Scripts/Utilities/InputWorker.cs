@@ -30,7 +30,7 @@ namespace EntityNetworkingSystems
             {
                 if (key.isNetworked)
                 {
-                    net.CreateField("IW" + key.displayName, false, init: NetworkField.valueInitializer.Boolean, false);
+                    net.CreateField("IW" + key.displayName, "000", init: NetworkField.valueInitializer.None, false).reliable = key.reliable;
                     net.FieldAddOnChangeMethod("IW" + key.displayName, key.OnNetworkUpdate, false);
                 }
                 lookup.Add(key.key, index);
@@ -85,6 +85,7 @@ namespace EntityNetworkingSystems
             public bool keyUp;
             [Space]
             public bool isNetworked = false;
+            public bool reliable = true;
 
             public bool[] CheckKey(NetworkObject myNet)
             {
