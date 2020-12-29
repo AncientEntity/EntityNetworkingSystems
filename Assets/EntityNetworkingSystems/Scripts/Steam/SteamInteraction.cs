@@ -29,8 +29,6 @@ namespace EntityNetworkingSystems
         bool serverRunning = false;
 
 
-
-
         void FixedUpdate()
         {
             if (doCallbacks)
@@ -79,6 +77,18 @@ namespace EntityNetworkingSystems
             {
                 steamName = SteamClient.Name;
             }
+            SteamUser.OnValidateAuthTicketResponse += (steamid, ownerid, response) =>
+            {
+                if (response == AuthResponse.OK)
+                {
+                    //Debug.Log("Ticket is still valid.");
+                }
+                else
+                {
+                    //Debug.Log("Ticket is no longer valid");
+                }
+            };
+
             initialized = true;
             Debug.Log("Steam Interaction Initialized");
         }
@@ -90,18 +100,12 @@ namespace EntityNetworkingSystems
 
         public void StartClient()
         {
-            SteamUser.OnValidateAuthTicketResponse += (steamid, ownerid, response) =>
+            if(clientAuth != null)
             {
-                if (response == AuthResponse.OK)
-                {
-                    Debug.Log("Ticket is still valid.");
-                }
-                else
-                {
-                    Debug.Log("Ticket is no longer valid");
-                }
-            };
-
+                clientAuth.Cancel();
+                clientAuth = null;
+            }
+            clientAuth = SteamUser.GetAuthSessionTicket();
             clientStarted = true;
         }
 
@@ -111,11 +115,13 @@ namespace EntityNetworkingSystems
             if (clientAuth != null)
             {
                 clientAuth.Cancel();
+                //clientAuth.Dispose();
+                clientAuth = null;
             }
-            if ((NetTools.isServer && NetServer.serverInstance.steamAppID != -1) || (NetTools.isClient && NetClient.instanceClient.steamAppID != -1))
-            {
-                Steamworks.SteamClient.Shutdown();
-            }
+            //if ((NetTools.isServer && NetServer.serverInstance.steamAppID != -1) || (NetTools.isClient && NetClient.instanceClient.steamAppID != -1))
+            //{
+            //    Steamworks.SteamClient.Shutdown();
+            //}
             clientStarted = false;
         }
 
@@ -127,16 +133,16 @@ namespace EntityNetworkingSystems
                 return;
             }
 
-            SteamServerInit serverInitData = new SteamServerInit(NetServer.serverInstance.modDir, NetServer.serverInstance.gameDesc) { };
-            SteamServer.Init(NetServer.serverInstance.steamAppID, serverInitData);
-            SteamServer.ServerName = "Game Server";
-            SteamServer.MapName = NetServer.serverInstance.mapName;
-            SteamServer.MaxPlayers = NetServer.serverInstance.maxConnections;
-            SteamServer.UpdatePlayer(SteamClient.SteamId, "Ancient Entity", 1);
+            //SteamServerInit serverInitData = new SteamServerInit(NetServer.serverInstance.modDir, NetServer.serverInstance.gameDesc) { };
+            //SteamServer.Init(NetServer.serverInstance.steamAppID, serverInitData);
+            //SteamServer.ServerName = "Game Server";
+            //SteamServer.MapName = NetServer.serverInstance.mapName;
+            //SteamServer.MaxPlayers = NetServer.serverInstance.maxConnections;
+            //SteamServer.UpdatePlayer(SteamClient.SteamId, "Ancient Entity", 1);
 
-            SteamServer.AutomaticHeartbeats = true;
+            //SteamServer.AutomaticHeartbeats = true;
 
-            SteamServer.LogOnAnonymous();
+            //SteamServer.LogOnAnonymous();
 
             SteamServer.OnValidateAuthTicketResponse += (steamid, ownerid, response) =>
             {
@@ -175,12 +181,18 @@ namespace EntityNetworkingSystems
             }
             connectedSteamIDs = new List<ulong>();
 
-            SteamServer.LogOff();
-
-            if ((NetTools.isServer && NetServer.serverInstance.steamAppID != -1) || (NetTools.isClient && NetClient.instanceClient.steamAppID != -1))
+            if (NetTools.ENSManagingSteam())
             {
-                SteamServer.Shutdown();
-                SteamClient.Shutdown();
+                //SteamServer.LogOff();
+
+                if ((NetTools.isServer && NetServer.serverInstance.steamAppID != -1) || (NetTools.isClient && NetClient.instanceClient.steamAppID != -1))
+                {
+                    //SteamServer.Shutdown();
+                    //SteamClient.Shutdown();
+                }
+            } else
+            {
+                Debug.Log("T");
             }
             serverRunning = false;
         }
@@ -193,18 +205,19 @@ namespace EntityNetworkingSystems
         {
             if (serverRunning)
             {
-                ShutdownServer();
+                //ShutdownServer();
             }
             if (initialized)
             {
                 if ((NetServer.serverInstance != null && NetServer.serverInstance.steamAppID != -1 || NetClient.instanceClient != null && NetClient.instanceClient.steamAppID != -1))
                 {
-                    SteamClient.Shutdown();
+                    //SteamClient.Shutdown();
+                    //SteamServer.Shutdown();
                 }
             }
             if (clientAuth != null)
             {
-                StopClient();
+                //StopClient();
             }
         }
 
@@ -235,5 +248,9 @@ namespace EntityNetworkingSystems
             // Send it right back
             connection.SendMessage(data, size, SendType.Reliable);
         }
+
+
+
+
     }
 }

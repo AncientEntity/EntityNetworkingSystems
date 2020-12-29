@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Steamworks;
+using System.Collections;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using UnityEngine;
@@ -16,7 +17,7 @@ namespace EntityNetworkingSystems
         public int maxPerFrame = 200;
         bool syncingBuffered = false;
         [Space]
-        public bool disableBeforeDestroy = true; //To prevent lag, disable the object, then queue it up to be destroyed.
+        public bool disableBeforeDestroy = false; //To prevent lag, disable the object, then queue it up to be destroyed.
         public int amountToDestroyPerFrame = 3;
         public List<GameObject> destroyQueue = new List<GameObject>();
 
@@ -158,6 +159,11 @@ namespace EntityNetworkingSystems
                 //Debug.Log(NetTools.clientID + ", " + curPacket.packetOwnerID);
                 if (NetTools.clientID != curPacket.packetOwnerID || NetworkObject.NetObjFromNetID(gOID.netObjID) == null)
                 {
+                    if (!curPacket.serverAuthority && NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID].serverInstantiateOnly)
+                    {
+                        return; //If it is server only, and you aren't the server, don't do it.
+                    }
+
                     GameObject g = NetworkData.instance.RequestPooledObject(gOID.prefabDomainID,gOID.prefabID);
                     if (g == null) //If a pooled object couldn't be found, make a new one.
                     {
@@ -272,8 +278,15 @@ namespace EntityNetworkingSystems
             else if (curPacket.packetType == Packet.pType.loginInfo)
             {
                 //Debug.Log("Login Info Packet Recieved.");
-                NetTools.clientID = System.BitConverter.ToInt16(curPacket.packetData,0);//(curPacket.GetPacketData<PlayerLoginData>()).playerNetworkID;
+                PlayerLoginData pLD = curPacket.GetPacketData<PlayerLoginData>();
+                NetTools.clientID = pLD.clientID;//System.BitConverter.ToInt16(curPacket.packetData,0);
                 NetClient.instanceClient.clientID = NetTools.clientID;
+                NetClient.instanceClient.serversSteamID = pLD.serverSteamID;
+
+                if (NetTools.isServer)
+                {
+                    NetServer.serverInstance.myConnection = NetServer.serverInstance.GetPlayerByID(NetTools.clientID);
+                }
 
                 NetTools.onJoinServer.Invoke();
 
@@ -318,13 +331,32 @@ namespace EntityNetworkingSystems
                 RPCPacketData rPD = ENSSerialization.DeserializeRPCPacketData(curPacket.packetData);
                 NetworkObject nObj = NetworkObject.NetObjFromNetID(rPD.networkObjectID);
 
-                if (nObj == null || (nObj.rpcs[rPD.rpcIndex].serverAuthorityRequired && !curPacket.serverAuthority) || (nObj.ownerID != curPacket.packetOwnerID && !nObj.sharedObject))
+                if (nObj == null || (nObj.rpcs[rPD.rpcIndex].serverAuthorityRequired && !curPacket.serverAuthority) || (nObj.ownerID != curPacket.packetOwnerID && !nObj.sharedObject && !curPacket.serverAuthority))
                 {
                     return; //Means only server can run it.
                 }
                 nObj.rpcs[rPD.rpcIndex].InvokeRPC(rPD.ReturnArgs());
 
+            } else if (curPacket.packetType == Packet.pType.connectionPacket)
+            {
+                if(!curPacket.serverAuthority && curPacket.packetOwnerID != -1)
+                {
+                    return; //Prevents anyone from disconnecting everyone.
+                }
+
+                ConnectionPacket cP = ENSSerialization.DeserializeConnectionPacket(curPacket.packetData);
+                if(cP.immediateDisconnect)
+                {
+                    NetClient.instanceClient.DisconnectFromServer();
+                    NetTools.onLeaveServer.Invoke(cP.reason);
+                }
             }
+            //else if (curPacket.packetType == Packet.pType.networkAuth && NetTools.isServer)
+            //{
+
+
+                
+            //}
         }
 
 

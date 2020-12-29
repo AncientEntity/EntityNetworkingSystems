@@ -22,14 +22,7 @@ namespace EntityNetworkingSystems
 
         void Awake()
         {
-            if (instance == null)
-            {
-                instance = this;
-            }
-            else
-            {
-                Destroy(this);
-            }
+            instance = this;
             
 
             //Initializing moved to just happening when instantiating over the network.
@@ -167,6 +160,7 @@ namespace EntityNetworkingSystems
 #endif
             public GameObject prefab;
             public int poolAmount = 0;
+            public bool serverInstantiateOnly = false;
             public OnValueMethodData[] resetPoolMethods;
 
             private NetworkObject prefabNetwork; //The prefab's network object.
@@ -176,10 +170,11 @@ namespace EntityNetworkingSystems
             private List<GameObject> beenUsedObjects = new List<GameObject>();
 
 
-            public PrefabEntry(GameObject prefab, int poolAmount = 0)
+            public PrefabEntry(GameObject prefab, int poolAmount = 0, bool serverInstantiateOnly = false)
             {
                 this.prefab = prefab;
                 this.poolAmount = poolAmount;
+                this.serverInstantiateOnly = serverInstantiateOnly;
 
                 prefabNetwork = prefab.GetComponent<NetworkObject>();
             }

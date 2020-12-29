@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using UnityEngine;
+using Steamworks;
+using Steamworks.Data;
 
 namespace EntityNetworkingSystems.UDP
 {
@@ -10,7 +12,8 @@ namespace EntityNetworkingSystems.UDP
     public class UDPListener
     {
         public int portToUse = 44595;
-        public UdpClient udpServer = null;
+        
+        //public UdpClient udpServer = null;
 
         
 
@@ -21,62 +24,118 @@ namespace EntityNetworkingSystems.UDP
 
         public void Start()
         {
-            udpServer = new UdpClient(portToUse);
+            //if(udpServer != null)
+            //{
+            //    udpServer.Dispose();
+            //    udpServer = null;
+            //}
+
+            //udpServer = new UdpClient(portToUse);
+
+            ////This has something to do with UDP recieving a ICMP message and 'resetting' the connection somehow?
+            ////So yeah SIO_UDP_CONNRESET = -1744830452
+            //udpServer.Client.IOControl((IOControlCode)(-1744830452),    new byte[] { 0, 0, 0, 0 }, null);
+
+            SteamNetworking.OnP2PSessionRequest = (steamID) =>
+            {
+                foreach (NetworkPlayer player in NetServer.serverInstance.connections)
+                {
+                    if (player.steamID == steamID)
+                    {
+                        Debug.Log("SERVER P2P Steam Connection Started: " + player.steamID);
+                        SteamNetworking.AcceptP2PSessionWithUser(steamID);
+                        break;
+                    }
+                }
+                Debug.Log("SERVER P2P Steam Connection Failed: " + steamID);
+            };
+
+            SteamNetworking.OnP2PConnectionFailed = (steamID, failReason) =>
+            {
+                Debug.Log("P2P Failed With: " + steamID + " for reason " + failReason);
+            };
         }
 
         public void Stop()
         {
-            if(udpServer == null)
+            //if(udpServer == null)
+            //{
+            //    return;
+            //}
+            //udpServer.Close();
+            //udpServer.Dispose();
+            foreach(NetworkPlayer player in NetServer.serverInstance.connections.ToArray())
             {
-                return;
+                SteamNetworking.CloseP2PSessionWithUser(player.steamID);
             }
-            udpServer.Close();
-            udpServer.Dispose();
         }
 
-        public void SendPacket(Packet packet)
+        public void SendPacket(Packet packet, bool ignoreSelf=false)
         {
-            foreach(NetworkPlayer player in NetServer.serverInstance.connections)
+            byte[] bytePacket = ENSSerialization.SerializePacket(packet);
+            foreach (NetworkPlayer player in NetServer.serverInstance.connections.ToArray())
             {
+                if(ignoreSelf && NetServer.serverInstance.myConnection == player)
+                {
+                    continue;
+                }
+
                 if(packet.sendToAll || packet.usersToRecieve.Contains(player.clientID))
                 {
-                    byte[] bytePacket = ENSSerialization.SerializePacket(packet);
-                    udpServer.Send(bytePacket, bytePacket.Length, player.udpEndpoint);
+                    bool outcome = SteamNetworking.SendP2PPacket(player.steamID, bytePacket, bytePacket.Length,1, sendType: P2PSend.Unreliable);
+                    //Debug.Log(outcome);
+                    //udpServer.Send(bytePacket, bytePacket.Length, player.udpEndpoint);
                 }
             }
         }
 
-        public KeyValuePair<NetworkPlayer, Packet> RecievePacket()
-        {
-            KeyValuePair<NetworkPlayer, byte[]> bytes = Recieve();
-            return new KeyValuePair<NetworkPlayer,Packet>(bytes.Key,ENSSerialization.DeserializePacket(bytes.Value));
-        }
 
-        public KeyValuePair<NetworkPlayer, byte[]> Recieve()
+
+        public Packet Recieve()
         {
             while (true)
             {
                 try
                 {
-                    KeyValuePair<NetworkPlayer, byte[]> recieved = RecieveMessage();
-                    if (recieved.Key != null)
+                    P2Packet recieved = RecieveMessage();
+                    Packet p = ENSSerialization.DeserializePacket(recieved.Data);
+                    if (NetServer.serverInstance.VerifyPacketValidity(recieved.SteamId,p))//(recieved.Key != null)
                     {
-                        return recieved;
+                        return p;
                     }
-                } catch
+                    Debug.Log("Couldn't verify packet's validity");
+                } catch (System.Exception e)
                 {
-                    
+                    if(e.ToString().Contains("NullReferenceException") || e.ToString().Contains("ThreadAbortException"))
+                    {
+                        return null; //Most likely the editor closed abruptly or server closed.
+                    }
+                    Debug.LogError(e);
                 }
             }
         }
 
-        KeyValuePair<NetworkPlayer, byte[]> RecieveMessage()
+        P2Packet RecieveMessage()
         {
-            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, portToUse);
-            byte[] recieved = udpServer.Receive(ref remoteEP);
-
-            return new KeyValuePair<NetworkPlayer, byte[]>(NetServer.serverInstance.GetPlayerByUDPEndpoint(remoteEP),recieved);
+            bool done = false;
+            while (!done)
+            {
+                while (!SteamNetworking.IsP2PPacketAvailable(1))
+                {
+                    continue;
+                }
+                //Debug.Log(serverEndpoint.ToString());
+                P2Packet? packet = SteamNetworking.ReadP2PPacket(1);
+                if (packet.HasValue)
+                {
+                    done = true;
+                    return packet.Value;
+                }
+            }
+            return new P2Packet();
         }
+
+        
 
     }
 
@@ -85,60 +144,117 @@ namespace EntityNetworkingSystems.UDP
     public class UDPPlayer
     {
         public int portToUse = 44595;
-        public UdpClient client;
+        //public UdpClient client;
 
-        private IPEndPoint serverEndpoint;
+
+        //private IPEndPoint serverEndpoint;
 
         public UDPPlayer(IPEndPoint serverEndpoint)
         {
-            portToUse = serverEndpoint.Port + 1;
+            //portToUse = serverEndpoint.Port + 1;
 
-            this.serverEndpoint = new IPEndPoint(serverEndpoint.Address, portToUse);
-            bool validPort = false;
-            while (!validPort)
+            //this.serverEndpoint = new IPEndPoint(serverEndpoint.Address, portToUse);
+            //bool validPort = false;
+            //while (!validPort)
+            //{
+            //    try
+            //    {
+            //        client = new UdpClient(portToUse);
+            //        validPort = true;
+            //    }
+            //    catch
+            //    {
+            //        validPort = false;
+            //        portToUse += 1;
+            //    }
+            //}
+
+            SteamNetworking.OnP2PSessionRequest = (steamID) =>
             {
-                try
+                foreach (NetworkPlayer player in NetServer.serverInstance.connections)
                 {
-                    client = new UdpClient(portToUse);
-                    validPort = true;
-                } catch
-                {
-                    validPort = false;
-                    portToUse += 1;
+                    if (player.steamID == steamID)
+                    {
+                        Debug.Log("CLIENT P2P Steam Connection Started: " + player.steamID);
+                        SteamNetworking.AcceptP2PSessionWithUser(steamID);
+                        break;
+                    }
                 }
-            }
-            //this.serverEndpoint.Port = portToUse;
-            //portToUse = ((IPEndPoint)client.Client.RemoteEndPoint).Port;
+                Debug.Log("CLIENT P2P Steam Connection Failed: " + steamID);
+            };
+
+            SteamNetworking.OnP2PConnectionFailed = (steamID, failReason) =>
+            {
+                Debug.Log("P2P Failed With: " + steamID + " for reason " + failReason);
+            };
+
         }
 
 
         public void Stop()
         {
-            if(client == null)
-            {
-                return;
-            }
-            client.Dispose();
+            SteamNetworking.CloseP2PSessionWithUser(NetClient.instanceClient.serversSteamID);
+            //if(client == null)
+            //{
+            //    return;
+            //}
+            //client.Dispose();
         }
 
         public void SendPacket(Packet packet)
         {
             byte[] bytePacket = ENSSerialization.SerializePacket(packet);
-            client.Send(bytePacket, bytePacket.Length, serverEndpoint);
-            //Debug.Log("Sent Packet: " + packet.packetSendType + ". To: "+serverEndpoint.ToString());
+            bool outcome = SteamNetworking.SendP2PPacket(NetClient.instanceClient.serversSteamID, bytePacket, bytePacket.Length,1, sendType: P2PSend.Unreliable);
+            //Debug.Log(outcome);
+            //client.Send(bytePacket, bytePacket.Length, serverEndpoint);
+#if UNITY_EDITOR
+            if (NetClient.instanceClient.trackOverhead)
+            {
+                if (NetClient.instanceClient.overheadFilter == Packet.pType.unassigned || NetClient.instanceClient.overheadFilter == packet.packetType)
+                {
+                    NetClient.instanceClient.packetsSent++;
+                    //Debug.Log("Sent Packet: " + packet.packetSendType + ". To: "+serverEndpoint.ToString());
+                }
+            }
+#endif
         }
+
 
         public Packet RecievePacket()
         {
-            return ENSSerialization.DeserializePacket(RecieveMessage());
+            bool valid = false;
+            while(!valid)
+            {
+                P2Packet packet = RecieveRaw();
+                if(packet.SteamId == NetClient.instanceClient.serversSteamID)
+                {
+                    valid = true;
+                    return ENSSerialization.DeserializePacket(packet.Data);
+                }
+            }
+            return null;
         }
 
-
-        byte[] RecieveMessage()
+        P2Packet RecieveRaw()
         {
-            //Debug.Log(serverEndpoint.ToString());
-            return client.Receive(ref serverEndpoint);
+            bool done = false;
+            while (!done)
+            {
+                while (!SteamNetworking.IsP2PPacketAvailable(1))
+                {
+                    continue;
+                }
+                //Debug.Log(serverEndpoint.ToString());
+                P2Packet? packet = SteamNetworking.ReadP2PPacket(1);
+                if (packet.HasValue)
+                {
+                    done = true;
+                    return packet.Value;
+                }
+            }
+            return new P2Packet();
         }
+
 
 
     }

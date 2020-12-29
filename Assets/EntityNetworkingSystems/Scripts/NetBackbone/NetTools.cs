@@ -48,6 +48,14 @@ namespace EntityNetworkingSystems
 
             if (NetTools.IsMultiplayerGame())
             {
+                if(!NetTools.isServer && NetworkData.instance.networkPrefabList[prefabDomain].prefabList[prefabID].serverInstantiateOnly)
+                {
+#if UNITY_EDITOR
+                    Debug.LogWarning("Tried to make server authority only object: domain: " + prefabDomain + ", id: " + prefabID);
+#endif
+                    return null; //If it is server only, and you aren't the server, don't do it.
+                }
+
                 SerializableVector finalVector = new SerializableVector(position);
                 SerializableQuaternion finalQuat = new SerializableQuaternion(rotation);
 
@@ -71,6 +79,7 @@ namespace EntityNetworkingSystems
                 NetClient.instanceClient.SendPacket(p);
                 
             }
+
             //Try to get a pooled one first.
             GameObject g = NetworkData.instance.RequestPooledObject(prefabDomain,prefabID);
 
@@ -120,6 +129,8 @@ namespace EntityNetworkingSystems
 
             return g;
         }
+
+
 
 
 
@@ -252,9 +263,18 @@ namespace EntityNetworkingSystems
         {
             if(NetServer.serverInstance.bufferedPackets.ContainsKey(tag))
             {
-                Debug.Log("Culled: " + NetServer.serverInstance.bufferedPackets[tag].Count + " packets.");
+                //Debug.Log("Culled: " + NetServer.serverInstance.bufferedPackets[tag].Count + " packets.");
                 NetServer.serverInstance.bufferedPackets.Remove(tag);
             }
+        }
+
+        public static bool ENSManagingSteam()
+        {
+            if((NetServer.serverInstance != null && NetServer.serverInstance.steamAppID == -1) || (NetClient.instanceClient != null && NetClient.instanceClient.steamAppID == -1))
+            {
+                return false;
+            }
+            return true;
         }
 
     }

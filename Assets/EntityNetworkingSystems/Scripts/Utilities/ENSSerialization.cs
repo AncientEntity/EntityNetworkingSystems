@@ -304,11 +304,16 @@ namespace EntityNetworkingSystems
             return nFP;
         }
 
-        //SteamAuthPacket Serializer
+        //NetAuthPacket Serializer
         // - byte array authData
         //   - length int32, 4 bytes
         //   - the information in bytes, ? bytes
         // - steamID ulong, 8 bytes.
+        // - udpPort int, 4 bytes
+        // - buildID int, 4 bytes
+        // - password string, 4+? bytes
+        //   - length int
+        //   - characters
         
         public static byte[] SerializeAuthPacket(NetworkAuthPacket sAP)
         {
@@ -323,6 +328,13 @@ namespace EntityNetworkingSystems
 
             byte[] udpPort = System.BitConverter.GetBytes(sAP.udpPort);
             objectAsBytes.AddRange(udpPort);
+
+            byte[] buildID = System.BitConverter.GetBytes(sAP.steamBuildID);
+            objectAsBytes.AddRange(buildID);
+
+            byte[] stringBytes = Encoding.ASCII.GetBytes(sAP.password);
+            objectAsBytes.AddRange(System.BitConverter.GetBytes(stringBytes.Length));
+            objectAsBytes.AddRange(stringBytes);
 
 
             return objectAsBytes.ToArray();
@@ -341,7 +353,13 @@ namespace EntityNetworkingSystems
 
             int udpPort = System.BitConverter.ToInt32(byteObject.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
 
-            return new NetworkAuthPacket(authData,steamID, udpPort);
+            int buildID = System.BitConverter.ToInt32(byteObject.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+
+
+            int byteLength = System.BitConverter.ToInt32(byteObject.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            string password = Encoding.ASCII.GetString(byteObject.GetRange(intIndex, byteLength).ToArray()); intIndex += byteLength;
+
+            return new NetworkAuthPacket(authData,steamID, udpPort,password,buildID);
         }
 
         //RPCPacketData Serializer - Minimum Calculatable Bytes: 10 bytes
@@ -427,6 +445,39 @@ namespace EntityNetworkingSystems
 
             return rpc;
         }
+
+        //Serialize ConnectionPacket
+        //bool immediateDisconnect - 1 byte
+        //string reason
+            //- 4 bytes length
+            //- ? bytes string
+        public static byte[] SerializeConnectionPacket(ConnectionPacket cPacket)
+        {
+            List<byte> connectionBytes = new List<byte>();
+            
+            byte[] disconnectByte = System.BitConverter.GetBytes(cPacket.immediateDisconnect);
+            connectionBytes.AddRange(disconnectByte);
+
+            byte[] stringBytes = Encoding.ASCII.GetBytes(cPacket.reason);
+            connectionBytes.AddRange(System.BitConverter.GetBytes(stringBytes.Length));
+            connectionBytes.AddRange(stringBytes);
+
+            return connectionBytes.ToArray();
+        }
+        
+        public static ConnectionPacket DeserializeConnectionPacket(byte[] cBytes)
+        {
+            List<byte> cByteList = new List<byte>(); cByteList.AddRange(cBytes);
+            
+            int intIndex = 0;
+
+            bool disconnect = System.BitConverter.ToBoolean(cBytes,intIndex);
+            intIndex += 1;
+            int stringLength = System.BitConverter.ToInt32(cByteList.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
+            string reason = Encoding.ASCII.GetString(cByteList.GetRange(intIndex, stringLength).ToArray()); intIndex += stringLength;
+            return new ConnectionPacket(disconnect,reason);
+        }
+
 
 
         //Use not recommended as the BinaryFormatter has a bunch of overhead...

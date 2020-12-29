@@ -209,7 +209,7 @@ namespace EntityNetworkingSystems
         }
 
         
-        public NetworkField CreateField(string fieldName, object value = null, NetworkField.valueInitializer init = NetworkField.valueInitializer.None, bool isProximity=false)
+        public NetworkField CreateField(string fieldName, object value = null, NetworkField.valueInitializer init = NetworkField.valueInitializer.None, bool isProximity=false, bool reliable=true)
         {
             if (FieldExists(fieldName) == false)
             {
@@ -217,6 +217,7 @@ namespace EntityNetworkingSystems
                 newField.fieldName = fieldName;
                 newField.defaultValue = init;
                 newField.shouldBeProximity = isProximity;
+                newField.reliable = reliable;
                 if (value != null)
                 {
                     //newField.UpdateField(value, this);
@@ -311,9 +312,14 @@ namespace EntityNetworkingSystems
                 }
 
                 JsonPacketObject jPO;
-
-                System.Convert.ChangeType(netField.GetField(), netField.GetField().GetType());
-
+                try
+                {
+                    System.Convert.ChangeType(netField.GetField(), netField.GetField().GetType());
+                } catch (System.Exception e)
+                {
+                    Debug.LogError("Error Generating Field Packet. NetworkObjID: "+ networkID + " FieldName: "+netField.fieldName);
+                    continue;
+                }
                 if (!ENSUtils.IsSimple(netField.GetField().GetType()))
                 {
                     jPO = new JsonPacketObject(JsonUtility.ToJson(System.Convert.ChangeType(netField.GetField(), netField.GetField().GetType())), netField.GetField().GetType().ToString());
@@ -436,6 +442,7 @@ namespace EntityNetworkingSystems
         public List<OnValueMethodData> onValueChangeMethods = new List<OnValueMethodData>();
         public bool shouldBeProximity = false;
         public bool disableChangeEvents = false;
+        public bool doDuplicateCheck = false;
         private string jsonData = "notinitialized";
         private string jsonDataTypeName = "notinitialized";
         private bool initialized = false;
@@ -470,6 +477,19 @@ namespace EntityNetworkingSystems
                 //shouldBeProximity = true;
                 //onValueChange.AddListener(new UnityAction<FieldArgs>(netObj.ManagePositionField));
                 onValueChange.AddListener(netObj.ManagePositionField);
+                specialFieldsInitialized = true;
+                return true;
+            }
+            //Interpolation Position
+            else if (fieldName == "ENS_IPosition")
+            {
+                if (!justListener)
+                {
+                    IfServerUpdateField(new SerializableVector(netObj.transform.position), netID, true);
+                }
+                LinearInterpolation lI = netObj.gameObject.AddComponent<LinearInterpolation>();
+                onValueChange.AddListener(lI.UpdateIPosition);
+
                 specialFieldsInitialized = true;
                 return true;
             }
@@ -595,6 +615,13 @@ namespace EntityNetworkingSystems
             {
                 netObj = NetworkObject.NetObjFromNetID(netObjID);
             }
+
+            //If still null, netObj must of been destroyed.
+            if(netObj == null)
+            {
+                return;
+            }
+
             if(netID == -1)
             {
                 netID = netObj.networkID;

@@ -15,7 +15,8 @@ namespace EntityNetworkingSystems
         public List<TrackedKey> keys = new List<TrackedKey>();
         public bool doInputDetection = true;
 
-        private Dictionary<KeyCode, int> lookup = new Dictionary<KeyCode, int>(); //For slightly faster lookup. KeyCode=The Key, int = the index in keys List.
+        private Dictionary<KeyCode, int> keycodeLookup = new Dictionary<KeyCode, int>(); //For slightly faster lookup. KeyCode=The Key, int = the index in keys List.
+        private Dictionary<string, int> nameLookup = new Dictionary<string, int>(); //For slightly faster lookup. string=Key Name, int = the index in keys List.
 
         private NetworkObject net = null;
 
@@ -33,7 +34,8 @@ namespace EntityNetworkingSystems
                     net.CreateField("IW" + key.displayName, "000", init: NetworkField.valueInitializer.None, false).reliable = key.reliable;
                     net.FieldAddOnChangeMethod("IW" + key.displayName, key.OnNetworkUpdate, false);
                 }
-                lookup.Add(key.key, index);
+                keycodeLookup.Add(key.key, index);
+                nameLookup.Add(key.displayName, index);
                 index++;
             }
         }
@@ -48,15 +50,28 @@ namespace EntityNetworkingSystems
 
         public bool KeyDown(KeyCode key)
         {
-            return keys[lookup[key]].CheckKey(net)[0];
+            return keys[keycodeLookup[key]].CheckKey(net)[0];
         }
         public bool KeyPressed(KeyCode key)
         {
-            return keys[lookup[key]].CheckKey(net)[1];
+            return keys[keycodeLookup[key]].CheckKey(net)[1];
         }
         public bool KeyUp(KeyCode key)
         {
-            return keys[lookup[key]].CheckKey(net)[2];
+            return keys[keycodeLookup[key]].CheckKey(net)[2];
+        }
+
+        public bool KeyDown(string key)
+        {
+            return keys[nameLookup[key]].CheckKey(net)[0];
+        }
+        public bool KeyPressed(string key)
+        {
+            return keys[nameLookup[key]].CheckKey(net)[1];
+        }
+        public bool KeyUp(string key)
+        {
+            return keys[nameLookup[key]].CheckKey(net)[2];
         }
 
         public static InputWorker GetInputWorker(int clientID)
@@ -94,14 +109,14 @@ namespace EntityNetworkingSystems
                     bool newKeyDown = Input.GetKeyDown(key);
                     bool newKeyPressed = Input.GetKey(key);
                     bool newKeyUp = Input.GetKeyUp(key);
+
                     if (isNetworked && (newKeyDown != keyDown || newKeyPressed != keyPressed || newKeyUp != keyUp))
                     {
                         myNet.UpdateField("IW" + displayName, new KeyNetworkData(newKeyDown, newKeyPressed, newKeyUp), false);
-
-                        keyDown = newKeyDown;
-                        keyPressed = newKeyPressed;
-                        keyUp = newKeyUp;
                     }
+                    keyDown = newKeyDown;
+                    keyPressed = newKeyPressed;
+                    keyUp = newKeyUp;
                 }
                 return new bool[] { keyDown, keyPressed, keyUp };
 

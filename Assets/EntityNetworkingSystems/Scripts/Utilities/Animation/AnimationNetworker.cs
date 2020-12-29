@@ -52,7 +52,7 @@ namespace EntityNetworkingSystems {
                     animationBools.Add(parameter);
                     animationBoolsLastValue.Add(anim.GetBool(parameter.name));
 
-                    net.CreateField(parameter.name, anim.GetBool(parameter.name), NetworkField.valueInitializer.Boolean,true);
+                    net.CreateField(parameter.name, anim.GetBool(parameter.name), NetworkField.valueInitializer.Boolean,false,false);
                     net.FieldAddOnChangeMethod(parameter.name, OnNetworkFieldBoolUpdate);
                     //net.FieldAddStringChangeMethod(parameter.name, "OnNetworkFieldBoolUpdate", "EntityNetworkingSystemsAnimationNetworker");
                 }
@@ -60,8 +60,8 @@ namespace EntityNetworkingSystems {
 
             if(manageSpriteFlips)
             {
-                net.CreateField("SRFlipX", sR.flipX, init: NetworkField.valueInitializer.Boolean, true);
-                net.CreateField("SRFlipY", sR.flipX, init: NetworkField.valueInitializer.Boolean, true);
+                net.CreateField("SRFlipX", sR.flipX, init: NetworkField.valueInitializer.Boolean, true,false);
+                net.CreateField("SRFlipY", sR.flipX, init: NetworkField.valueInitializer.Boolean, true,false);
 
                 net.FieldAddOnChangeMethod("SRFlipX", OnNetworkFieldFlipX);
                 net.FieldAddOnChangeMethod("SRFlipY", OnNetworkFieldFlipY);
@@ -132,17 +132,29 @@ namespace EntityNetworkingSystems {
 
         public void OnNetworkFieldBoolUpdate(FieldArgs args)
         {
+            if (net.IsOwner())
+            {
+                return;
+            }
             anim.SetBool(args.fieldName, args.GetValue<bool>());
             //Debug.Log("Field Updated... " + args.fieldName + " "+args.GetValue<bool>());
         }
 
         public void OnNetworkFieldFlipX(FieldArgs args)
         {
+            if (net.IsOwner())
+            {
+                return;
+            }
             sR.flipX = args.GetValue<bool>();
         }
 
         public void OnNetworkFieldFlipY(FieldArgs args)
         {
+            if (net.IsOwner())
+            {
+                return;
+            }
             sR.flipX = args.GetValue<bool>();
         }
 

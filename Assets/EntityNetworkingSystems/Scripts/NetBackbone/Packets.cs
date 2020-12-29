@@ -35,6 +35,7 @@ namespace EntityNetworkingSystems
             multiPacket, //Optimized for the new packet serializers
             loginInfo, //Custom serializer done.
             networkAuth, //only is managed when the client first connects with the server. UnityPacketManager has no logic for it.
+            connectionPacket, //For disconnect reasons/etc.
         }
         public pType packetType = pType.unassigned;
         public bool reliable = true;
@@ -176,7 +177,14 @@ namespace EntityNetworkingSystems
     [System.Serializable]
     public class PlayerLoginData
     {
-        public int playerNetworkID = -1;
+        public short clientID = -1;
+        public ulong serverSteamID = 0;
+        
+        public PlayerLoginData(short clientID = -1, ulong serverSteamID=0)
+        {
+            this.clientID = clientID;
+            this.serverSteamID = serverSteamID;
+        }
     }
 
     [System.Serializable]
@@ -326,13 +334,31 @@ namespace EntityNetworkingSystems
         public byte[] authData;
         public ulong steamID;
         public int udpPort;
+        public string password;
+        public int steamBuildID; //The game's version. To verify that the server/client are on the same version.
 
-        public NetworkAuthPacket(byte[] data, ulong sID, int udpPort)
+        public NetworkAuthPacket(byte[] data, ulong sID, int udpPort, string password, int buildID)
         {
             authData = data;
             steamID = sID;
             this.udpPort = udpPort;
+            this.password = password;
+            this.steamBuildID = buildID;
         }
+    }
+
+    [System.Serializable]
+    public class ConnectionPacket
+    {
+        public bool immediateDisconnect = false; //If true, the client/server connection is closing.
+        public string reason; //Reason of message to display to user.
+
+        public ConnectionPacket(bool disconnect, string reason)
+        {
+            this.immediateDisconnect = disconnect;
+            this.reason = reason;
+        }
+
     }
 
 }
