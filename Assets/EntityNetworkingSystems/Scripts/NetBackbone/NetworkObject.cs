@@ -11,6 +11,7 @@ namespace EntityNetworkingSystems
     {
         //NETWORK OBJECT AUTOMATICALLY GETS ADDED TO PREFAB WHEN INSTANTIATED OVER THE NETWORK IF THE PREFAB DOESN'T ALREADY CONTAIN ONE.
 
+        public static Dictionary<int, NetworkObject> allNetObjsDictionary = new Dictionary<int, NetworkObject>();
         public static List<NetworkObject> allNetObjs = new List<NetworkObject>();
         public static List<int> sessionNetIDHistory = new List<int>(); //All network IDs that have been used over the duration of the server's session.
 
@@ -32,6 +33,8 @@ namespace EntityNetworkingSystems
         public int prefabID = -1;
         //[HideInInspector]
         public int prefabDomainID = -1;
+        [Space]
+        public NetworkField.InvalidFieldHandling invalidFieldHandling = NetworkField.InvalidFieldHandling.error;
 
         [HideInInspector]
         public List<Packet> queuedNetworkPackets = new List<Packet>();
@@ -68,6 +71,7 @@ namespace EntityNetworkingSystems
             {
                 allNetObjs.Add(this);
             }
+            allNetObjsDictionary[networkID] = this;
 
             initialized = true;
 
@@ -181,17 +185,26 @@ namespace EntityNetworkingSystems
 
         }
 
+        public static NetworkObject GetByID(int netID)
+        {
+            return NetObjFromNetID(netID);
+        }
+
         public static NetworkObject NetObjFromNetID(int netID)
         {
-            lock (allNetObjs)
+            //lock (allNetObjs)
+            //{
+            //    foreach (NetworkObject netObj in allNetObjs.ToArray())
+            //    {
+            //        if (netObj.networkID == netID)
+            //        {
+            //            return netObj;
+            //        }
+            //    }
+            //}
+            if(allNetObjsDictionary.ContainsKey(netID))
             {
-                foreach (NetworkObject netObj in allNetObjs.ToArray())
-                {
-                    if (netObj.networkID == netID)
-                    {
-                        return netObj;
-                    }
-                }
+                return allNetObjsDictionary[netID];
             }
             return null;
         }
@@ -273,7 +286,13 @@ namespace EntityNetworkingSystems
                     return;
                 }
             }
-            Debug.LogError("NetworkField of name " + fieldName + " doesn't exist.", this);
+            if (invalidFieldHandling == NetworkField.InvalidFieldHandling.error)
+            {
+                Debug.LogError("NetworkField of name " + fieldName + " doesn't exist.", this);
+            } else if (invalidFieldHandling == NetworkField.InvalidFieldHandling.createField)
+            {
+                CreateField(fieldName, data);
+            }
         }
 
         public T GetField<T>(string fieldName)
@@ -791,7 +810,7 @@ namespace EntityNetworkingSystems
                     {
                         try
                         {
-                            netObj.GetComponent(methodData.componentTypeName).SendMessage(methodData.methodName, constructedArgs);
+                            netObj.GetComponent(methodData.componentTypeName).SendMessage(methodData.methodName, constructedArgs,SendMessageOptions.DontRequireReceiver);
                         } catch
                         {
                             
@@ -820,6 +839,11 @@ namespace EntityNetworkingSystems
             }
         }
 
+        [System.Serializable]
+        public enum InvalidFieldHandling { 
+            error,
+            createField,
+        }
 
 
     }

@@ -167,9 +167,13 @@ namespace EntityNetworkingSystems
 
             //NetTools.onJoinServer.Invoke();
             UnityPacketHandler.instance.StartHandler();
+
+            SteamFriends.SetRichPresence("steam_display", "Singleplayer");
+            SteamFriends.SetRichPresence("steam_player_group", "Survival");
+
         }
 
-        public bool ConnectToServer(string ip = "127.0.0.1", int port = 44594)
+        public bool ConnectToServer(string ip = "127.0.0.1", int port = 24424)
         {
             //if(client != null)
             //{
@@ -247,7 +251,28 @@ namespace EntityNetworkingSystems
             };
             udpSendHandler.Start(false);
 
-            SteamFriends.SetRichPresence("connect", ip+":"+port);
+            if (!NetTools.isServer)
+            {
+                SteamFriends.SetRichPresence("connect", ip + ":" + port);
+            } else
+            {
+                //Otherwise it'll set ip/port to 127.0.0.1, which will fail if someone else tries connecting.
+                IPAddress final = null;
+                foreach (IPAddress found in Dns.GetHostEntry(Dns.GetHostName()).AddressList)
+                {
+                    if(found.AddressFamily == AddressFamily.InterNetwork)
+                    {
+                        final = found;
+                        break;
+                    }
+                }
+
+                SteamFriends.SetRichPresence("connect", final + ":" + port);
+            }
+
+            SteamFriends.SetRichPresence("steam_display", "Multiplayer");
+            //SteamFriends.SetRichPresence("steam_player_group", "Survival");
+            //SteamFriends.SetRichPresence("steam_player_group_size", PlayerController.allPlayers.Count.ToString()); //Also gets updated in playercontroller.start
 
             return true;
         }
@@ -306,6 +331,9 @@ namespace EntityNetworkingSystems
             clientID = -1;
 
             SteamFriends.SetRichPresence("connect", "");
+            SteamFriends.SetRichPresence("steam_display", "");
+            SteamFriends.SetRichPresence("steam_player_group", "");
+            SteamFriends.SetRichPresence("steam_player_group_size", "");
 
         }
 
@@ -361,7 +389,7 @@ namespace EntityNetworkingSystems
         void PacketSendThread(object reliable)
         {
             ref List<Packet> queue = ref packetTCPSendQueue;
-            Debug.Log(((bool)reliable).ToString() + " Send Thread has Begun.");
+            //Debug.Log(((bool)reliable).ToString() + " Send Thread has Begun.");
             if (!(bool)reliable)
             {
                 queue = ref packetUDPSendQueue;
@@ -407,8 +435,7 @@ namespace EntityNetworkingSystems
                     //Debug.LogError(queue[0].packetType);
                     Debug.LogError(e);
                     queue.RemoveAt(0);
-                    Debug.Log(((bool)reliable).ToString() + " Send Thread has ended.");
-                    lastConnectionError = e.ToString();
+                    Debug.Log(((bool)reliable).ToString() + " Connection Lost has ended.");
                     return;
                 }
 

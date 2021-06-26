@@ -100,7 +100,7 @@ namespace EntityNetworkingSystems
                 {
                     if (net.GetComponent(methodData.componentTypeName) != null)
                     {
-                        net.GetComponent(methodData.componentTypeName).SendMessage(methodData.methodName, constructedArgs);
+                        net.GetComponent(methodData.componentTypeName).SendMessage(methodData.methodName, constructedArgs,SendMessageOptions.DontRequireReceiver);
                     }
                 }
             }

@@ -26,6 +26,7 @@ public class ExampleClient : MonoBehaviour
     public void Disconnect()
     {
         netClient.DisconnectFromServer();
+        NetServer.serverInstance.StopServer();
     }
 
     //void Update()

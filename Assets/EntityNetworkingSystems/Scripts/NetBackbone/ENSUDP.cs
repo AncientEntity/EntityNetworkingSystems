@@ -52,7 +52,8 @@ namespace EntityNetworkingSystems.UDP
 
             SteamNetworking.OnP2PConnectionFailed = (steamID, failReason) =>
             {
-                Debug.Log("P2P Failed With: " + steamID + " for reason " + failReason);
+                Debug.Log("SRV P2P Failed With: " + steamID + " for reason " + failReason);
+                NetServer.serverInstance.KickPlayer(NetServer.serverInstance.GetPlayerBySteamID(steamID),"Server failed to make Steam P2P unreliable connection, reason: "+failReason);
             };
         }
 
@@ -171,21 +172,18 @@ namespace EntityNetworkingSystems.UDP
 
             SteamNetworking.OnP2PSessionRequest = (steamID) =>
             {
-                foreach (NetworkPlayer player in NetServer.serverInstance.connections)
-                {
-                    if (player.steamID == steamID)
-                    {
-                        Debug.Log("CLIENT P2P Steam Connection Started: " + player.steamID);
+                if (NetClient.instanceClient.serversSteamID == steamID) {
+                    
+                        Debug.Log("CLIENT P2P Steam Connection Started: " + steamID);
                         SteamNetworking.AcceptP2PSessionWithUser(steamID);
-                        break;
-                    }
                 }
+                
                 Debug.Log("CLIENT P2P Steam Connection Failed: " + steamID);
             };
 
             SteamNetworking.OnP2PConnectionFailed = (steamID, failReason) =>
             {
-                Debug.Log("P2P Failed With: " + steamID + " for reason " + failReason);
+                Debug.Log("CLIENT P2P Failed With: " + steamID + " for reason " + failReason);
             };
 
         }

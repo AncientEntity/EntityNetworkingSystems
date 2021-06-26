@@ -132,20 +132,25 @@ namespace EntityNetworkingSystems
                 Debug.LogError("Error run Initialize() before running StartServer().");
                 return;
             }
+            
 
-            //SteamServerInit serverInitData = new SteamServerInit(NetServer.serverInstance.modDir, NetServer.serverInstance.gameDesc) { };
-            //SteamServer.Init(NetServer.serverInstance.steamAppID, serverInitData);
-            //SteamServer.ServerName = "Game Server";
-            //SteamServer.MapName = NetServer.serverInstance.mapName;
-            //SteamServer.MaxPlayers = NetServer.serverInstance.maxConnections;
-            //SteamServer.UpdatePlayer(SteamClient.SteamId, "Ancient Entity", 1);
 
-            //SteamServer.AutomaticHeartbeats = true;
+            SteamServerInit serverInitData = new SteamServerInit(NetServer.serverInstance.modDir, NetServer.serverInstance.gameDesc) { };
+            serverInitData.DedicatedServer = false;
+            serverInitData.GamePort = (ushort)NetServer.serverInstance.hostPort;
+            SteamServer.Init(NetServer.serverInstance.steamAppID, serverInitData);
+            SteamServer.ServerName = SteamClient.Name + "'s Server.";
+            SteamServer.MapName = NetServer.serverInstance.mapName;
+            SteamServer.MaxPlayers = NetServer.serverInstance.maxConnections;
 
-            //SteamServer.LogOnAnonymous();
+            SteamServer.AutomaticHeartbeats = true;
+
+            SteamServer.LogOnAnonymous();
+            doCallbacks = true;
 
             SteamServer.OnValidateAuthTicketResponse += (steamid, ownerid, response) =>
             {
+               
                 if (response == AuthResponse.OK)
                 {
                     Debug.Log(steamid + " ticket is still valid");
@@ -154,7 +159,7 @@ namespace EntityNetworkingSystems
                 {
                     Debug.Log(steamid + " ticket is no longer valid");
                 //Add kick user stuff.
-            }
+                }
             };
 
             serverRunning = true;
@@ -181,6 +186,8 @@ namespace EntityNetworkingSystems
             }
             connectedSteamIDs = new List<ulong>();
 
+            SteamServer.Shutdown();
+
             if (NetTools.ENSManagingSteam())
             {
                 //SteamServer.LogOff();
@@ -190,9 +197,6 @@ namespace EntityNetworkingSystems
                     //SteamServer.Shutdown();
                     //SteamClient.Shutdown();
                 }
-            } else
-            {
-                Debug.Log("T");
             }
             serverRunning = false;
         }
@@ -205,7 +209,7 @@ namespace EntityNetworkingSystems
         {
             if (serverRunning)
             {
-                //ShutdownServer();
+                ShutdownServer();
             }
             if (initialized)
             {

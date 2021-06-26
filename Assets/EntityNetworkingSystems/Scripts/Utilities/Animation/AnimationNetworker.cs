@@ -157,7 +157,11 @@ namespace EntityNetworkingSystems {
             }
             sR.flipX = args.GetValue<bool>();
         }
-
+        public void ForceSetBool(string paramName, bool val)
+        {
+            anim.SetBool(paramName,val);
+            net.UpdateField(paramName, val, true);
+        }
 
     }
 }

@@ -41,6 +41,11 @@ namespace EntityNetworkingSystems
 
         }
 
+        public static GameObject Instantiate(int prefabDomain, int prefabID, Vector3 position, Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false, List<NetworkFieldPacket> fieldDefaults = null)
+        {
+            return NetInstantiate(prefabDomain,prefabID,position,rotation,sT,isSharedObject,fieldDefaults);
+        }
+
         public static GameObject NetInstantiate(int prefabDomain, int prefabID, Vector3 position, Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false, List<NetworkFieldPacket> fieldDefaults = null)
 
         {
@@ -133,6 +138,12 @@ namespace EntityNetworkingSystems
 
 
 
+
+
+        public static void Destroy(NetworkObject netObj, Packet.sendType sT = Packet.sendType.buffered)
+        {
+            NetDestroy(netObj, sT);
+        }
 
         public static void NetDestroy(NetworkObject netObj, Packet.sendType sT = Packet.sendType.buffered)
         {
@@ -278,6 +289,8 @@ namespace EntityNetworkingSystems
         }
 
     }
+
+
 
     public class PlayerEvent : UnityEvent<NetworkPlayer>
     {
