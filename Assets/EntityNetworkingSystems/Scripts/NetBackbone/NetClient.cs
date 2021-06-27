@@ -196,7 +196,7 @@ namespace EntityNetworkingSystems
 
             clientPlayer.SendPacket(new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, 0),SteamListener.SteamSendTypes.reliable);
 
-            if(targetSteamID == SteamClient.SteamId)
+            if(targetSteamID == SteamClient.SteamId && ServerHandler.serverInstance != null)
             {
                 //If you are connecting to yourself it doesn't go through the allow P2P connection bit.
                 ServerHandler.serverInstance.AcceptNewClient(targetSteamID);

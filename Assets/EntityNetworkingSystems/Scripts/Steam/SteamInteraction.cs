@@ -216,7 +216,9 @@ namespace EntityNetworkingSystems.Steam
         }
 
 
-
+        public bool IsRunning() {
+            return serverRunning;
+        }
 
 
         void OnDisable()

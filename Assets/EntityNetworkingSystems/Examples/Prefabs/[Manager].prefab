@@ -113,7 +113,7 @@ MonoBehaviour:
     - prefabName: Player
       prefab: {fileID: 4803165501484243487, guid: dd0284277d85d674285e3c5399970144,
         type: 3}
-      poolAmount: 0
+      poolAmount: 10
       serverInstantiateOnly: 0
       resetPoolMethods: []
     detectNetworkStarts: 0

@@ -42,8 +42,8 @@ namespace EntityNetworkingSystems.Steam
         public void SendPacketDirect(Packet packet, SteamSendTypes sendType, ulong steamID)
         {
             byte[] bytePacket = ENSSerialization.SerializePacket(packet);
-            Debug.Log("Server: "+(int)sendType + NetTools.serverChannelOffset);
-            bool outcome = SteamNetworking.SendP2PPacket(steamID, ENSSerialization.SerializePacket(packet), bytePacket.Length, (int)sendType + NetTools.serverChannelOffset, (P2PSend)sendType);
+            Debug.Log("Server: "+((int)sendType + NetTools.serverChannelOffset));
+            bool outcome = SteamNetworking.SendP2PPacket(steamID, ENSSerialization.SerializePacket(packet), bytePacket.Length, (int)sendType, (P2PSend)sendType);
         }
 
         public void SendPacket(Packet packet,SteamSendTypes sendType, bool ignoreSelf = false)
@@ -59,8 +59,8 @@ namespace EntityNetworkingSystems.Steam
                 if (packet.sendToAll || packet.usersToRecieve.Contains(player.clientID))
                 {
                     //SteamSendTypes gets converted to P2PSend because the enums have the same values as the P2PSend Values. ----------------
-                    Debug.Log("Server: " + (int)sendType + NetTools.serverChannelOffset);
-                    bool outcome = SteamNetworking.SendP2PPacket(player.steamID, bytePacket, bytePacket.Length, (int)sendType+NetTools.serverChannelOffset, (P2PSend)sendType);
+                    Debug.Log("Server: " +((int)sendType + NetTools.serverChannelOffset));
+                    bool outcome = SteamNetworking.SendP2PPacket(player.steamID, bytePacket, bytePacket.Length, (int)sendType, (P2PSend)sendType);
                 }
             }
         }
@@ -216,13 +216,13 @@ namespace EntityNetworkingSystems.Steam
             bool done = false;
             while (!done)
             {
-                Debug.Log("Client: " +(int)protocol + NetTools.serverChannelOffset);
-                while (!SteamNetworking.IsP2PPacketAvailable((int)protocol + NetTools.serverChannelOffset))
+                Debug.Log("Client: " +((int)protocol + NetTools.serverChannelOffset));
+                while (!SteamNetworking.IsP2PPacketAvailable((int)protocol))
                 {
                     continue;
                 }
                 //Debug.Log(serverEndpoint.ToString());
-                P2Packet? packet = SteamNetworking.ReadP2PPacket((int)protocol + NetTools.serverChannelOffset);
+                P2Packet? packet = SteamNetworking.ReadP2PPacket((int)protocol);
                 if (packet.HasValue)
                 {
                     done = true;

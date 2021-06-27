@@ -25,7 +25,7 @@ namespace EntityNetworkingSystems
 
         public static Thread mainUnityThread = Thread.CurrentThread;
 
-        public static int serverChannelOffset = 10;
+        public static int serverChannelOffset = 5;
 
         //Useless cause NetInstantiate should check, but still here!
         public static GameObject ManagedInstantiate(int prefabDomain, int prefabID, Vector3 position, Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false)
