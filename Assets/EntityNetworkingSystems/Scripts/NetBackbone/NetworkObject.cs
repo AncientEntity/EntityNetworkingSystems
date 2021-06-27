@@ -677,9 +677,9 @@ namespace EntityNetworkingSystems
             if (NetClient.instanceClient != null && !netObj.updateFieldsThroughServer)
             {
                 NetClient.instanceClient.SendPacket(pack);
-            } else if(NetServer.serverInstance != null)
+            } else if(ServerHandler.serverInstance != null)
             {
-                foreach (NetworkPlayer player in NetServer.serverInstance.connections) {
+                foreach (NetworkPlayer player in ServerHandler.serverInstance.connections) {
                     if(!player.playerConnected)
                     {
                         continue; //No longer connected.
@@ -688,7 +688,7 @@ namespace EntityNetworkingSystems
                     {
                         continue;
                     }
-                    NetServer.serverInstance.SendPacket(player, pack);
+                    ServerHandler.serverInstance.SendPacket(player, pack);
                 }
             }
             if (immediateOnSelf)

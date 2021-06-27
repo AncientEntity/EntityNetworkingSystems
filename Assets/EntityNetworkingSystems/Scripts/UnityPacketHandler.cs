@@ -69,7 +69,7 @@ namespace EntityNetworkingSystems
             int countTillUpdate = 0;
             handlerRunning = true;
             yield return new WaitForFixedUpdate();
-            while (NetClient.instanceClient != null || NetServer.serverInstance != null)
+            while (NetClient.instanceClient != null || ServerHandler.serverInstance != null)
             {
                 if (packetQueue.Count > 0)
                 {
@@ -285,7 +285,7 @@ namespace EntityNetworkingSystems
 
                 if (NetTools.isServer)
                 {
-                    NetServer.serverInstance.myConnection = NetServer.serverInstance.GetPlayerByID(NetTools.clientID);
+                    ServerHandler.serverInstance.myConnection = ServerHandler.serverInstance.GetPlayerByID(NetTools.clientID);
                 }
 
                 NetTools.onJoinServer.Invoke();

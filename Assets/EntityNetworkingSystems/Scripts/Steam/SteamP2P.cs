@@ -6,57 +6,20 @@ using UnityEngine;
 using Steamworks;
 using Steamworks.Data;
 
-namespace EntityNetworkingSystems.UDP
+namespace EntityNetworkingSystems.Steam
 {
     [System.Serializable]
-    public class UDPListener
+    public class SteamListener
     {
-        public int portToUse = 44595;
-        
-        //public UdpClient udpServer = null;
 
-        
-
-        public UDPListener(NetServer netServer)
+        public enum SteamSendTypes
         {
-            portToUse = NetServer.serverInstance.hostPort + 1;
+            reliable = 2,
+            unreliable = 0,
         }
 
-        public void Start()
-        {
-            //if(udpServer != null)
-            //{
-            //    udpServer.Dispose();
-            //    udpServer = null;
-            //}
-
-            //udpServer = new UdpClient(portToUse);
-
-            ////This has something to do with UDP recieving a ICMP message and 'resetting' the connection somehow?
-            ////So yeah SIO_UDP_CONNRESET = -1744830452
-            //udpServer.Client.IOControl((IOControlCode)(-1744830452),    new byte[] { 0, 0, 0, 0 }, null);
-
-            SteamNetworking.OnP2PSessionRequest = (steamID) =>
-            {
-                foreach (NetworkPlayer player in NetServer.serverInstance.connections)
-                {
-                    if (player.steamID == steamID)
-                    {
-                        Debug.Log("SERVER P2P Steam Connection Started: " + player.steamID);
-                        SteamNetworking.AcceptP2PSessionWithUser(steamID);
-                        break;
-                    }
-                }
-                Debug.Log("SERVER P2P Steam Connection Failed: " + steamID);
-            };
-
-            SteamNetworking.OnP2PConnectionFailed = (steamID, failReason) =>
-            {
-                Debug.Log("SRV P2P Failed With: " + steamID + " for reason " + failReason);
-                NetServer.serverInstance.KickPlayer(NetServer.serverInstance.GetPlayerBySteamID(steamID),"Server failed to make Steam P2P unreliable connection, reason: "+failReason);
-            };
-        }
-
+        
+    
         public void Stop()
         {
             //if(udpServer == null)
@@ -65,42 +28,58 @@ namespace EntityNetworkingSystems.UDP
             //}
             //udpServer.Close();
             //udpServer.Dispose();
-            foreach(NetworkPlayer player in NetServer.serverInstance.connections.ToArray())
+            foreach(NetworkPlayer player in ServerHandler.serverInstance.connections.ToArray())
             {
                 SteamNetworking.CloseP2PSessionWithUser(player.steamID);
             }
         }
 
-        public void SendPacket(Packet packet, bool ignoreSelf=false)
+        public void EndConnectionWithSteamID(ulong steamID)
+        {
+            SteamNetworking.CloseP2PSessionWithUser(steamID);
+        }
+
+        public void SendPacketDirect(Packet packet, SteamSendTypes sendType, ulong steamID)
         {
             byte[] bytePacket = ENSSerialization.SerializePacket(packet);
-            foreach (NetworkPlayer player in NetServer.serverInstance.connections.ToArray())
+            Debug.Log("Server: "+(int)sendType + NetTools.serverChannelOffset);
+            bool outcome = SteamNetworking.SendP2PPacket(steamID, ENSSerialization.SerializePacket(packet), bytePacket.Length, (int)sendType + NetTools.serverChannelOffset, (P2PSend)sendType);
+        }
+
+        public void SendPacket(Packet packet,SteamSendTypes sendType, bool ignoreSelf = false)
+        {
+            byte[] bytePacket = ENSSerialization.SerializePacket(packet);
+            foreach (NetworkPlayer player in ServerHandler.serverInstance.connections.ToArray())
             {
-                if(ignoreSelf && NetServer.serverInstance.myConnection == player)
+                if (ignoreSelf && ServerHandler.serverInstance.myConnection == player)
                 {
                     continue;
                 }
 
-                if(packet.sendToAll || packet.usersToRecieve.Contains(player.clientID))
+                if (packet.sendToAll || packet.usersToRecieve.Contains(player.clientID))
                 {
-                    bool outcome = SteamNetworking.SendP2PPacket(player.steamID, bytePacket, bytePacket.Length,1, sendType: P2PSend.Unreliable);
-                    //Debug.Log(outcome);
-                    //udpServer.Send(bytePacket, bytePacket.Length, player.udpEndpoint);
+                    //SteamSendTypes gets converted to P2PSend because the enums have the same values as the P2PSend Values. ----------------
+                    Debug.Log("Server: " + (int)sendType + NetTools.serverChannelOffset);
+                    bool outcome = SteamNetworking.SendP2PPacket(player.steamID, bytePacket, bytePacket.Length, (int)sendType+NetTools.serverChannelOffset, (P2PSend)sendType);
                 }
             }
         }
 
 
 
-        public Packet Recieve()
+        public Packet Recieve(SteamSendTypes protocol)
         {
             while (true)
             {
                 try
                 {
-                    P2Packet recieved = RecieveMessage();
+                    P2Packet recieved = RecieveMessage(protocol);
                     Packet p = ENSSerialization.DeserializePacket(recieved.Data);
-                    if (NetServer.serverInstance.VerifyPacketValidity(recieved.SteamId,p))//(recieved.Key != null)
+                    if(p.packetType == Packet.pType.unassigned)
+                    {
+                        continue;
+                    }
+                    if (ServerHandler.serverInstance.VerifyPacketValidity(recieved.SteamId,p))//(recieved.Key != null)
                     {
                         return p;
                     }
@@ -116,17 +95,17 @@ namespace EntityNetworkingSystems.UDP
             }
         }
 
-        P2Packet RecieveMessage()
+        P2Packet RecieveMessage(SteamSendTypes protocol)
         {
             bool done = false;
             while (!done)
             {
-                while (!SteamNetworking.IsP2PPacketAvailable(1))
+                while (!SteamNetworking.IsP2PPacketAvailable((int)protocol))
                 {
                     continue;
                 }
                 //Debug.Log(serverEndpoint.ToString());
-                P2Packet? packet = SteamNetworking.ReadP2PPacket(1);
+                P2Packet? packet = SteamNetworking.ReadP2PPacket((int)protocol);
                 if (packet.HasValue)
                 {
                     done = true;
@@ -142,15 +121,11 @@ namespace EntityNetworkingSystems.UDP
 
     //Would call it UDPClient but C# has a UDPClient ;-;
     [System.Serializable]
-    public class UDPPlayer
+    public class SteamPlayer
     {
-        public int portToUse = 44595;
-        //public UdpClient client;
 
 
-        //private IPEndPoint serverEndpoint;
-
-        public UDPPlayer(IPEndPoint serverEndpoint)
+        public SteamPlayer()
         {
             //portToUse = serverEndpoint.Port + 1;
 
@@ -170,7 +145,7 @@ namespace EntityNetworkingSystems.UDP
             //    }
             //}
 
-            SteamNetworking.OnP2PSessionRequest = (steamID) =>
+            SteamNetworking.OnP2PSessionRequest += (steamID) =>
             {
                 if (NetClient.instanceClient.serversSteamID == steamID) {
                     
@@ -181,9 +156,12 @@ namespace EntityNetworkingSystems.UDP
                 Debug.Log("CLIENT P2P Steam Connection Failed: " + steamID);
             };
 
-            SteamNetworking.OnP2PConnectionFailed = (steamID, failReason) =>
+            SteamNetworking.OnP2PConnectionFailed += (steamID, failReason) =>
             {
                 Debug.Log("CLIENT P2P Failed With: " + steamID + " for reason " + failReason);
+                NetTools.isClient = false;
+                NetTools.onFailedServerConnection.Invoke();
+                NetClient.instanceClient.lastConnectionError = failReason.ToString();
             };
 
         }
@@ -199,10 +177,10 @@ namespace EntityNetworkingSystems.UDP
             //client.Dispose();
         }
 
-        public void SendPacket(Packet packet)
+        public void SendPacket(Packet packet ,SteamListener.SteamSendTypes sendType)
         {
             byte[] bytePacket = ENSSerialization.SerializePacket(packet);
-            bool outcome = SteamNetworking.SendP2PPacket(NetClient.instanceClient.serversSteamID, bytePacket, bytePacket.Length,1, sendType: P2PSend.Unreliable);
+            bool outcome = SteamNetworking.SendP2PPacket(NetClient.instanceClient.serversSteamID, bytePacket, bytePacket.Length, (int)sendType, (P2PSend)sendType);
             //Debug.Log(outcome);
             //client.Send(bytePacket, bytePacket.Length, serverEndpoint);
 #if UNITY_EDITOR
@@ -218,12 +196,12 @@ namespace EntityNetworkingSystems.UDP
         }
 
 
-        public Packet RecievePacket()
+        public Packet RecievePacket(SteamListener.SteamSendTypes protocol)
         {
             bool valid = false;
             while(!valid)
             {
-                P2Packet packet = RecieveRaw();
+                P2Packet packet = RecieveRaw(protocol);
                 if(packet.SteamId == NetClient.instanceClient.serversSteamID)
                 {
                     valid = true;
@@ -233,17 +211,18 @@ namespace EntityNetworkingSystems.UDP
             return null;
         }
 
-        P2Packet RecieveRaw()
+        P2Packet RecieveRaw(SteamListener.SteamSendTypes protocol)
         {
             bool done = false;
             while (!done)
             {
-                while (!SteamNetworking.IsP2PPacketAvailable(1))
+                Debug.Log("Client: " +(int)protocol + NetTools.serverChannelOffset);
+                while (!SteamNetworking.IsP2PPacketAvailable((int)protocol + NetTools.serverChannelOffset))
                 {
                     continue;
                 }
                 //Debug.Log(serverEndpoint.ToString());
-                P2Packet? packet = SteamNetworking.ReadP2PPacket(1);
+                P2Packet? packet = SteamNetworking.ReadP2PPacket((int)protocol + NetTools.serverChannelOffset);
                 if (packet.HasValue)
                 {
                     done = true;

@@ -91,7 +91,7 @@ namespace EntityNetworkingSystems {
 
         IEnumerator HandleAnimationBoolPackets()
         {
-            while(NetServer.serverInstance != null || NetClient.instanceClient != null)
+            while(ServerHandler.serverInstance != null || NetClient.instanceClient != null)
             {
 
                 //Animation checking

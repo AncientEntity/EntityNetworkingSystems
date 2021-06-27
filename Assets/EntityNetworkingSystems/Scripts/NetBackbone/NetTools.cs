@@ -25,6 +25,8 @@ namespace EntityNetworkingSystems
 
         public static Thread mainUnityThread = Thread.CurrentThread;
 
+        public static int serverChannelOffset = 10;
+
         //Useless cause NetInstantiate should check, but still here!
         public static GameObject ManagedInstantiate(int prefabDomain, int prefabID, Vector3 position, Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false)
         {
@@ -254,7 +256,7 @@ namespace EntityNetworkingSystems
         {
             if (NetTools.isServer)
             {
-                NetworkPlayer netPlayer = NetServer.serverInstance.GetPlayerByID(clientID);
+                NetworkPlayer netPlayer = ServerHandler.serverInstance.GetPlayerByID(clientID);
                 if(netPlayer != null)
                 {
                     netPlayer.proximityPosition = position;
@@ -264,24 +266,24 @@ namespace EntityNetworkingSystems
 
         public static void CullPacketsByNetworkID(int networkID)
         {
-            if (NetServer.serverInstance.bufferedPackets.ContainsKey(networkID.ToString()))
+            if (ServerHandler.serverInstance.bufferedPackets.ContainsKey(networkID.ToString()))
             {
-                NetServer.serverInstance.bufferedPackets.Remove(networkID.ToString());
+                ServerHandler.serverInstance.bufferedPackets.Remove(networkID.ToString());
             }
         }
 
         public static void CullPacketsByTag(string tag)
         {
-            if(NetServer.serverInstance.bufferedPackets.ContainsKey(tag))
+            if(ServerHandler.serverInstance.bufferedPackets.ContainsKey(tag))
             {
                 //Debug.Log("Culled: " + NetServer.serverInstance.bufferedPackets[tag].Count + " packets.");
-                NetServer.serverInstance.bufferedPackets.Remove(tag);
+                ServerHandler.serverInstance.bufferedPackets.Remove(tag);
             }
         }
 
         public static bool ENSManagingSteam()
         {
-            if((NetServer.serverInstance != null && NetServer.serverInstance.steamAppID == -1) || (NetClient.instanceClient != null && NetClient.instanceClient.steamAppID == -1))
+            if((ServerHandler.serverInstance != null && ServerHandler.serverInstance.steamAppID == -1) || (NetClient.instanceClient != null && NetClient.instanceClient.steamAppID == -1))
             {
                 return false;
             }

@@ -6,7 +6,7 @@ using UnityEngine;
 public class ExampleHost : MonoBehaviour
 {
     public bool isServerBuild = false;
-    public NetServer netServer;
+    public ServerHandler netServer;
 
     void Start()
     {

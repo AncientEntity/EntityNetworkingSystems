@@ -5,7 +5,7 @@ using Steamworks;
 using Steamworks.Data;
 using System;
 
-namespace EntityNetworkingSystems
+namespace EntityNetworkingSystems.Steam
 {
 
     public class SteamInteraction : MonoBehaviour
@@ -44,15 +44,15 @@ namespace EntityNetworkingSystems
                 instance = this;
             }
 
-            if ((NetServer.serverInstance != null && NetServer.serverInstance.steamAppID != -1) || (NetClient.instanceClient != null && NetClient.instanceClient.steamAppID != -1))
+            if ((ServerHandler.serverInstance != null && ServerHandler.serverInstance.steamAppID != -1) || (NetClient.instanceClient != null && NetClient.instanceClient.steamAppID != -1))
             {
                 try
                 {
                     //Debug.Log("Steamworks Initialized");
-                    if (NetServer.serverInstance != null)
+                    if (ServerHandler.serverInstance != null)
                     {
                         //Debug.Log((uint)NetServer.serverInstance.steamAppID);
-                        SteamClient.Init((uint)NetServer.serverInstance.steamAppID, false);
+                        SteamClient.Init((uint)ServerHandler.serverInstance.steamAppID, false);
                     }
                     else
                     {
@@ -77,17 +77,21 @@ namespace EntityNetworkingSystems
             {
                 steamName = SteamClient.Name;
             }
-            SteamUser.OnValidateAuthTicketResponse += (steamid, ownerid, response) =>
+
+            SteamServer.OnValidateAuthTicketResponse += (steamid, ownerid, response) =>
             {
+
                 if (response == AuthResponse.OK)
                 {
-                    //Debug.Log("Ticket is still valid.");
+                    Debug.Log(steamid + " ticket is still valid");
                 }
                 else
                 {
-                    //Debug.Log("Ticket is no longer valid");
+                    Debug.Log(steamid + " ticket is no longer valid");
+                    //Add kick user stuff.
                 }
             };
+
 
             initialized = true;
             Debug.Log("Steam Interaction Initialized");
@@ -135,34 +139,44 @@ namespace EntityNetworkingSystems
             
 
 
-            SteamServerInit serverInitData = new SteamServerInit(NetServer.serverInstance.modDir, NetServer.serverInstance.gameDesc) { };
+            SteamServerInit serverInitData = new SteamServerInit(ServerHandler.serverInstance.modDir, ServerHandler.serverInstance.gameDesc) { };
             serverInitData.DedicatedServer = false;
-            serverInitData.GamePort = (ushort)NetServer.serverInstance.hostPort;
-            SteamServer.Init(NetServer.serverInstance.steamAppID, serverInitData);
+            serverInitData.GamePort = (ushort)0;
+            SteamServer.Init(ServerHandler.serverInstance.steamAppID, serverInitData);
             SteamServer.ServerName = SteamClient.Name + "'s Server.";
-            SteamServer.MapName = NetServer.serverInstance.mapName;
-            SteamServer.MaxPlayers = NetServer.serverInstance.maxConnections;
+            SteamServer.MapName = ServerHandler.serverInstance.mapName;
+            SteamServer.MaxPlayers = ServerHandler.serverInstance.maxConnections;
 
             SteamServer.AutomaticHeartbeats = true;
 
             SteamServer.LogOnAnonymous();
             doCallbacks = true;
 
-            SteamServer.OnValidateAuthTicketResponse += (steamid, ownerid, response) =>
+            SteamNetworking.OnP2PSessionRequest += (steamID) =>
             {
-               
-                if (response == AuthResponse.OK)
+                Debug.Log("TEST");
+                if (NetTools.IsMultiplayerGame())
                 {
-                    Debug.Log(steamid + " ticket is still valid");
+                    Debug.Log("SERVER P2P Steam Connection Started: " + steamID);
+                    ServerHandler.serverInstance.AcceptNewClient(steamID);
+                    
+                    SteamNetworking.AcceptP2PSessionWithUser(steamID);
+                    return;
                 }
-                else
-                {
-                    Debug.Log(steamid + " ticket is no longer valid");
-                //Add kick user stuff.
-                }
+
+                Debug.Log("SERVER P2P Steam Connection Failed: " + steamID);
             };
 
+            SteamNetworking.OnP2PConnectionFailed += (steamID, failReason) =>
+            {
+                Debug.Log("SRV P2P Failed With: " + steamID + " for reason " + failReason);
+                ServerHandler.serverInstance.KickPlayer(ServerHandler.serverInstance.GetPlayerBySteamID(steamID), "Server failed to make Steam P2P unreliable connection, reason: " + failReason);
+            };
+
+
             serverRunning = true;
+
+
 
             //steamSocket = new SteamSocketManager();
             //steamworksServerManager = SteamNetworkingSockets.CreateNormalSocket(Steamworks.Data.NetAddress.AnyIp((ushort)NetServer.serverInstance.hostPort), steamSocket);
@@ -192,7 +206,7 @@ namespace EntityNetworkingSystems
             {
                 //SteamServer.LogOff();
 
-                if ((NetTools.isServer && NetServer.serverInstance.steamAppID != -1) || (NetTools.isClient && NetClient.instanceClient.steamAppID != -1))
+                if ((NetTools.isServer && ServerHandler.serverInstance.steamAppID != -1) || (NetTools.isClient && NetClient.instanceClient.steamAppID != -1))
                 {
                     //SteamServer.Shutdown();
                     //SteamClient.Shutdown();
@@ -213,7 +227,7 @@ namespace EntityNetworkingSystems
             }
             if (initialized)
             {
-                if ((NetServer.serverInstance != null && NetServer.serverInstance.steamAppID != -1 || NetClient.instanceClient != null && NetClient.instanceClient.steamAppID != -1))
+                if ((ServerHandler.serverInstance != null && ServerHandler.serverInstance.steamAppID != -1 || NetClient.instanceClient != null && NetClient.instanceClient.steamAppID != -1))
                 {
                     //SteamClient.Shutdown();
                     //SteamServer.Shutdown();
