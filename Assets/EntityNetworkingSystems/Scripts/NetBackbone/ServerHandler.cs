@@ -59,8 +59,6 @@ namespace EntityNetworkingSystems
 
             serverInstance = this;
 
-            SteamNetworking.AllowP2PPacketRelay(true);
-
 
             if (UnityPacketHandler.instance == null)
             {

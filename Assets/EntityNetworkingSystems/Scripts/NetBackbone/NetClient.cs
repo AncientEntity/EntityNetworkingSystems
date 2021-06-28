@@ -134,7 +134,6 @@ namespace EntityNetworkingSystems
 
             connectedToServer = true;
 
-            SteamNetworking.AllowP2PPacketRelay(true);
 
             if (NetworkData.instance != null)
             {
