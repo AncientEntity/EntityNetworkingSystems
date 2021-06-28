@@ -44,8 +44,6 @@ namespace EntityNetworkingSystems.Steam
                 instance = this;
             }
 
-            SteamNetworking.AllowP2PPacketRelay(true);
-
             if ((ServerHandler.serverInstance != null && ServerHandler.serverInstance.steamAppID != -1) || (NetClient.instanceClient != null && NetClient.instanceClient.steamAppID != -1))
             {
                 try
