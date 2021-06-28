@@ -150,6 +150,7 @@ namespace EntityNetworkingSystems
 
         public void ExecutePacket(Packet curPacket)
         {
+            Debug.Log(curPacket.packetType);
             if (curPacket.packetType == Packet.pType.gOInstantiate) //It gets instantiated NetTools.
             {
 
@@ -288,7 +289,7 @@ namespace EntityNetworkingSystems
                     ServerHandler.serverInstance.myConnection = ServerHandler.serverInstance.GetPlayerByID(NetTools.clientID);
                 }
 
-                NetTools.onJoinServer.Invoke();
+                //NetTools.onJoinServer.Invoke();
 
                 //print("Test");
             }

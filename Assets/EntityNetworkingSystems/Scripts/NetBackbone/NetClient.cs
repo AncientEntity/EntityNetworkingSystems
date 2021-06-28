@@ -114,7 +114,7 @@ namespace EntityNetworkingSystems
             {
                 try
                 {
-                    Packet packet = RecvPacket();
+                    Packet packet = clientPlayer.RecievePacket(SteamListener.SteamSendTypes.reliable);//RecvPacket();
                     UnityPacketHandler.instance.QueuePacket(packet);
                 }
                 catch
@@ -192,11 +192,15 @@ namespace EntityNetworkingSystems
             //steamAuthData = SteamInteraction.instance.clientAuth.Data;
             //usedSteamID = SteamClient.SteamId.Value;
             //buildID = SteamApps.BuildId; //ADDING +1 TO TEST VERSION MISMATCHES SHOULD BE REMOVED AFTER.
+            tcpHandler = new Thread(new ThreadStart(TCPHandler));
+            tcpHandler.Name = "ENSClientTCPHandler";
+            tcpHandler.Start();
+            udpRecieveHandler = new Thread(new ThreadStart(UDPHandler));
+            udpRecieveHandler.Name = "ENSClientUDPReciever";
+            udpRecieveHandler.Start();
 
 
-            clientPlayer.SendPacket(new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, 0),SteamListener.SteamSendTypes.reliable);
-
-            if(targetSteamID == SteamClient.SteamId && ServerHandler.serverInstance != null)
+            if (targetSteamID == SteamClient.SteamId && ServerHandler.serverInstance != null)
             {
                 //If you are connecting to yourself it doesn't go through the allow P2P connection bit.
                 ServerHandler.serverInstance.AcceptNewClient(targetSteamID);
@@ -207,12 +211,6 @@ namespace EntityNetworkingSystems
 
             connectedToServer = true;
             
-            tcpHandler = new Thread(new ThreadStart(TCPHandler));
-            tcpHandler.Name = "ENSClientTCPHandler";
-            tcpHandler.Start();
-            udpRecieveHandler = new Thread(new ThreadStart(UDPHandler));
-            udpRecieveHandler.Name = "ENSClientUDPReciever";
-            udpRecieveHandler.Start();
             packetTCPSendQueue = new List<Packet>();
             packetUDPSendQueue = new List<Packet>();
             tcpSendHandler = new Thread(new ParameterizedThreadStart(PacketSendThread))

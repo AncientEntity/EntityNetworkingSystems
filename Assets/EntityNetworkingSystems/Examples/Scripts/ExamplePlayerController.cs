@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class ExamplePlayerController : MonoBehaviour
 {
+
     public static List<ExamplePlayerController> controllers = new List<ExamplePlayerController>();
 
     public List<NetworkObject> owned = new List<NetworkObject>();

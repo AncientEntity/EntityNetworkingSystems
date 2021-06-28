@@ -275,7 +275,7 @@ namespace EntityNetworkingSystems
                 netClient.clientID = lastPlayerID + 1;
                 connections.Add(netClient);
                 connectionsByID[netClient.clientID] = netClient;
-                SendPacket(netClient, new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, 0));
+                SendTCPPacket(netClient, new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, 0));
                 lastPlayerID += 1;
                 if(CurrentConnectionCount() > maxConnections)
                 {
@@ -285,12 +285,12 @@ namespace EntityNetworkingSystems
                 }
 
 
-                Debug.Log("New Client Connected Successfully. <"+userSteamID+">");
+                Debug.Log("New Client Connected Successfully. <"+userSteamID+">("+netClient.clientID+")");
 
-                Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, new PlayerLoginData((short)netClient.clientID, mySteamID));
+                Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, new PlayerLoginData((short)netClient.clientID, userSteamID));
                 loginPacket.packetOwnerID = -1;
                 loginPacket.sendToAll = false;
-                SendPacket(netClient, loginPacket);
+                SendTCPPacket(netClient, loginPacket);
 
 
                 //Thread.Sleep(50); //Prevents a memory error on the client side? bruh.
