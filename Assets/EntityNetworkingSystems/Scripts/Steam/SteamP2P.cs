@@ -153,7 +153,7 @@ namespace EntityNetworkingSystems.Steam
                         SteamNetworking.AcceptP2PSessionWithUser(steamID);
                 }
                 
-                Debug.Log("CLIENT P2P Steam Connection Failed: " + steamID);
+                Debug.Log("CLIENT P2P Steam Connection Denied: " + steamID);
             };
 
             SteamNetworking.OnP2PConnectionFailed += (steamID, failReason) =>
