@@ -229,7 +229,6 @@ namespace EntityNetworkingSystems
             SteamFriends.SetRichPresence("steam_display", "Multiplayer");
             //SteamFriends.SetRichPresence("steam_player_group", "Survival");
             //SteamFriends.SetRichPresence("steam_player_group_size", PlayerController.allPlayers.Count.ToString()); //Also gets updated in playercontroller.start
-            NetTools.onJoinServer.Invoke();
 
             return true;
         }

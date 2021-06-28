@@ -320,7 +320,7 @@ namespace EntityNetworkingSystems
                         {
                             Packet multiPack = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(tempPackets));
                             multiPack.sendToAll = false;
-                            SendPacket(netClient, multiPack);
+                            SendTCPPacket(netClient, multiPack);
 
                             tempPackets = new List<Packet>();
                         }
@@ -330,7 +330,7 @@ namespace EntityNetworkingSystems
                     //Debug.Log(tempPackets.Count);
                     Packet lastMulti = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(tempPackets));
                     lastMulti.sendToAll = false;
-                    SendPacket(netClient, lastMulti);
+                    SendTCPPacket(netClient, lastMulti);
                     //Debug.Log(packetsToSend.Count);
                     //Packet bpacket = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(packetsToSend));
                     //bpacket.sendToAll = false;

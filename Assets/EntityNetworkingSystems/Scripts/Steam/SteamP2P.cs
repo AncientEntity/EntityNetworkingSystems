@@ -43,7 +43,7 @@ namespace EntityNetworkingSystems.Steam
         {
             byte[] bytePacket = ENSSerialization.SerializePacket(packet);
             Debug.Log("Server: "+((int)sendType + NetTools.serverChannelOffset));
-            bool outcome = SteamNetworking.SendP2PPacket(steamID, ENSSerialization.SerializePacket(packet), bytePacket.Length, (int)sendType, (P2PSend)sendType);
+            bool outcome = SteamNetworking.SendP2PPacket(steamID, ENSSerialization.SerializePacket(packet), bytePacket.Length, (int)sendType+5, (P2PSend)sendType);
         }
 
         public void SendPacket(Packet packet,SteamSendTypes sendType, bool ignoreSelf = false)
@@ -60,7 +60,7 @@ namespace EntityNetworkingSystems.Steam
                 {
                     //SteamSendTypes gets converted to P2PSend because the enums have the same values as the P2PSend Values. ----------------
                     Debug.Log("Server: " +((int)sendType + NetTools.serverChannelOffset));
-                    bool outcome = SteamNetworking.SendP2PPacket(player.steamID, bytePacket, bytePacket.Length, (int)sendType, (P2PSend)sendType);
+                    bool outcome = SteamNetworking.SendP2PPacket(player.steamID, bytePacket, bytePacket.Length, (int)sendType+5, (P2PSend)sendType);
                 }
             }
         }
@@ -217,12 +217,12 @@ namespace EntityNetworkingSystems.Steam
             while (!done)
             {
                 Debug.Log("Client: " +((int)protocol + NetTools.serverChannelOffset));
-                while (!SteamNetworking.IsP2PPacketAvailable((int)protocol))
+                while (!SteamNetworking.IsP2PPacketAvailable((int)protocol+5))
                 {
                     continue;
                 }
                 //Debug.Log(serverEndpoint.ToString());
-                P2Packet? packet = SteamNetworking.ReadP2PPacket((int)protocol);
+                P2Packet? packet = SteamNetworking.ReadP2PPacket((int)protocol+5);
                 if (packet.HasValue)
                 {
                     done = true;
