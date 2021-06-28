@@ -91,7 +91,7 @@ namespace EntityNetworkingSystems.Steam
                     //Add kick user stuff.
                 }
             };
-
+            SteamNetworking.AllowP2PPacketRelay(true);
 
             initialized = true;
             Debug.Log("Steam Interaction Initialized");

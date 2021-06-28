@@ -618,7 +618,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -27.700012, y: -110.44}
+  m_AnchoredPosition: {x: -27.703125, y: -110.44141}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 1, y: 1}
 --- !u!114 &385038337
@@ -1209,7 +1209,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -27.700012, y: -21}
+  m_AnchoredPosition: {x: -27.703125, y: -21}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 1, y: 1}
 --- !u!114 &1840075117
@@ -1470,7 +1470,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_UiScaleMode: 0
   m_ReferencePixelsPerUnit: 100
-  m_ScaleFactor: 1
+  m_ScaleFactor: 2.5
   m_ReferenceResolution: {x: 800, y: 600}
   m_ScreenMatchMode: 0
   m_MatchWidthOrHeight: 0
@@ -1672,6 +1672,26 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7745350244653862988, guid: 02188897ea456634dbc92f4ced9a9f72,
+        type: 3}
+      propertyPath: netServer.steamAppID
+      value: 480
+      objectReference: {fileID: 0}
+    - target: {fileID: 7745350244653862988, guid: 02188897ea456634dbc92f4ced9a9f72,
+        type: 3}
+      propertyPath: netServer.modDir
+      value: spacewar
+      objectReference: {fileID: 0}
+    - target: {fileID: 7745350244653862988, guid: 02188897ea456634dbc92f4ced9a9f72,
+        type: 3}
+      propertyPath: netServer.gameDesc
+      value: spacewar
+      objectReference: {fileID: 0}
+    - target: {fileID: 7745350244653862989, guid: 02188897ea456634dbc92f4ced9a9f72,
+        type: 3}
+      propertyPath: netClient.steamAppID
+      value: 480
       objectReference: {fileID: 0}
     - target: {fileID: 7745350244653862990, guid: 02188897ea456634dbc92f4ced9a9f72,
         type: 3}

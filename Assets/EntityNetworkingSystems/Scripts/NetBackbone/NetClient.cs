@@ -344,6 +344,13 @@ namespace EntityNetworkingSystems
             {
                 queue = ref packetUDPSendQueue;
             }
+            while(clientID == -1)
+            {
+                //Debug.Log("Waiting");
+                Thread.Sleep(100);
+                continue;
+            }
+            Debug.Log(((bool)reliable).ToString() + " Send Thread has Begun.");
             while (true)
             {
 

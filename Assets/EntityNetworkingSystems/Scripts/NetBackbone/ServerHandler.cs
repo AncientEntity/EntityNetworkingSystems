@@ -275,7 +275,7 @@ namespace EntityNetworkingSystems
                 netClient.clientID = lastPlayerID + 1;
                 connections.Add(netClient);
                 connectionsByID[netClient.clientID] = netClient;
-                SendTCPPacket(netClient, new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, 0));
+                //SendTCPPacket(netClient, new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, 0));
                 lastPlayerID += 1;
                 if(CurrentConnectionCount() > maxConnections)
                 {
@@ -293,7 +293,6 @@ namespace EntityNetworkingSystems
                 SendTCPPacket(netClient, loginPacket);
 
 
-                //Thread.Sleep(50); //Prevents a memory error on the client side? bruh.
                 //Send buffered packets
                 if (bufferedPackets.Count > 0)
                 {

@@ -48,9 +48,9 @@ MonoBehaviour:
   isServerBuild: 0
   netServer:
     maxConnections: 8
-    steamAppID: 1313340
-    modDir: Epocria
-    gameDesc: Epocria
+    steamAppID: 480
+    modDir: spacewar
+    gameDesc: spacewar
     mapName: Survival
     password: 
     mySteamID: 0
@@ -77,7 +77,7 @@ MonoBehaviour:
   netClient:
     connectedToServer: 0
     clientID: -1
-    steamAppID: 1313340
+    steamAppID: 480
     serversSteamID: 76561198078399124
     password: 
     trackOverhead: 1
