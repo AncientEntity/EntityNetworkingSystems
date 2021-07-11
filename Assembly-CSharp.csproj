@@ -85,6 +85,7 @@
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\ENSUtils.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\InputWorker.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\LinearInterpolation.cs" />
+    <Compile Include="Assets\p2ptest.cs" />
     <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Posix.xml" />
     <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Win64.xml" />
     <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Win32.xml" />

@@ -15,12 +15,6 @@ public class ExampleHost : MonoBehaviour
             StartServer();
         }
     }
-
-    private void Update()
-    {
-        Debug.Log(t.TotalSeconds);
-    }
-
     public void StartServer()
     {
         netServer.Initialize();
