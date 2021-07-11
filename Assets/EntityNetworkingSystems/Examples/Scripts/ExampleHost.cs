@@ -10,10 +10,15 @@ public class ExampleHost : MonoBehaviour
 
     void Start()
     {
-        if(isServerBuild)
+        if (isServerBuild)
         {
             StartServer();
         }
+    }
+
+    private void Update()
+    {
+        Debug.Log(t.TotalSeconds);
     }
 
     public void StartServer()
