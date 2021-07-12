@@ -38,7 +38,6 @@ namespace EntityNetworkingSystems.Steam
         private List<Tuple<ulong, byte[]>> queuedReliable = new List<Tuple<ulong, byte[]>>(); //ulong = steamid who sent it
         private List<Tuple<ulong, byte[]>> queuedUnreliable = new List<Tuple<ulong, byte[]>>(); //ulong = steamid who sent it
 
-
         private bool anyConnectionAllowed = false;
         private bool connectToIncoming = false; //Will connect back to any connections that are incoming and accepted, mainly for servers.
         private List<ulong> connectionsAllowedFrom = new List<ulong>();
@@ -104,12 +103,10 @@ namespace EntityNetworkingSystems.Steam
             Payload payload = Payload.DeSerialize(packet.Value.Data);
             if (payload.type == messageType.data)
             {
-                Debug.Log(payload.info.Length);
-                queue.Add(new Tuple<ulong, byte[]>(packet.Value.SteamId, packet.Value.Data));
+                queue.Add(new Tuple<ulong, byte[]>(packet.Value.SteamId, payload.info));
                 return;
             } else if (payload.type == messageType.protocol)
             {
-                Debug.Log("PROT");
                 if(payload.info[0] == (byte)procotolType.connectionEnd)
                 {
                     SteamNetworking.CloseP2PSessionWithUser(packet.Value.SteamId);
@@ -133,10 +130,7 @@ namespace EntityNetworkingSystems.Steam
                     P2Packet? packet = SteamNetworking.ReadP2PPacket(channel);
                     if(packet.HasValue)
                     {
-                        foreach(byte b in packet.Value.Data)
-                        {
-                            Debug.Log(b);
-                        }
+                        Debug.Log("Packet Gotten");
                         HandleIncomingPacket(packet, ref queue);
                     }
                 }
@@ -171,6 +165,7 @@ namespace EntityNetworkingSystems.Steam
                 }
                 SteamNetworking.CloseP2PSessionWithUser(steamid);
                 activeConnections.Remove(conn);
+                Debug.Log("Connection with player has closed: "+steamid);
             }
         }
 
@@ -325,6 +320,13 @@ namespace EntityNetworkingSystems.Steam
                     return conn;
                 }
             }
+            if(steamid == SteamClient.SteamId)
+            {
+                Connect(steamid);
+                Connection newConn = new Connection(steamid, GetTimeStamp());
+                activeConnections.Add(newConn);
+                return newConn;
+            }
             return null;
         }
     }
@@ -388,35 +390,5 @@ namespace EntityNetworkingSystems.Steam
 
     }
 
-    public class RawConnectionHandler : ConnectionManager
-    {
-    }
-
-    public class RawSteamSocket : SocketManager
-    {
-        public override void OnConnecting(Steamworks.Data.Connection connection, ConnectionInfo data)
-        {
-            connection.Accept();
-            Console.WriteLine($"{data.Identity} is connecting");
-        }
-
-        public override void OnConnected(Steamworks.Data.Connection connection, ConnectionInfo data)
-        {
-            Console.WriteLine($"{data.Identity} has joined the game");
-        }
-
-        public override void OnDisconnected(Steamworks.Data.Connection connection, ConnectionInfo data)
-        {
-            Console.WriteLine($"{data.Identity} is out of here");
-        }
-
-        public override void OnMessage(Steamworks.Data.Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel)
-        {
-            Console.WriteLine($"We got a message from {identity}!");
-
-            // Send it right back
-            connection.SendMessage(data, size, SendType.Reliable);
-        }
-    }
 
 }

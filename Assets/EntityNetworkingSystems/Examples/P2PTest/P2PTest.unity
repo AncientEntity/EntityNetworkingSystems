@@ -234,13 +234,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d058cdc25aa850c4d8084c79aad69780, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  gameID: 480
   targetID: 76561198078399124
   msgToSend: 0
-  shouldConnect: 0
+  message: 
+  shouldConnect: 1
   p:
     channelRecieveOffset: 0
     channelSendOffset: 10
     activeConnections: []
+  count: 0
 --- !u!114 &1881037524
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -253,13 +256,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d058cdc25aa850c4d8084c79aad69780, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  gameID: 480
   targetID: 76561198078399124
   msgToSend: 1
+  message: pp poo ppooo
   shouldConnect: 1
   p:
     channelRecieveOffset: 10
     channelSendOffset: 0
     activeConnections: []
+  count: 0
 --- !u!4 &1881037525
 Transform:
   m_ObjectHideFlags: 0
