@@ -135,32 +135,32 @@ namespace EntityNetworkingSystems
             
 
 
-            SteamServerInit serverInitData = new SteamServerInit(NetServer.serverInstance.modDir, NetServer.serverInstance.gameDesc) { };
-            serverInitData.DedicatedServer = false;
-            serverInitData.GamePort = (ushort)NetServer.serverInstance.hostPort;
-            SteamServer.Init(NetServer.serverInstance.steamAppID, serverInitData);
-            SteamServer.ServerName = SteamClient.Name + "'s Server.";
-            SteamServer.MapName = NetServer.serverInstance.mapName;
-            SteamServer.MaxPlayers = NetServer.serverInstance.maxConnections;
+            //SteamServerInit serverInitData = new SteamServerInit(NetServer.serverInstance.modDir, NetServer.serverInstance.gameDesc) { };
+            //serverInitData.DedicatedServer = false;
+            ////serverInitData.GamePort = (ushort)NetServer.serverInstance.hostPort;
+            //SteamServer.Init(NetServer.serverInstance.steamAppID, serverInitData);
+            //SteamServer.ServerName = SteamClient.Name + "'s Server.";
+            //SteamServer.MapName = NetServer.serverInstance.mapName;
+            //SteamServer.MaxPlayers = NetServer.serverInstance.maxConnections;
 
-            SteamServer.AutomaticHeartbeats = true;
+            //SteamServer.AutomaticHeartbeats = true;
 
-            SteamServer.LogOnAnonymous();
-            doCallbacks = true;
+            //SteamServer.LogOnAnonymous();
+            //doCallbacks = true;
 
-            SteamServer.OnValidateAuthTicketResponse += (steamid, ownerid, response) =>
-            {
+            //SteamServer.OnValidateAuthTicketResponse += (steamid, ownerid, response) =>
+            //{
                
-                if (response == AuthResponse.OK)
-                {
-                    Debug.Log(steamid + " ticket is still valid");
-                }
-                else
-                {
-                    Debug.Log(steamid + " ticket is no longer valid");
-                //Add kick user stuff.
-                }
-            };
+            //    if (response == AuthResponse.OK)
+            //    {
+            //        Debug.Log(steamid + " ticket is still valid");
+            //    }
+            //    else
+            //    {
+            //        Debug.Log(steamid + " ticket is no longer valid");
+            //    //Add kick user stuff.
+            //    }
+            //};
 
             serverRunning = true;
 

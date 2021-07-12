@@ -350,12 +350,50 @@ namespace EntityNetworkingSystems
                     NetClient.instanceClient.DisconnectFromServer();
                     NetTools.onLeaveServer.Invoke(cP.reason);
                 }
+            } else if (curPacket.packetType == Packet.pType.networkAuth && NetTools.isServer)
+            {
+                NetworkAuthPacket clientAuthPacket = ENSSerialization.DeserializeAuthPacket(curPacket.packetData);
+
+                NetworkPlayer client = NetServer.serverInstance.GetPlayerByID(curPacket.packetOwnerID);
+
+                if (!client.gotAuthPacket)
+                {
+                    //Check password.
+                    if (NetServer.serverInstance.password != "" && clientAuthPacket.password != NetServer.serverInstance.password)
+                    {
+                        //Kick player wrong password.
+                        NetServer.serverInstance.KickPlayer(client, "password");
+                        return;
+                    }
+                    else if (SteamApps.BuildId != clientAuthPacket.steamBuildID)
+                    {
+                        //Kick player wrong version.
+                        NetServer.serverInstance.KickPlayer(client, "version");
+                        return;
+                    }
+
+
+
+                    client.steamID = clientAuthPacket.steamID;
+
+
+
+                    //BeginAuthResult bAR = SteamUser.BeginAuthSession(clientAuthPacket.authData, clientAuthPacket.steamID);
+                    SteamInteraction.instance.connectedSteamIDs.Add(clientAuthPacket.steamID);
+                    SteamServer.UpdatePlayer(client.steamID, new Friend(client.steamID).Name, 0);
+                    SteamServer.ForceHeartbeat();
+                    //Debug.Log(bAR);
+                    //SteamServer.ForceHeartbeat();
+
+
+                    client.gotAuthPacket = true;
+                }
             }
             //else if (curPacket.packetType == Packet.pType.networkAuth && NetTools.isServer)
             //{
 
 
-                
+
             //}
         }
 

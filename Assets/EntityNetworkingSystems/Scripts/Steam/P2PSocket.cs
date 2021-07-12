@@ -5,6 +5,7 @@ using Steamworks;
 using System;
 using System.Threading;
 using Steamworks.Data;
+using UnityEngine.Events;
 
 namespace EntityNetworkingSystems.Steam
 {
@@ -24,10 +25,14 @@ namespace EntityNetworkingSystems.Steam
         connectionEnd = 1,
         heartbeat = 2,
     }
-
+    
     [System.Serializable]
     public class P2PSocket
     {
+
+        public OnConnectEvent<Connection> onConnectionStart = new OnConnectEvent<Connection>();
+        public OnConnectEvent<Connection> onConnectionEnd = new OnConnectEvent<Connection>();
+        
         public int channelRecieveOffset = 0;
         public int channelSendOffset = 0;
 
@@ -75,6 +80,7 @@ namespace EntityNetworkingSystems.Steam
 
             active = true;
         }
+        
 
 
         private void HeartbeatChecker()
@@ -86,10 +92,10 @@ namespace EntityNetworkingSystems.Steam
                 {
                     if(conn.timeSinceLastMessage >= timeoutDelay)
                     {
-                        Disconnect(conn.steamid);
-                        Debug.Log(conn.steamid + " has timed out. ("+conn.timeSinceLastMessage+"s)");
+                        Disconnect(conn.steamID);
+                        Debug.Log(conn.steamID + " has timed out. ("+conn.timeSinceLastMessage+"s)");
                     }
-                    SendRaw(conn.steamid, sendType.reliable, heartbeatPacket);
+                    SendRaw(conn.steamID, sendType.reliable, heartbeatPacket);
                 }
 
                 Thread.Sleep(10000);
@@ -137,7 +143,7 @@ namespace EntityNetworkingSystems.Steam
             }
         }
 
-        public void Dispose()
+        public void Stop()
         {
             active = false;
         }
@@ -148,7 +154,9 @@ namespace EntityNetworkingSystems.Steam
             {
                 //Connecting to myself, this means P2PRequest gets skipped.
                 SteamNetworking.AcceptP2PSessionWithUser(steamid);
-                activeConnections.Add(new Connection(steamid, GetTimeStamp()));
+                Connection newConn = new Connection(steamid, GetTimeStamp());
+                activeConnections.Add(newConn);
+                onConnectionStart.Invoke(newConn);
             }
 
             SendTo(steamid, sendType.reliable, Payload.Serialize(messageType.protocol, new byte[1] { (byte)procotolType.connectionStart }));
@@ -165,6 +173,7 @@ namespace EntityNetworkingSystems.Steam
                 }
                 SteamNetworking.CloseP2PSessionWithUser(steamid);
                 activeConnections.Remove(conn);
+                onConnectionEnd.Invoke(conn);
                 Debug.Log("Connection with player has closed: "+steamid);
             }
         }
@@ -213,9 +222,9 @@ namespace EntityNetworkingSystems.Steam
             {
                 if(c == null)
                 {
-                    return;
+                    continue;
                 }
-                SendRaw(c.steamid, send, serializedPayload);
+                SendRaw(c.steamID, send, serializedPayload);
             }
         }
 
@@ -224,7 +233,11 @@ namespace EntityNetworkingSystems.Steam
             byte[] serializedPayload = Payload.Serialize(new Payload(info, msgType));
             foreach (Connection c in activeConnections.ToArray())
             {
-                SendRaw(c.steamid, send, serializedPayload);
+                if(c == null)
+                {
+                    continue;
+                }
+                SendRaw(c.steamID, send, serializedPayload);
             }
         }
 
@@ -285,7 +298,9 @@ namespace EntityNetworkingSystems.Steam
                 {
                     Connect(steamid);
                 }
-                activeConnections.Add(new Connection(steamid, GetTimeStamp()));
+                Connection newConn = new Connection(steamid, GetTimeStamp());
+                activeConnections.Add(newConn);
+                onConnectionStart.Invoke(newConn);
                 Debug.Log("Connection Accepted: " + steamid);
                 return;
             }
@@ -303,7 +318,7 @@ namespace EntityNetworkingSystems.Steam
         {
             foreach(Connection conn in activeConnections)
             {
-                if(conn.steamid == steamid)
+                if(conn.steamID == steamid)
                 {
                     return true;
                 }
@@ -315,7 +330,7 @@ namespace EntityNetworkingSystems.Steam
         {
             foreach(Connection conn in activeConnections)
             {
-                if(conn.steamid == steamid)
+                if(conn.steamID == steamid)
                 {
                     return conn;
                 }
@@ -329,6 +344,9 @@ namespace EntityNetworkingSystems.Steam
             }
             return null;
         }
+
+        public class OnConnectEvent<Connection> : UnityEvent<Connection> { };
+
     }
 
     public class Payload
@@ -367,7 +385,7 @@ namespace EntityNetworkingSystems.Steam
     [System.Serializable]
     public class Connection
     {
-        public ulong steamid;
+        public ulong steamID;
         public uint timeSinceLastMessage
         {
             get
@@ -379,7 +397,7 @@ namespace EntityNetworkingSystems.Steam
 
         public Connection(ulong steamid, uint timeAtLastMessage)
         {
-            this.steamid = steamid;
+            this.steamID = steamid;
             this.timeAtLastMessage = timeAtLastMessage;
         }
 
@@ -387,7 +405,7 @@ namespace EntityNetworkingSystems.Steam
         {
             timeAtLastMessage = P2PSocket.GetTimeStamp();
         }
-
+        
     }
 
 

@@ -6,17 +6,19 @@ using UnityEngine.SceneManagement;
 
 public class ExampleClient : MonoBehaviour
 {
+    public ulong steamidToJoin;
+
     public NetClient netClient;
     public List<NetworkObject> owned = new List<NetworkObject>();
 
-    public string ip;
-    public int port;
-
+    private void Start()
+    {
+        netClient.Initialize();
+    }
 
     public void ConnectToServer()
     {
-        netClient.Initialize();
-        netClient.ConnectToServer(ip,port);
+        netClient.ConnectToServer(steamidToJoin);
         NetTools.onJoinServer.AddListener(delegate { InitializePlayer(); });
         NetTools.onLeaveServer.AddListener(delegate { SceneManager.LoadSceneAsync("TestScene", LoadSceneMode.Single); });
 

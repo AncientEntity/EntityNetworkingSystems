@@ -1,4 +1,5 @@
 ﻿using EntityNetworkingSystems;
+using Steamworks;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -21,6 +22,11 @@ public class ExampleHost : MonoBehaviour
         netServer.StartServer();
 
         //InvokeRepeating("RpcFunOrSomething", 0, 1f);
+    }
+
+    private void Update()
+    {
+        SteamClient.RunCallbacks();
     }
 
     //void RpcFunOrSomething ()
