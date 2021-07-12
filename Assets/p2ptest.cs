@@ -8,9 +8,11 @@ using System.Threading;
 
 public class p2ptest : MonoBehaviour
 {
+    public ulong targetID = 76561198078399124;
     public bool msgToSend;
+    public bool shouldConnect;
+    public P2PSocket p;
 
-    private P2PSocket p;
     private Thread testThread;
     private void Awake()
     {
@@ -18,20 +20,24 @@ public class p2ptest : MonoBehaviour
         {
             SteamClient.Init(480);
         }
-        catch
+        catch (System.Exception e)
         {
-
+            Debug.LogWarning(e);
         }
-        p = new P2PSocket();
-        p.AllowConnectionFrom(SteamClient.SteamId);
+        p.AllowConnectionsAll(true);
+        p.ConnectToIncoming(true);
     }
 
     private void Start()
     {
+        p.Start();
+
         testThread = new Thread(new ThreadStart(TestThread));
         testThread.Start();
-
-        p.Connect(SteamClient.SteamId);
+        if (shouldConnect)
+        {
+            p.Connect(targetID);
+        }
     }
 
 
@@ -41,7 +47,7 @@ public class p2ptest : MonoBehaviour
         {
             if (msgToSend)
             {
-                p.SendAll(sendType.reliable, new byte[0]);
+                p.SendAll(sendType.reliable, new byte[5] { 5,4,43,2,2});
             }
             else
             {
@@ -54,6 +60,7 @@ public class p2ptest : MonoBehaviour
     private void OnDestroy()
     {
         testThread.Abort();
+        SteamClient.Shutdown();
     }
 
 

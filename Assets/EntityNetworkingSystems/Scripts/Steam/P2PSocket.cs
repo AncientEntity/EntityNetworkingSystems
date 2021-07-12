@@ -25,13 +25,15 @@ namespace EntityNetworkingSystems.Steam
         heartbeat = 2,
     }
 
-
-
-
+    [System.Serializable]
     public class P2PSocket
     {
+        public int channelRecieveOffset = 0;
+        public int channelSendOffset = 0;
+
         private bool active = false;
 
+        [SerializeField]
         private List<Connection> activeConnections = new List<Connection>();
         private List<Tuple<ulong, byte[]>> queuedReliable = new List<Tuple<ulong, byte[]>>(); //ulong = steamid who sent it
         private List<Tuple<ulong, byte[]>> queuedUnreliable = new List<Tuple<ulong, byte[]>>(); //ulong = steamid who sent it
@@ -48,9 +50,20 @@ namespace EntityNetworkingSystems.Steam
 
         private float timeoutDelay = 15f;
 
-        public P2PSocket()
+        // Every heartbeat packet is the same, so instead of constructing it each time we use this.
+        private static byte[] heartbeatPacket = new byte[2] { (byte)messageType.protocol,(byte)procotolType.heartbeat}; 
+
+
+
+        public void Start()
         {
             SteamNetworking.OnP2PSessionRequest += P2PRequest;
+
+            SteamNetworking.OnP2PConnectionFailed = (steamID, failReason) =>
+            {
+                Debug.Log("CLIENT P2P Failed With: " + steamID + " for reason " + failReason);
+            };
+
             reliableIncomingHandler = new Thread(() => IncomingPacketManager(sendType.reliable));
             reliableIncomingHandler.Name = "P2PSocketReliable";
             reliableIncomingHandler.Start();
@@ -75,21 +88,23 @@ namespace EntityNetworkingSystems.Steam
                     if(conn.timeSinceLastMessage >= timeoutDelay)
                     {
                         Disconnect(conn.steamid);
-                        Debug.Log(conn.steamid + " has timed out.");
+                        Debug.Log(conn.steamid + " has timed out. ("+conn.timeSinceLastMessage+"s)");
                     }
+                    SendRaw(conn.steamid, sendType.reliable, heartbeatPacket);
                 }
 
-                Thread.Sleep(5000);
+                Thread.Sleep(10000);
             }
         }
 
         private void HandleIncomingPacket(P2Packet? packet, ref List<Tuple<ulong, byte[]>> queue)
         {
-            GetConnectionBySteamID(packet.Value.SteamId).UpdateTimeAtLastMessage(GetTimeStamp());
+            GetConnectionBySteamID(packet.Value.SteamId).UpdateTimeAtLastMessage();
 
             Payload payload = Payload.DeSerialize(packet.Value.Data);
             if (payload.type == messageType.data)
             {
+                Debug.Log(payload.info.Length);
                 queue.Add(new Tuple<ulong, byte[]>(packet.Value.SteamId, packet.Value.Data));
                 return;
             } else if (payload.type == messageType.protocol)
@@ -105,7 +120,7 @@ namespace EntityNetworkingSystems.Steam
 
         private void IncomingPacketManager(sendType sType)
         {
-            int channel = (int)sType;
+            int channel = (int)sType + channelRecieveOffset;
             ref List<Tuple<ulong, byte[]>> queue = ref queuedReliable;
             if(sType == sendType.unreliable)
             {
@@ -118,6 +133,10 @@ namespace EntityNetworkingSystems.Steam
                     P2Packet? packet = SteamNetworking.ReadP2PPacket(channel);
                     if(packet.HasValue)
                     {
+                        foreach(byte b in packet.Value.Data)
+                        {
+                            Debug.Log(b);
+                        }
                         HandleIncomingPacket(packet, ref queue);
                     }
                 }
@@ -131,6 +150,13 @@ namespace EntityNetworkingSystems.Steam
         
         public void Connect(ulong steamid)
         {
+            if(steamid == SteamClient.SteamId)
+            {
+                //Connecting to myself, this means P2PRequest gets skipped.
+                SteamNetworking.AcceptP2PSessionWithUser(steamid);
+                activeConnections.Add(new Connection(steamid, GetTimeStamp()));
+            }
+
             SendTo(steamid, sendType.reliable, Payload.Serialize(messageType.protocol, new byte[1] { (byte)procotolType.connectionStart }));
         }
 
@@ -190,6 +216,10 @@ namespace EntityNetworkingSystems.Steam
             byte[] serializedPayload = Payload.Serialize(new Payload(info, messageType.data));
             foreach (Connection c in activeConnections.ToArray())
             {
+                if(c == null)
+                {
+                    return;
+                }
                 SendRaw(c.steamid, send, serializedPayload);
             }
         }
@@ -206,12 +236,12 @@ namespace EntityNetworkingSystems.Steam
         public void SendTo(ulong steamid,sendType send, byte[] info, messageType msgType = messageType.data)
         {
             byte[] serializedPayload = Payload.Serialize(new Payload(info,msgType));
-            SteamNetworking.SendP2PPacket(steamid, serializedPayload, serializedPayload.Length, (int)send, (P2PSend)send);
+            SteamNetworking.SendP2PPacket(steamid, serializedPayload, serializedPayload.Length, (int)send + channelSendOffset, (P2PSend)send);
         }
 
         private void SendRaw(ulong steamid, sendType send, byte[] info)
         {
-            SteamNetworking.SendP2PPacket(steamid, info, info.Length, (int)send, (P2PSend)send);
+            SteamNetworking.SendP2PPacket(steamid, info, info.Length, (int)send + channelSendOffset, (P2PSend)send);
         }
 
         public void AllowConnectionFrom(ulong steamid, bool allowed=true)
@@ -249,6 +279,7 @@ namespace EntityNetworkingSystems.Steam
         {
             if(blacklistedSteamIDs.Contains(steamid))
             {
+                Debug.Log("Blacklisted SteamID denied from joining: " + steamid);
                 return;
             }
 
@@ -261,7 +292,10 @@ namespace EntityNetworkingSystems.Steam
                 }
                 activeConnections.Add(new Connection(steamid, GetTimeStamp()));
                 Debug.Log("Connection Accepted: " + steamid);
+                return;
             }
+            Debug.Log("Connection Failed: " + steamid);
+            
         }
 
         public static uint GetTimeStamp()
@@ -328,6 +362,7 @@ namespace EntityNetworkingSystems.Steam
 
     }
 
+    [System.Serializable]
     public class Connection
     {
         public ulong steamid;
@@ -346,11 +381,42 @@ namespace EntityNetworkingSystems.Steam
             this.timeAtLastMessage = timeAtLastMessage;
         }
 
-        public void UpdateTimeAtLastMessage(uint time)
+        public void UpdateTimeAtLastMessage()
         {
-            timeAtLastMessage = time;
+            timeAtLastMessage = P2PSocket.GetTimeStamp();
         }
 
+    }
+
+    public class RawConnectionHandler : ConnectionManager
+    {
+    }
+
+    public class RawSteamSocket : SocketManager
+    {
+        public override void OnConnecting(Steamworks.Data.Connection connection, ConnectionInfo data)
+        {
+            connection.Accept();
+            Console.WriteLine($"{data.Identity} is connecting");
+        }
+
+        public override void OnConnected(Steamworks.Data.Connection connection, ConnectionInfo data)
+        {
+            Console.WriteLine($"{data.Identity} has joined the game");
+        }
+
+        public override void OnDisconnected(Steamworks.Data.Connection connection, ConnectionInfo data)
+        {
+            Console.WriteLine($"{data.Identity} is out of here");
+        }
+
+        public override void OnMessage(Steamworks.Data.Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel)
+        {
+            Console.WriteLine($"We got a message from {identity}!");
+
+            // Send it right back
+            connection.SendMessage(data, size, SendType.Reliable);
+        }
     }
 
 }
