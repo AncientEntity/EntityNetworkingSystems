@@ -12,6 +12,7 @@ using System.Linq;
 using EntityNetworkingSystems.UDP;
 using System.Threading.Tasks;
 using Mono.Nat;
+using EntityNetworkingSystems.Nat;
 
 namespace EntityNetworkingSystems
 {
@@ -100,6 +101,8 @@ namespace EntityNetworkingSystems
             {
                 Debug.LogWarning("NetworkData object not found.");
             }
+
+            UPnP.Init();
 
             //if (packetSendHandler == null)
             //{
@@ -232,6 +235,7 @@ namespace EntityNetworkingSystems
                 {
                     SteamInteraction.instance.ShutdownServer();
                 }
+                UPnP.Shutdown();
             }
             if (udpListener != null)
             {
