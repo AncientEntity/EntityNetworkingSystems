@@ -150,7 +150,7 @@ namespace EntityNetworkingSystems.UDP
 
         //private IPEndPoint serverEndpoint;
 
-        public UDPPlayer(IPEndPoint serverEndpoint)
+        public UDPPlayer()
         {
             //portToUse = serverEndpoint.Port + 1;
 

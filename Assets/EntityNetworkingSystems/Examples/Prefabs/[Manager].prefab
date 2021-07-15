@@ -50,13 +50,24 @@ MonoBehaviour:
     hostAddress: Any
     hostPort: 44594
     maxConnections: 8
-    useSteamworks: 0
+    useSteamworks: 1
     steamAppID: 480
     modDir: spacewar
     gameDesc: spacewar
     mapName: world1
+    password: 
+    mySteamID: 0
     connections: []
-    bufferedPackets: []
+    myConnection:
+      clientID: -1
+      proximityPosition: {x: 0, y: 0, z: 0}
+      loadProximity: 15
+      steamID: 0
+      gotAuthPacket: 0
+      playerIP: 
+      playerPort: 0
+      playerConnected: 1
+    bufferedDisplay: []
 --- !u!114 &7745350244653862989
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -71,15 +82,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   netClient:
     connectedToServer: 0
+    udpPlayer:
+      portToUse: 44595
     clientID: -1
-    useSteamworks: 0
     steamAppID: 480
+    serversSteamID: 0
+    password: 
     trackOverhead: 1
+    packetsSent: 0
     overheadFilter: 5
     packetByteLength: 
+    lastConnectionError: 
+    packetUDPSendQueue: []
+    packetTCPSendQueue: []
   owned: []
-  ip: 127.0.0.1
-  port: 44594
+  ip: 76561198078399124
+  virtualPort: 44594
 --- !u!114 &7745350244653862978
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -99,13 +117,17 @@ MonoBehaviour:
       prefab: {fileID: 9011985434738064851, guid: 70452bd0dea00604286d02a40203d350,
         type: 3}
       poolAmount: 300
+      serverInstantiateOnly: 0
       resetPoolMethods: []
     - prefabName: Player
       prefab: {fileID: 4803165501484243487, guid: dd0284277d85d674285e3c5399970144,
         type: 3}
       poolAmount: 0
+      serverInstantiateOnly: 0
       resetPoolMethods: []
     detectNetworkStarts: 0
     defaultFields: []
     defaultRpcs: []
+    defaultPacketTagID: -1
+  packetTags: []
   errorJson: 

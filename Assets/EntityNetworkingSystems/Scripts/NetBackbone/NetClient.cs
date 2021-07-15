@@ -21,7 +21,7 @@ namespace EntityNetworkingSystems
         public static NetClient instanceClient;
 
         public bool connectedToServer = false;
-        public TcpClient client = null;
+        public SteamSocketClient client = null;
         public UDPPlayer udpPlayer = null;
         public NetworkStream netStream;
         Thread connectionHandler = null;
@@ -31,7 +31,6 @@ namespace EntityNetworkingSystems
         [Space]
         public int clientID = -1;
 
-        public bool useSteamworks = false;
         public int steamAppID = -1; //If -1 it wont initialize and you'll need to do it somewhere else :)
         public ulong serversSteamID = 0; //The server's steam ID.
         public string password;
@@ -57,20 +56,17 @@ namespace EntityNetworkingSystems
             //    return;
             //}
 
-            client = new TcpClient();
             NetTools.isClient = true;
 
-            if (useSteamworks)
+            if (SteamInteraction.instance == null)
             {
-                if (SteamInteraction.instance == null)
-                {
-                    GameObject steamIntegration = new GameObject("Steam Integration Handler");
-                    steamIntegration.AddComponent<SteamInteraction>();
-                    steamIntegration.GetComponent<SteamInteraction>().Initialize();
-                    //steamIntegration.GetComponent<SteamInteraction>().StartServer();
-                    GameObject.DontDestroyOnLoad(steamIntegration);
-                }
+                GameObject steamIntegration = new GameObject("Steam Integration Handler");
+                steamIntegration.AddComponent<SteamInteraction>();
+                steamIntegration.GetComponent<SteamInteraction>().Initialize();
+                //steamIntegration.GetComponent<SteamInteraction>().StartServer();
+                GameObject.DontDestroyOnLoad(steamIntegration);
             }
+            
 
 
             if (UnityPacketHandler.instance == null)
@@ -148,13 +144,11 @@ namespace EntityNetworkingSystems
                 Debug.LogWarning("There is no loaded NetworkData in the scene. This may break some features.");
             }
 
-            NetworkPlayer player = new NetworkPlayer(null);
+            NetworkPlayer player = new NetworkPlayer(new Steamworks.Data.Connection(),new Steamworks.Data.ConnectionInfo());
             player.clientID = 0;
 
-            if (useSteamworks)
-            {
-                player.steamID = SteamInteraction.instance.ourSteamID;
-            }
+            player.steamID = SteamInteraction.instance.ourSteamID;
+            
 
             NetServer.serverInstance.connections.Add(player);
 
@@ -173,38 +167,37 @@ namespace EntityNetworkingSystems
 
         }
 
-        public bool ConnectToServer(string ip = "127.0.0.1", int port = 24424)
+        public bool ConnectToServer(ulong steamID, int virtualPort=0)
         {
             //if(client != null)
             //{
             //    client.Dispose();
             //}
 
-            client = new TcpClient();
+            client = SteamNetworkingSockets.ConnectRelay<SteamSocketClient>(steamID,virtualPort);
             //client.NoDelay = true;
             NetTools.isClient = true;
 
-            udpPlayer = new UDPPlayer(new IPEndPoint(IPAddress.Parse(ip), port));
+            udpPlayer = new UDPPlayer();
 
 
             Debug.Log("Attempting Connection");
-            try
-            {
-                client.Connect(ip, port);
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError(e);
-                //Couldn't connect to server.
-                Debug.LogError("Couldn't connect to server: " + ip + ":" + port);
-                NetTools.isClient = false;
-                client.Dispose();
-                NetTools.onFailedServerConnection.Invoke();
-                lastConnectionError = e.ToString();
-                return false;
-            }
+            //try
+            //{
+            //    client.Connect(ip, port);
+            //}
+            //catch (System.Exception e)
+            //{
+            //    Debug.LogError(e);
+            //    //Couldn't connect to server.
+            //    Debug.LogError("Couldn't connect to server: " + ip + ":" + port);
+            //    NetTools.isClient = false;
+            //    NetTools.onFailedServerConnection.Invoke();
+            //    lastConnectionError = e.ToString();
+            //    return false;
+            //}
             Debug.Log("Connection Accepted");
-            netStream = client.GetStream();
+            //netStream = client.GetStream();
 
 
 
@@ -212,17 +205,15 @@ namespace EntityNetworkingSystems
             ulong usedSteamID = 0;
             byte[] steamAuthData = new byte[0];
             int buildID = -1;
-            if (useSteamworks)
+            if (!SteamInteraction.instance.clientStarted)
             {
-                if (!SteamInteraction.instance.clientStarted)
-                {
-                    SteamInteraction.instance.StartClient();
-                }
-
-                steamAuthData = SteamInteraction.instance.clientAuth.Data;
-                usedSteamID = SteamClient.SteamId.Value;
-                buildID = SteamApps.BuildId; //ADDING +1 TO TEST VERSION MISMATCHES SHOULD BE REMOVED AFTER.
+                SteamInteraction.instance.StartClient();
             }
+
+            steamAuthData = SteamInteraction.instance.clientAuth.Data;
+            usedSteamID = SteamClient.SteamId.Value;
+            buildID = SteamApps.BuildId; //ADDING +1 TO TEST VERSION MISMATCHES SHOULD BE REMOVED AFTER.
+            
            
             Packet authPacket = new Packet(Packet.pType.networkAuth, Packet.sendType.nonbuffered, ENSSerialization.SerializeAuthPacket(new NetworkAuthPacket(steamAuthData, usedSteamID, udpPlayer.portToUse, password,buildID)));
             authPacket.sendToAll = false;
@@ -251,24 +242,7 @@ namespace EntityNetworkingSystems
             };
             udpSendHandler.Start(false);
 
-            if (!NetTools.isServer)
-            {
-                SteamFriends.SetRichPresence("connect", ip + ":" + port);
-            } else
-            {
-                //Otherwise it'll set ip/port to 127.0.0.1, which will fail if someone else tries connecting.
-                IPAddress final = null;
-                foreach (IPAddress found in Dns.GetHostEntry(Dns.GetHostName()).AddressList)
-                {
-                    if(found.AddressFamily == AddressFamily.InterNetwork)
-                    {
-                        final = found;
-                        break;
-                    }
-                }
-
-                SteamFriends.SetRichPresence("connect", final + ":" + port);
-            }
+            SteamFriends.SetRichPresence("connect", steamID + ":"+virtualPort);
 
             SteamFriends.SetRichPresence("steam_display", "Multiplayer");
             //SteamFriends.SetRichPresence("steam_player_group", "Survival");
@@ -316,10 +290,8 @@ namespace EntityNetworkingSystems
                 udpPlayer.Stop();
                 tcpSendHandler.Abort();
                 udpSendHandler.Abort();
-                if (useSteamworks)
-                {
-                    SteamInteraction.instance.StopClient();
-                }
+                SteamInteraction.instance.StopClient();
+                
                 packetTCPSendQueue = new List<Packet>();
                 packetUDPSendQueue = new List<Packet>();
             }
@@ -465,61 +437,27 @@ namespace EntityNetworkingSystems
 
 
 
-            lock (netStream)
-            {
-                lock (client)
-                {
-                    byte[] array = ENSSerialization.SerializePacket(packet);//Packet.SerializeObject(packet);
+            byte[] array = ENSSerialization.SerializePacket(packet);//Packet.SerializeObject(packet);
 #if UNITY_EDITOR
-                    if (trackOverhead)
-                    {
-                        if (overheadFilter == Packet.pType.unassigned || overheadFilter == packet.packetType)
-                        {
-                            packetByteLength = packetByteLength + array.Length + ",";
-                            //Debug.Log("JustData: " + packet.packetData.Length + ", All: " + array.Length);
-                            packetsSent++;
-                        }
-                    }
-#endif
-                    //First send packet size
-                    byte[] arraySize = new byte[4];
-                    arraySize = System.BitConverter.GetBytes(array.Length);
-                    //client.SendBufferSize = 4+array.Length;
-                    try
-                    {
-                        netStream.Write(arraySize, 0, arraySize.Length);
-                    }
-                    catch (Exception e)
-                    {
-                        //Moved to DisconnectFromServer
-                        //if(e.ToString().Contains("SocketException"))
-                        //{
-                        //    NetTools.onLeaveServer.Invoke(e.ToString());
-                        //}
-                    }
-
-
-                    //Send packet
-                    //client.SendBufferSize = array.Length;
-                    netStream.Write(array, 0, array.Length);
+            if (trackOverhead)
+            {
+                if (overheadFilter == Packet.pType.unassigned || overheadFilter == packet.packetType)
+                {
+                    packetByteLength = packetByteLength + array.Length + ",";
+                    //Debug.Log("JustData: " + packet.packetData.Length + ", All: " + array.Length);
+                    packetsSent++;
                 }
             }
+#endif
+            client.Connection.SendMessage(array, Steamworks.Data.SendType.Reliable);
         }
+            
+        
 
         public Packet RecvPacket()
         {
-            //First get packet size
-            //byte[] packetSize = new byte[4];
-            byte[] packetSize = RecieveSizeSpecificData(4, netStream);
-            //netStream.Read(packetSize, 0, packetSize.Length);
-            //Debug.Log(Encoding.ASCII.GetString(packetSize));
-            int pSize = System.BitConverter.ToInt32(packetSize, 0);
-            //Debug.Log(pSize);
 
-            //Get packet
-            byte[] byteMessage = new byte[pSize];
-            byteMessage = RecieveSizeSpecificData(pSize, netStream);
-
+            byte[] byteMessage = client.GetNext();
 
 #if UNITY_EDITOR
             Packet finalPacket = ENSSerialization.DeserializePacket(byteMessage);
@@ -528,7 +466,7 @@ namespace EntityNetworkingSystems
             {
                 if (overheadFilter == Packet.pType.unassigned || overheadFilter == finalPacket.packetType)
                 {
-                    packetByteLength = packetByteLength + pSize + ",";
+                    packetByteLength = packetByteLength + ",";
                     //Debug.Log("JustData: " + finalPacket.packetData.Length + ", All: " + byteMessage.Length);
                 }
 

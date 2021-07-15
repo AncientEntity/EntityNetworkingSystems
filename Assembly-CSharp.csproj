@@ -78,6 +78,7 @@
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetBackbone\RPC.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetworkData.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Steam\SteamInteraction.cs" />
+    <Compile Include="Assets\EntityNetworkingSystems\Scripts\Steam\SteamSockets.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\UnityPacketHandler.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\Animation\AnimationNetworker.cs" />
     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\ENSSerialization.cs" />

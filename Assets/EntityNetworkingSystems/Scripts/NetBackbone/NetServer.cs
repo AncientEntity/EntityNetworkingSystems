@@ -11,6 +11,7 @@ using Steamworks;
 using System.Linq;
 using EntityNetworkingSystems.UDP;
 using System.Threading.Tasks;
+using Steamworks.Data;
 
 namespace EntityNetworkingSystems
 {
@@ -42,7 +43,7 @@ namespace EntityNetworkingSystems
         //public List<Packet> bufferedPackets = new List<Packet>();
 
         UDPListener udpListener = null;
-        TcpListener server = null;
+        SteamSocketServer server = null;
         List<Thread> connThreads = new List<Thread>();
         Thread connectionHandler = null;
         Thread udpHandler = null;
@@ -184,24 +185,14 @@ namespace EntityNetworkingSystems
 
             //Create server
             //Debug.Log(IPAddress.Parse(hostAddress));
-            if (hostAddress == "Any")
-            {
-                server = new TcpListener(IPAddress.Any, hostPort);
-            } else
-            {
-                server = new TcpListener(IPAddress.Parse(hostAddress), hostPort);
-            }
+            server = SteamNetworkingSockets.CreateRelaySocket<SteamSocketServer>(hostPort);
             udpListener = new UDPListener(this);
-            server.Start();
             udpListener.Start();
             Debug.Log("Server started successfully.");
             NetTools.isServer = true;
 
             UnityPacketHandler.instance.StartHandler();
 
-            connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
-            connectionHandler.Name = "ENSServerConnectionHandler";
-            connectionHandler.Start();
             udpHandler = new Thread(new ThreadStart(UDPHandler));
             udpHandler.Name = "ENSServerUDPHandler";
             udpHandler.Start();
@@ -221,10 +212,9 @@ namespace EntityNetworkingSystems
                 foreach (NetworkPlayer client in connections)
                 {
                     SendPacket(client, p); //Server Closed Packet.
-                    client.tcpClient.Close();
-                    client.tcpClient.Dispose();
+                    client.steamConnection.Close();
                 }
-                server.Stop();
+                server.Close();
                 server = null;
 
                 if (useSteamworks && !NetTools.isSingleplayer)
@@ -266,7 +256,7 @@ namespace EntityNetworkingSystems
             NetTools.isSingleplayer = false;
         }
 
-        public void ConnectionHandler()
+        public void OnNewConnection(Steamworks.Data.Connection conn, ConnectionInfo connInfo)
         {
             if (!IsInitialized())
             {
@@ -274,47 +264,44 @@ namespace EntityNetworkingSystems
                 return;
             }
 
-            while (server != null)
+
+            //while (CurrentConnectionCount() >= maxConnections)
+            //{
+            //    Thread.Sleep(1000);
+            //}
+            Debug.Log("Awaiting Client Connection...");
+
+            try
             {
-                //while (CurrentConnectionCount() >= maxConnections)
-                //{
-                //    Thread.Sleep(1000);
-                //}
-                Debug.Log("Awaiting Client Connection...");
+                conn.Accept();
 
-                try
+                NetworkPlayer netClient = new NetworkPlayer(conn,connInfo);
+                netClient.clientID = lastPlayerID + 1;
+                connections.Add(netClient);
+                connectionsByID[netClient.clientID] = netClient;
+                SendPacket(netClient, new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, 0));
+                lastPlayerID += 1;
+                if(CurrentConnectionCount() > maxConnections)
                 {
-                    TcpClient tcpClient = server.AcceptTcpClient();
-
-                    NetworkPlayer netClient = new NetworkPlayer(tcpClient);
-                    netClient.clientID = lastPlayerID + 1;
-                    connections.Add(netClient);
-                    connectionsByID[netClient.clientID] = netClient;
-                    netClient.udpEndpoint = (IPEndPoint)tcpClient.Client.RemoteEndPoint;
-                    netClient.udpEndpoint.Port += 1;
-                    SendPacket(netClient, new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, 0));
-                    lastPlayerID += 1;
-                    if(CurrentConnectionCount() > maxConnections)
-                    {
-                        //Too many players, kick em with reason 'Server Full'.
-                        KickPlayer(netClient, "Server Full",5f);
-                        continue;
-                    }
-
-
-                    Debug.Log("New Client Connected Successfully. <"+tcpClient.Client.RemoteEndPoint+">");
-
-                    Thread connThread = new Thread(() => ClientHandler(netClient));
-                    netClient.threadHandlingClient = connThread;
-                    connThread.Start();
-
-                } catch (System.Exception e)
-                {
-                    //Server is stopping.
-                    Debug.LogError(e);
+                    //Too many players, kick em with reason 'Server Full'.
+                    KickPlayer(netClient, "Server Full",5f);
+                    return;
                 }
 
+
+                Debug.Log("New Client Connected Successfully. <"+conn.Id+">");
+
+                Thread connThread = new Thread(() => ClientHandler(netClient));
+                netClient.threadHandlingClient = connThread;
+                connThread.Start();
+
+            } catch (System.Exception e)
+            {
+                //Server is stopping.
+                Debug.LogError(e);
             }
+
+            
             Debug.Log("NetServer.ConnectionHandler() thread has successfully finished.");
         }
 
@@ -463,7 +450,6 @@ namespace EntityNetworkingSystems
 
                 }
             }
-            client.netStream.Close();
             client.playerConnected = false;
             SteamServer.EndSession(client.steamID);
             if (connections.Contains(client))
@@ -558,32 +544,25 @@ namespace EntityNetworkingSystems
                 {
 
                     //Debug.Log(player.clientID + " " + NetTools.clientID);
-                    if (player == null || player.tcpClient == null || (player.clientID == NetTools.clientID))
+                    if (player == null || player.steamConnection == null || (player.clientID == NetTools.clientID))
                     {
                         continue;
                     }
 
                     if (pack.sendToAll == true || pack.usersToRecieve.Contains(player.clientID))
                     {
-                        if (player.tcpClient.Connected)
+                        try
                         {
-                            try
-                            {
-                                SendPacket(player, pack);
-                            }
-                            catch (System.Exception e)
-                            {
-                                if (player.tcpClient.Connected)
-                                {
-                                    Debug.LogError(e); //If we ain't connected anymore then it makes sense.
-                                    connections.Remove(player);
-                                }
-                            }
+                            SendPacket(player, pack);
                         }
-                        else
+                        catch (System.Exception e)
                         {
+                            Debug.LogError(e);
                             connections.Remove(player);
+                            
                         }
+                        
+
                     }
 
                 }
@@ -652,41 +631,20 @@ namespace EntityNetworkingSystems
             //{
             //    return; //No need to double sync it.
             //}
-            lock (player.netStream)
-            {
-                lock (player.tcpClient)
-                {
-                    byte[] array = ENSSerialization.SerializePacket(packet);//Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));//Packet.SerializeObject(packet);
+            byte[] array = ENSSerialization.SerializePacket(packet);//Encoding.ASCII.GetBytes(Packet.JsonifyPacket(packet));//Packet.SerializeObject(packet);
 
-                    //First send packet size
-                    byte[] arraySize = new byte[4];
-                    arraySize = System.BitConverter.GetBytes(array.Length);
-                    //Debug.Log("Length: " + arraySize.Length);
+            //Debug.Log("Length: " + arraySize.Length);
 
-                    //player.tcpClient.SendBufferSize = array.Length+arraySize.Length;
+            //player.tcpClient.SendBufferSize = array.Length+arraySize.Length;
 
-                    player.netStream.Write(arraySize, 0, arraySize.Length);
-
-                    //Send packet
-                    player.netStream.Write(array, 0, array.Length);
-                }
-            }
+            player.steamConnection.SendMessage(array, SendType.Reliable);
+                
+            
         }
 
         public Packet RecvPacket(NetworkPlayer player)
         {
-            //First get packet size
-            //byte[] packetSize = new byte[4];
-            byte[] packetSize = RecieveSizeSpecificData(4, player.netStream);
-            //player.netStream.Read(packetSize, 0, packetSize.Length);
-            int pSize = System.BitConverter.ToInt32(packetSize, 0);
-            //Debug.Log(pSize);
-
-            //Get packet
-            byte[] byteMessage = new byte[pSize];
-            //player.tcpClient.ReceiveBufferSize = pSize;
-            byteMessage = RecieveSizeSpecificData(pSize, player.netStream);
-            //player.netStream.Read(byteMessage, 0, byteMessage.Length);
+            byte[] byteMessage = server.GetNext(player.steamConnection.Id);
             return ENSSerialization.DeserializePacket(byteMessage); //Packet.DeJsonifyPacket(Encoding.ASCII.GetString(byteMessage));//(Packet)Packet.DeserializeObject(byteMessage);
         }
 
@@ -887,7 +845,7 @@ namespace EntityNetworkingSystems
             p.sendToAll = false;
             p.serverAuthority = true;
             SendPacket(player, p);
-            player.netStream.Close();
+            player.steamConnection.Close();
             player.playerConnected = false;
             SteamServer.EndSession(player.steamID);
             SteamUser.EndAuthSession(player.steamID);
@@ -904,8 +862,7 @@ namespace EntityNetworkingSystems
     public class NetworkPlayer
     {
         public int clientID = -1;
-        public TcpClient tcpClient;
-        public NetworkStream netStream;
+        public Connection steamConnection;
         public Vector3 proximityPosition = Vector3.zero;
         public float loadProximity = 15f;
         public Thread threadHandlingClient;
@@ -918,17 +875,20 @@ namespace EntityNetworkingSystems
 
         public bool playerConnected = true;
 
-        public NetworkPlayer(TcpClient client)
+        public NetworkPlayer()
+        {
+
+        }
+
+        public NetworkPlayer(Steamworks.Data.Connection client, ConnectionInfo connData)
         {
             if(client == null)
             {
                 return;
             }
 
-            this.tcpClient = client;
-            this.netStream = client.GetStream();
-            this.udpEndpoint = (IPEndPoint)client.Client.RemoteEndPoint;
-            this.playerIP = this.tcpClient.Client.RemoteEndPoint.ToString();
+            this.steamConnection = client;
+            this.steamID = connData.Identity.SteamId;
         }
 
     }

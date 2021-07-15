@@ -9,14 +9,13 @@ public class ExampleClient : MonoBehaviour
     public NetClient netClient;
     public List<NetworkObject> owned = new List<NetworkObject>();
 
-    public string ip;
-    public int port;
-
+    public ulong ip;
+    public int virtualPort;
 
     public void ConnectToServer()
     {
         netClient.Initialize();
-        netClient.ConnectToServer(ip,port);
+        netClient.ConnectToServer(ip, virtualPort);
         NetTools.onJoinServer.AddListener(delegate { InitializePlayer(); });
         NetTools.onLeaveServer.AddListener(delegate { SceneManager.LoadSceneAsync("TestScene", LoadSceneMode.Single); });
 

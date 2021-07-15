@@ -29,7 +29,7 @@ namespace EntityNetworkingSystems
         bool serverRunning = false;
 
 
-        void FixedUpdate()
+        void Update()
         {
             if (doCallbacks)
             {
