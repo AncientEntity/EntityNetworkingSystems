@@ -11,6 +11,7 @@ using Steamworks;
 using System.Linq;
 using EntityNetworkingSystems.UDP;
 using System.Threading.Tasks;
+using Mono.Nat;
 
 namespace EntityNetworkingSystems
 {
