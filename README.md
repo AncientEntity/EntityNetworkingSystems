@@ -33,4 +33,5 @@ Contributing in anyway possible means a lot. If you see something you can improv
 
 ## Requirements & License
 - Unity 2019 or above. (It hasn't been tested on Unity 2018, but I assume it should be fine)
-- You need Facepunch.Steamworks avaliable here: https://github.com/Facepunch/Facepunch.Steamworks and under their own MIT license as well. Please check their LICENSE.MD for additional information, or our LICENSE.MD for additional information. It comes packaged within Entity Networking Systems, so no separate installation needed.
+- ENS uses Facepunch.Steamworks (https://github.com/Facepunch/Facepunch.Steamworks) which is under their own MIT license as well. Please check their LICENSE.MD for additional information, or our LICENSE.MD for additional information. It comes packaged within Entity Networking Systems, so no separate installation needed.
+- ENS uses Open.NAT for automatic port forwarding (UPnP) and is also under their own MIT License, check there LICENSE.MD for additional information: https://github.com/lontivero/Open.NAT
