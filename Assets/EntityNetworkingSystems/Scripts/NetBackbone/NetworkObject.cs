@@ -7,6 +7,7 @@ using UnityEngine.Events;
 
 namespace EntityNetworkingSystems
 {
+    [DisallowMultipleComponent]
     public class NetworkObject : MonoBehaviour
     {
         //NETWORK OBJECT AUTOMATICALLY GETS ADDED TO PREFAB WHEN INSTANTIATED OVER THE NETWORK IF THE PREFAB DOESN'T ALREADY CONTAIN ONE.
@@ -367,6 +368,32 @@ namespace EntityNetworkingSystems
                 }
             }
             Debug.LogError("No RPC with that name found. " + rpcName,this);
+        }
+
+        public bool HasRPC(string rpcName)
+        {
+            foreach (RPC rpc in rpcs)
+            {
+                if (rpc.rpcName == rpcName)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public RPC GetRPC(string rpcName)
+        {
+            foreach (RPC rpc in rpcs)
+            {
+                if (rpc.rpcName == rpcName)
+                {
+                    return rpc;
+                }
+            }
+
+            return null;
         }
 
         public void FieldAddOnChangeMethod(string fieldName, UnityAction<FieldArgs> action, bool invokeNow=false)
