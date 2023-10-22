@@ -1,4 +1,4 @@
-﻿using Steamworks;
+using Steamworks;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net.Sockets;
@@ -107,7 +107,7 @@ namespace EntityNetworkingSystems
                         ExecutePacket(curPacket);
                     } catch (System.Exception e)
                     {
-                        Debug.LogError("Error handling packet." + e);
+                        Debug.LogError("Error handling packet.(" + curPacket.packetType +", "+ curPacket.relatesToNetObjID +")" + e);
 #if UNITY_EDITOR
                         problemPackets.Add(curPacket);
 #endif
@@ -331,10 +331,20 @@ namespace EntityNetworkingSystems
                 RPCPacketData rPD = ENSSerialization.DeserializeRPCPacketData(curPacket.packetData);
                 NetworkObject nObj = NetworkObject.NetObjFromNetID(rPD.networkObjectID);
 
-                if (nObj == null || (nObj.rpcs[rPD.rpcIndex].serverAuthorityRequired && !curPacket.serverAuthority) || (nObj.ownerID != curPacket.packetOwnerID && !nObj.sharedObject && !curPacket.serverAuthority))
+                try
                 {
-                    return; //Means only server can run it.
+                    if (nObj == null ||
+                        (nObj.rpcs[rPD.rpcIndex].serverAuthorityRequired && !curPacket.serverAuthority) ||
+                        (nObj.ownerID != curPacket.packetOwnerID && !nObj.sharedObject && !curPacket.serverAuthority))
+                    {
+                        return; //Means only server can run it.
+                    }
                 }
+                catch (System.Exception e)
+                {
+                    Debug.LogError("INVALID RPC: Name: "+nObj.name+"RPC Index:"+rPD.rpcIndex+"Initialized: "+nObj.initialized+ e,nObj);
+                }
+
                 nObj.rpcs[rPD.rpcIndex].InvokeRPC(rPD.ReturnArgs());
 
             } else if (curPacket.packetType == Packet.pType.connectionPacket)
