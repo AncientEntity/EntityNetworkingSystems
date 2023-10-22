@@ -231,7 +231,7 @@ TextureImporter:
       213: 21300150
     second: NewCharacterConcepts_75
   externalObjects: {}
-  serializedVersion: 11
+  serializedVersion: 12
   mipmaps:
     mipMapMode: 0
     enableMipMap: 0
@@ -248,9 +248,12 @@ TextureImporter:
     externalNormalMap: 0
     heightScale: 0.25
     normalMapFilter: 0
+    flipGreenChannel: 0
   isReadable: 0
   streamingMipmaps: 0
   streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
   grayScaleToAlpha: 0
   generateCubemap: 6
   cubemapConvolution: 0
@@ -260,8 +263,8 @@ TextureImporter:
   textureSettings:
     serializedVersion: 2
     filterMode: 0
-    aniso: -1
-    mipBias: -100
+    aniso: 1
+    mipBias: 0
     wrapU: 1
     wrapV: 1
     wrapW: 1
@@ -282,10 +285,15 @@ TextureImporter:
   textureType: 8
   textureShape: 1
   singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
   maxTextureSizeSet: 0
   compressionQualitySet: 0
   textureFormatSet: 0
+  ignorePngGamma: 0
   applyGammaDecoding: 1
+  swizzle: 50462976
+  cookieLightType: 1
   platformSettings:
   - serializedVersion: 3
     buildTarget: DefaultTexturePlatform
@@ -297,6 +305,7 @@ TextureImporter:
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 0
+    ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 3
@@ -309,6 +318,7 @@ TextureImporter:
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 1
+    ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 3
@@ -321,6 +331,7 @@ TextureImporter:
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 1
+    ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 3
@@ -333,6 +344,7 @@ TextureImporter:
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 0
+    ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 1
   - serializedVersion: 3
@@ -345,8 +357,22 @@ TextureImporter:
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 0
+    ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 1
+  - serializedVersion: 3
+    buildTarget: Server
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
@@ -1158,9 +1184,47 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-  spritePackingTag: 
+    nameFileIdTable:
+      NewCharacterConcepts_0: 21300000
+      NewCharacterConcepts_1: 21300002
+      NewCharacterConcepts_10: 21300020
+      NewCharacterConcepts_11: 21300022
+      NewCharacterConcepts_12: 21300024
+      NewCharacterConcepts_13: 21300026
+      NewCharacterConcepts_14: 21300028
+      NewCharacterConcepts_15: 21300030
+      NewCharacterConcepts_16: 21300032
+      NewCharacterConcepts_17: 21300034
+      NewCharacterConcepts_18: 21300036
+      NewCharacterConcepts_19: 21300038
+      NewCharacterConcepts_2: 21300004
+      NewCharacterConcepts_20: 21300040
+      NewCharacterConcepts_21: 21300042
+      NewCharacterConcepts_22: 21300044
+      NewCharacterConcepts_23: 21300046
+      NewCharacterConcepts_24: 21300048
+      NewCharacterConcepts_25: 21300050
+      NewCharacterConcepts_26: 21300052
+      NewCharacterConcepts_27: 21300054
+      NewCharacterConcepts_28: 21300056
+      NewCharacterConcepts_29: 21300058
+      NewCharacterConcepts_3: 21300006
+      NewCharacterConcepts_30: 21300060
+      NewCharacterConcepts_31: 21300062
+      NewCharacterConcepts_32: 21300064
+      NewCharacterConcepts_33: 21300066
+      NewCharacterConcepts_34: 21300068
+      NewCharacterConcepts_35: 21300070
+      NewCharacterConcepts_36: 21300072
+      NewCharacterConcepts_37: 21300074
+      NewCharacterConcepts_4: 21300008
+      NewCharacterConcepts_5: 21300010
+      NewCharacterConcepts_6: 21300012
+      NewCharacterConcepts_7: 21300014
+      NewCharacterConcepts_8: 21300016
+      NewCharacterConcepts_9: 21300018
+  mipmapLimitGroupName: 
   pSDRemoveMatte: 0
-  pSDShowRemoveMatteOption: 0
   userData: 
   assetBundleName: 
   assetBundleVariant: 

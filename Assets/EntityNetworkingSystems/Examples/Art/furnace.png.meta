@@ -327,7 +327,7 @@ TextureImporter:
       213: 21300214
     second: itemsandblocks_107
   externalObjects: {}
-  serializedVersion: 11
+  serializedVersion: 12
   mipmaps:
     mipMapMode: 0
     enableMipMap: 0
@@ -344,9 +344,12 @@ TextureImporter:
     externalNormalMap: 0
     heightScale: 0.25
     normalMapFilter: 0
+    flipGreenChannel: 0
   isReadable: 0
   streamingMipmaps: 0
   streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
   grayScaleToAlpha: 0
   generateCubemap: 6
   cubemapConvolution: 0
@@ -356,8 +359,8 @@ TextureImporter:
   textureSettings:
     serializedVersion: 2
     filterMode: 0
-    aniso: -1
-    mipBias: -100
+    aniso: 1
+    mipBias: 0
     wrapU: 1
     wrapV: 1
     wrapW: 1
@@ -378,10 +381,15 @@ TextureImporter:
   textureType: 8
   textureShape: 1
   singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
   maxTextureSizeSet: 0
   compressionQualitySet: 0
   textureFormatSet: 0
+  ignorePngGamma: 0
   applyGammaDecoding: 1
+  swizzle: 50462976
+  cookieLightType: 1
   platformSettings:
   - serializedVersion: 3
     buildTarget: DefaultTexturePlatform
@@ -393,6 +401,7 @@ TextureImporter:
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 0
+    ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 3
@@ -405,6 +414,7 @@ TextureImporter:
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 1
+    ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 3
@@ -417,6 +427,7 @@ TextureImporter:
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 0
+    ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 3
@@ -429,6 +440,7 @@ TextureImporter:
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 0
+    ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 1
   - serializedVersion: 3
@@ -441,8 +453,22 @@ TextureImporter:
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     overridden: 0
+    ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 1
+  - serializedVersion: 3
+    buildTarget: Server
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
@@ -2724,9 +2750,117 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-  spritePackingTag: 
+    nameFileIdTable:
+      itemsandblocks_0: 21300000
+      itemsandblocks_1: 21300002
+      itemsandblocks_10: 21300020
+      itemsandblocks_100: 21300200
+      itemsandblocks_101: 21300202
+      itemsandblocks_102: 21300204
+      itemsandblocks_103: 21300206
+      itemsandblocks_104: 21300208
+      itemsandblocks_105: 21300210
+      itemsandblocks_106: 21300212
+      itemsandblocks_107: 21300214
+      itemsandblocks_11: 21300022
+      itemsandblocks_12: 21300024
+      itemsandblocks_13: 21300026
+      itemsandblocks_14: 21300028
+      itemsandblocks_15: 21300030
+      itemsandblocks_16: 21300032
+      itemsandblocks_17: 21300034
+      itemsandblocks_18: 21300036
+      itemsandblocks_19: 21300038
+      itemsandblocks_2: 21300004
+      itemsandblocks_20: 21300040
+      itemsandblocks_21: 21300042
+      itemsandblocks_22: 21300044
+      itemsandblocks_23: 21300046
+      itemsandblocks_24: 21300048
+      itemsandblocks_25: 21300050
+      itemsandblocks_26: 21300052
+      itemsandblocks_27: 21300054
+      itemsandblocks_28: 21300056
+      itemsandblocks_29: 21300058
+      itemsandblocks_3: 21300006
+      itemsandblocks_30: 21300060
+      itemsandblocks_31: 21300062
+      itemsandblocks_32: 21300064
+      itemsandblocks_33: 21300066
+      itemsandblocks_34: 21300068
+      itemsandblocks_35: 21300070
+      itemsandblocks_36: 21300072
+      itemsandblocks_37: 21300074
+      itemsandblocks_38: 21300076
+      itemsandblocks_39: 21300078
+      itemsandblocks_4: 21300008
+      itemsandblocks_40: 21300080
+      itemsandblocks_41: 21300082
+      itemsandblocks_42: 21300084
+      itemsandblocks_43: 21300086
+      itemsandblocks_44: 21300088
+      itemsandblocks_45: 21300090
+      itemsandblocks_46: 21300092
+      itemsandblocks_47: 21300094
+      itemsandblocks_48: 21300096
+      itemsandblocks_49: 21300098
+      itemsandblocks_5: 21300010
+      itemsandblocks_50: 21300100
+      itemsandblocks_51: 21300102
+      itemsandblocks_52: 21300104
+      itemsandblocks_53: 21300106
+      itemsandblocks_54: 21300108
+      itemsandblocks_55: 21300110
+      itemsandblocks_56: 21300112
+      itemsandblocks_57: 21300114
+      itemsandblocks_58: 21300116
+      itemsandblocks_59: 21300118
+      itemsandblocks_6: 21300012
+      itemsandblocks_60: 21300120
+      itemsandblocks_61: 21300122
+      itemsandblocks_62: 21300124
+      itemsandblocks_63: 21300126
+      itemsandblocks_64: 21300128
+      itemsandblocks_65: 21300130
+      itemsandblocks_66: 21300132
+      itemsandblocks_67: 21300134
+      itemsandblocks_68: 21300136
+      itemsandblocks_69: 21300138
+      itemsandblocks_7: 21300014
+      itemsandblocks_70: 21300140
+      itemsandblocks_71: 21300142
+      itemsandblocks_72: 21300144
+      itemsandblocks_73: 21300146
+      itemsandblocks_74: 21300148
+      itemsandblocks_75: 21300150
+      itemsandblocks_76: 21300152
+      itemsandblocks_77: 21300154
+      itemsandblocks_78: 21300156
+      itemsandblocks_79: 21300158
+      itemsandblocks_8: 21300016
+      itemsandblocks_80: 21300160
+      itemsandblocks_81: 21300162
+      itemsandblocks_82: 21300164
+      itemsandblocks_83: 21300166
+      itemsandblocks_84: 21300168
+      itemsandblocks_85: 21300170
+      itemsandblocks_86: 21300172
+      itemsandblocks_87: 21300174
+      itemsandblocks_88: 21300176
+      itemsandblocks_89: 21300178
+      itemsandblocks_9: 21300018
+      itemsandblocks_90: 21300180
+      itemsandblocks_91: 21300182
+      itemsandblocks_92: 21300184
+      itemsandblocks_93: 21300186
+      itemsandblocks_94: 21300188
+      itemsandblocks_95: 21300190
+      itemsandblocks_96: 21300192
+      itemsandblocks_97: 21300194
+      itemsandblocks_98: 21300196
+      itemsandblocks_99: 21300198
+  mipmapLimitGroupName: 
   pSDRemoveMatte: 0
-  pSDShowRemoveMatteOption: 0
   userData: 
   assetBundleName: 
   assetBundleVariant: 
