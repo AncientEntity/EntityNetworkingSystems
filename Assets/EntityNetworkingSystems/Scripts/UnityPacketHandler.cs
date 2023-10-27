@@ -236,6 +236,9 @@ namespace EntityNetworkingSystems
                 NetworkObject found = NetworkObject.NetObjFromNetID(curPacket.relatesToNetObjID);
                 if (found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.serverAuthority || found.sharedObject))
                 {
+                    List<int> childNetworkObjects = new List<int>(); //All child gameobjects that are networked to the found net obj.
+                    NetTools.GetNetChildrenRecursive(found.transform,childNetworkObjects);
+
                     if (disableBeforeDestroy)
                     {
                         if (NetworkData.instance.ResetPooledObject(found) == false)
@@ -254,6 +257,10 @@ namespace EntityNetworkingSystems
                     if(NetTools.isServer && System.BitConverter.ToBoolean(curPacket.packetData,0)) //Check NetTools.NetDestroy but basically it is cullRelatedPackets.
                     {
                         NetTools.CullPacketsByNetworkID(curPacket.relatesToNetObjID);
+                        foreach (int childNetID in childNetworkObjects)
+                        {
+                            NetTools.CullPacketsByNetworkID(childNetID);
+                        }
                     }
 
                 } else if (found == null)

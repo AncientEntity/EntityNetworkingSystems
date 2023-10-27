@@ -40,23 +40,20 @@ namespace EntityNetworkingSystems
         [HideInInspector]
         public List<Packet> queuedNetworkPackets = new List<Packet>();
 
-
-        void Awake()
+        void Start()
         {
-            //onNetworkStart.Invoke(); //Invokes inside of UnityPacketHandler
-
+            if (detectNetworkStarts)
+            {
+                foreach (MonoBehaviour c in gameObject.GetComponents(typeof(MonoBehaviour)))
+                {
+                    if (c == null || c.GetType().GetMethod("NetworkStart") == null)
+                    {
+                        continue;
+                    }
+                    c.SendMessage("NetworkStart");
+                }
+            }
         }
-
-        //void Start()
-        //{
-        //    foreach(NetworkField f in fields)
-        //    {
-        //        f.InitializeSpecialFields();
-        //    }
-        //}
-
-
-
 
         public void Initialize()
         {
@@ -75,20 +72,6 @@ namespace EntityNetworkingSystems
             allNetObjsDictionary[networkID] = this;
 
             initialized = true;
-
-
-            if (detectNetworkStarts)
-            {
-                foreach (MonoBehaviour c in gameObject.GetComponents(typeof(MonoBehaviour)))
-                {
-                    if (c.GetType().GetMethod("NetworkStart") == null)
-                    {
-                        continue;
-                    }
-                    c.SendMessage("NetworkStart");
-                }
-            }
-
 
             DoRpcFieldInitialization();
 
@@ -915,9 +898,6 @@ namespace EntityNetworkingSystems
             data = val;
             this.immediateOnSelf = immediateOnSelf;
         }
-
-        
-
     }
 
 }

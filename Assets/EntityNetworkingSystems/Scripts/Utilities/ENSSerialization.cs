@@ -223,8 +223,10 @@ namespace EntityNetworkingSystems
             {
                 int serializeLength = System.BitConverter.ToInt32(gOIDBytes.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
                 NetworkFieldPacket netFieldPacket = DeserializeNetworkFieldPacket(gOIDBytes.GetRange(intIndex, serializeLength).ToArray());
+                nFPs.Add(netFieldPacket);
                 intIndex += serializeLength;
             }
+            gOID.fieldDefaults = nFPs;
 
 
 

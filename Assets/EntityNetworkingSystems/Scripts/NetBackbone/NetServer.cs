@@ -41,7 +41,6 @@ namespace EntityNetworkingSystems
         public List<BufferedPacketDisplay> bufferedDisplay = new List<BufferedPacketDisplay>();
 #endif
         public Dictionary<string, List<Packet>> bufferedPackets = new Dictionary<string, List<Packet>>(); //Packet String Tag, List Of Packets with that tag.
-        //public List<Packet> bufferedPackets = new List<Packet>();
 
         UDPListener udpListener = null;
         TcpListener server = null;

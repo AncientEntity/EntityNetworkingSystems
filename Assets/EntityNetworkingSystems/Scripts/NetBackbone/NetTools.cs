@@ -98,11 +98,14 @@ namespace EntityNetworkingSystems
                 g.transform.position = position;
                 g.transform.rotation = rotation;
             }
+
+            bool addedNewNetworkObject = false; //Sets to true if the Prefab had no NetworkObject and one was added,
+            
             NetworkObject nObj = g.GetComponent<NetworkObject>();
             if (nObj == null)
             {
                 nObj = g.AddComponent<NetworkObject>();
-
+                addedNewNetworkObject = true;
             }
 
 
@@ -111,15 +114,16 @@ namespace EntityNetworkingSystems
             nObj.prefabID = prefabID;
             nObj.networkID = netObjID;
             nObj.sharedObject = isSharedObject;
-            nObj.detectNetworkStarts = NetworkData.instance.networkPrefabList[prefabDomain].detectNetworkStarts;
+            if (addedNewNetworkObject)
+            {
+                nObj.detectNetworkStarts = NetworkData.instance.networkPrefabList[prefabDomain].detectNetworkStarts;
+            }
 
             nObj.Initialize();
-            //nObj.DoRpcFieldInitialization();
             if (nObj.onNetworkStart != null)
             {
                 nObj.onNetworkStart.Invoke();
             }
-            //nObj.initialized = true;
 
             if (fieldDefaults != null)
             {
@@ -274,7 +278,10 @@ namespace EntityNetworkingSystems
         {
             if(NetServer.serverInstance.bufferedPackets.ContainsKey(tag))
             {
-                //Debug.Log("Culled: " + NetServer.serverInstance.bufferedPackets[tag].Count + " packets.");
+                foreach (Packet packet in NetServer.serverInstance.bufferedPackets[tag])
+                {
+                    CullPacketsByNetworkID(packet.relatesToNetObjID);
+                }
                 NetServer.serverInstance.bufferedPackets.Remove(tag);
             }
         }
@@ -288,6 +295,25 @@ namespace EntityNetworkingSystems
             return true;
         }
 
+        public static void GetNetChildrenRecursive(Transform objTransform, List<int> childrenList)
+        {
+            if (objTransform == null)
+            {
+                return;
+            }
+            
+            for (int i = 0; i < objTransform.childCount; i++)
+            {
+                Transform child = objTransform.GetChild(i);
+                NetworkObject childNet = child.GetComponent<NetworkObject>();
+                if (childNet != null && childNet.initialized && childNet.networkID != -1)
+                {
+                    childrenList.Add(childNet.networkID);
+                }
+                GetNetChildrenRecursive(child,childrenList);
+            }
+        }
+        
     }
 
 

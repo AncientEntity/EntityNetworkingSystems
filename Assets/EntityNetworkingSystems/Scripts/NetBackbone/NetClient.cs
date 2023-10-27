@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Net.Sockets;
@@ -435,7 +435,7 @@ namespace EntityNetworkingSystems
                     //Debug.LogError(queue[0].packetType);
                     Debug.LogError(e);
                     queue.RemoveAt(0);
-                    Debug.Log(((bool)reliable).ToString() + " Connection Lost has ended.");
+                    Debug.Log(((bool)reliable).ToString() + " Send Thread has ended.");
                     return;
                 }
 
