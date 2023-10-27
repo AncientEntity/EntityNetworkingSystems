@@ -493,7 +493,7 @@ namespace EntityNetworkingSystems
             {
                 pack.packetOwnerID = client.clientID;
             }
-            if (client.clientID == NetClient.instanceClient.clientID) //Setup server authority.
+            if (NetClient.instanceClient != null && client.clientID == NetClient.instanceClient.clientID) //Setup server authority.
             {
                 pack.serverAuthority = true;
             }

@@ -44,7 +44,6 @@ namespace EntityNetworkingSystems
                 return;
             }
             
-
             NetClient.instanceClient.SendPacket(p);
         }
 

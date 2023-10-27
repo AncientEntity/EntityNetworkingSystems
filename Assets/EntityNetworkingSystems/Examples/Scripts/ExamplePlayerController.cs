@@ -77,7 +77,7 @@ public class ExamplePlayerController : MonoBehaviour
         }
 
 
-        if (inputWorker.KeyPressed(KeyCode.W))
+        if (inputWorker.KeyPressed(KeyCode.T))
         {
             foreach (NetworkObject nO in owned)
             {
@@ -99,7 +99,7 @@ public class ExamplePlayerController : MonoBehaviour
         {
             return;
         }
-        if (inputWorker.KeyPressed(KeyCode.W))
+        if (Input.GetKey(KeyCode.W))
         {
             transform.Translate(new Vector3(0f, 0.4f, 0f));
             net.UpdateField("ENS_Position", new SerializableVector(transform.position));
