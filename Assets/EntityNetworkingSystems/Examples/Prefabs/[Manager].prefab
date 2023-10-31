@@ -26,12 +26,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7745350244653862990}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 459.04544, y: 227.68242, z: -163.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7745350244653862988
 MonoBehaviour:
@@ -51,9 +52,9 @@ MonoBehaviour:
     hostPort: 25505
     maxConnections: 8
     useSteamworks: 1
-    steamAppID: 480
-    modDir: spacewar
-    gameDesc: spacewar
+    steamAppID: 2677010
+    modDir: epocria
+    gameDesc: epocria
     mapName: world1
     password: 
     mySteamID: 0

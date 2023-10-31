@@ -1,0 +1,4 @@
+Steam Dedicated Server binaries.
+Downloaded via gameID 1007
+
+https://wiki.facepunch.com/steamworks/Server_Library

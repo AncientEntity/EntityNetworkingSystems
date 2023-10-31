@@ -43,8 +43,14 @@ namespace EntityNetworkingSystems
                 //Debug.Log("Rpc called before initialization. Adding to queue");
                 return;
             }
-            
-            NetClient.instanceClient.SendPacket(p);
+#if !UNITY_SERVER
+            if (NetTools.isClient)
+            {
+                NetClient.instanceClient.SendPacket(p);
+                return;
+            }
+#endif
+            NetServer.serverInstance.SendPacketToAll(p);
         }
 
         public Packet GenerateRPCPacket(Packet.sendType sendType = Packet.sendType.culledbuffered, params object[] list)

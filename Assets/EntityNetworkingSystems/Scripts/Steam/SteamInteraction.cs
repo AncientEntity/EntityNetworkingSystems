@@ -43,7 +43,7 @@ namespace EntityNetworkingSystems
             {
                 instance = this;
             }
-
+#if !UNITY_SERVER
             if ((NetServer.serverInstance != null && NetServer.serverInstance.steamAppID != -1) || (NetClient.instanceClient != null && NetClient.instanceClient.steamAppID != -1))
             {
                 try
@@ -77,18 +77,7 @@ namespace EntityNetworkingSystems
             {
                 steamName = SteamClient.Name;
             }
-            SteamUser.OnValidateAuthTicketResponse += (steamid, ownerid, response) =>
-            {
-                if (response == AuthResponse.OK)
-                {
-                    //Debug.Log("Ticket is still valid.");
-                }
-                else
-                {
-                    //Debug.Log("Ticket is no longer valid");
-                }
-            };
-
+#endif
             initialized = true;
             Debug.Log("Steam Interaction Initialized");
         }
@@ -133,13 +122,25 @@ namespace EntityNetworkingSystems
                 return;
             }
             
-
+#if UNITY_EDITOR && UNITY_SERVER
+            Debug.LogError("Dedicated Server build cannot be ran in the editor. Steam has problems initializing it as you'll see with errors below.");      
+#endif
 
             SteamServerInit serverInitData = new SteamServerInit(NetServer.serverInstance.modDir, NetServer.serverInstance.gameDesc) { };
+#if !UNITY_SERVER
             serverInitData.DedicatedServer = false;
+#endif
+#if UNITY_SERVER
+            serverInitData.DedicatedServer = true;
+#endif
             serverInitData.GamePort = (ushort)NetServer.serverInstance.hostPort;
             SteamServer.Init(NetServer.serverInstance.steamAppID, serverInitData);
+#if !UNITY_SERVER
             SteamServer.ServerName = SteamClient.Name + "'s Server.";
+#endif
+#if UNITY_SERVER
+            SteamServer.ServerName = "Dedicated Server";
+#endif
             SteamServer.MapName = NetServer.serverInstance.mapName;
             SteamServer.MaxPlayers = NetServer.serverInstance.maxConnections;
 

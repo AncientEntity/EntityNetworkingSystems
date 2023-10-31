@@ -12,6 +12,10 @@ public class ExampleHost : MonoBehaviour
     void Start()
     {
         netServer.Initialize();
+        
+#if UNITY_SERVER
+    StartServer();
+#endif
     }
 
 

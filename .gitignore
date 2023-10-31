@@ -8,3 +8,13 @@ Temp/
 Logs/
 
 obj/
+
+Assets/EntityNetworkingSystems/Plugins/SteamDSBinaries/appcache/
+
+Assets/EntityNetworkingSystems/Plugins/SteamDSBinaries/config/
+
+Assets/EntityNetworkingSystems/Plugins/SteamDSBinaries/appcache.meta
+
+Assets/EntityNetworkingSystems/Plugins/SteamDSBinaries/config.meta
+
+Assets/EntityNetworkingSystems/Plugins/SteamDSBinaries/logs.meta

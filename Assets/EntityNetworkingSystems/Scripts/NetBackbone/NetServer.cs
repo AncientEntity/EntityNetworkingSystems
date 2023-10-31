@@ -92,7 +92,9 @@ namespace EntityNetworkingSystems
                 steamIntegration.AddComponent<SteamInteraction>();
                 steamIntegration.GetComponent<SteamInteraction>().Initialize();
                 //steamIntegration.GetComponent<SteamInteraction>().StartServer();
+                #if !UNITY_SERVER
                 mySteamID = SteamClient.SteamId.Value;
+                #endif
                 GameObject.DontDestroyOnLoad(steamIntegration);
             }
 
@@ -612,6 +614,37 @@ namespace EntityNetworkingSystems
             return connections.Count;
         }
 
+        public void SendPacketToAll(Packet packet)
+        {
+            if (NetTools.isSingleplayer) //Shouldn't get ran on a singleplayer game anyways but just in case!
+            {
+                UnityPacketHandler.instance.QueuePacket(packet);
+                return;
+            }
+
+            foreach (NetworkPlayer player in connections)
+            {
+                if (player != null)
+                {
+                    if (packet.packetSendType == Packet.sendType.proximity)
+                    {
+                        if (Vector3.Distance(player.proximityPosition, packet.packetPosition.ToVec3()) >= player.loadProximity)
+                        {
+                            continue;
+                        }
+                    }
+                    
+                    if (packet.reliable)
+                    {
+                        SendTCPPacket(player, packet);
+                    } else
+                    {
+                        SendUDPPacket(packet);
+                    }
+                }
+            }
+        }
+        
         public void SendPacket(NetworkPlayer player, Packet packet)
         {
 
@@ -818,7 +851,20 @@ namespace EntityNetworkingSystems
 
         public bool VerifyPacketValidity(ulong steamID, Packet p)
         {
-            NetworkPlayer player = connectionsByID[p.packetOwnerID];
+            NetworkPlayer player = null;
+            if (p.packetOwnerID == -1)
+            {
+                player = GetPlayerBySteamID(steamID);
+                if (player == null)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                player = connectionsByID[p.packetOwnerID];
+            }
+
             if (player.clientID == p.packetOwnerID)
             {
                 if(player.steamID == steamID)
