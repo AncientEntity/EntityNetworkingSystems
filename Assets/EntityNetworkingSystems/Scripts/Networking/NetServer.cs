@@ -16,7 +16,7 @@ namespace EntityNetworkingSystems
     public class NetServer : ISocketManager
     {
         public static NetServer serverInstance = null;
-
+        
         public int maxConnections = 8;
         [Space]
         public int steamAppID = -1; //If -1 it won't initialize, meaning you must on your own.
@@ -40,6 +40,8 @@ namespace EntityNetworkingSystems
         int lastPlayerID = -1;
 
         private bool initialized = false;
+        private SocketManager socketManager;
+        private Thread socketReceiveThread;
         
         
         public void StartServer(bool isSingleplayer=false)
@@ -67,6 +69,12 @@ namespace EntityNetworkingSystems
                 Debug.Log("Server started in Singleplayer Mode.");
                 return;
             }
+            
+            socketManager = SteamNetworkingSockets.CreateRelaySocket<SocketManager>(432);
+            socketManager.Interface = this;
+            socketReceiveThread = new Thread(new ThreadStart(UpdateRecieve));
+            socketReceiveThread.Name = "ENSSocketRecieveThread";
+
             
             Debug.Log("Server started successfully.");
             NetTools.isServer = true;
@@ -145,26 +153,28 @@ namespace EntityNetworkingSystems
         
         public void OnConnecting(Connection connection, ConnectionInfo info)
         {
-            Debug.Log("[NetServer] Client connecting: "+info.Identity.SteamId);
+            //base.OnConnecting(connection,info);
+            Debug.Log("[NetServer] Client connecting: "+info.Identity);
             connection.Accept();
         }
 
         public void OnConnected(Connection connection, ConnectionInfo info)
         {
-            Debug.Log("[NetServer] Client connected: "+info.Identity.SteamId);
+            //base.OnConnected(connection,info);
+            Debug.Log("[NetServer] Client connected: "+info.Identity);
             SetupNewConnection(connection,info);
         }
 
         public void OnDisconnected(Connection connection, ConnectionInfo info)
         {
-            Debug.Log("[NetServer] Client disconnected: "+info.Identity.SteamId);
+            //base.OnDisconnected(connection,info);
+            Debug.Log("[NetServer] Client disconnected: "+info.Identity);
             //todo handle disconnect
             networkPlayerbyConnection[connection].networkState = NetworkPlayer.NetState.disconnected; //Client handler will take it from here.
             ClientDisconnect(networkPlayerbyConnection[connection]);
         }
 
-        public void OnMessage(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime,
-            int channel)
+        public void OnMessage(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel)
         {
             byte[] rawPacket = new byte[size];
             Marshal.Copy(data,rawPacket,0,size);
@@ -175,7 +185,16 @@ namespace EntityNetworkingSystems
         
         //End of ISocketManager
 #endregion
-        
+
+        private void UpdateRecieve()
+        {
+            while (socketManager != null)
+            {
+                socketManager.Receive();
+            }
+            Debug.Log("[NetServer] SocketManager Receive Thread has ended.");
+        }
+
         public void SetupNewConnection(Connection connect, ConnectionInfo info)
         {
             if (!IsInitialized())
@@ -190,6 +209,12 @@ namespace EntityNetworkingSystems
             connectionsByNetworkPlayer[netClient] = connect;
             networkPlayerbyConnection[connect] = netClient;
 
+            if (info.Identity.SteamId == SteamClient.SteamId)
+            {
+                //Mine
+                myConnection = netClient;
+            }
+            
             SendPacket(netClient, new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, 0));
             lastPlayerID += 1;
             if(CurrentConnectionCount() > maxConnections) //todo move this into OnConnecting
@@ -599,7 +624,7 @@ namespace EntityNetworkingSystems
         public int clientID { get; private set; }
         public Vector3 proximityPosition = Vector3.zero;
         public float loadProximity = 15f;
-        public ulong steamID;
+        public NetIdentity identity;
         public bool gotAuthPacket = false;
         public NetState networkState = NetState.connected;
         
@@ -611,15 +636,35 @@ namespace EntityNetworkingSystems
             this.connection = connection;
             this.connectionInfo = connectionInfo;
             this.clientID = lastID + 1;
-            this.steamID = connectionInfo.Identity.SteamId;
+            this.identity = connectionInfo.Identity;
+            this.steamID = connectionInfo.Identity.SteamId.Value;
             lastID += 1;
         }
         
         //This constructor is intended for singleplayer
         public NetworkPlayer()
         {
-            this.steamID = connectionInfo.Identity.SteamId;
+            
         }
+
+        public ulong steamID
+        {
+            get
+            {
+                if (_steamID != 0)
+                {
+                    return _steamID;
+                }
+                else
+                {
+                    return this.identity.SteamId.Value;
+                }
+            }
+            set => _steamID = value;
+        }
+
+        private ulong _steamID = 0;
+        
 
         public enum NetState
         {

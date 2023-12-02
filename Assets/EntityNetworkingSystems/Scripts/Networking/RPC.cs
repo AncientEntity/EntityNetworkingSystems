@@ -44,6 +44,7 @@ namespace EntityNetworkingSystems
                 return;
             }
             
+            //todo we need a better method here as this prevents standalone/dedicated servers as you need a client active
             NetClient.instanceClient.SendPacket(p);
         }
 

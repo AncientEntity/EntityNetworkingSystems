@@ -1,25 +1,35 @@
-﻿using EntityNetworkingSystems;
+﻿using System;
+using EntityNetworkingSystems;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Mono.Nat;
+using Steamworks;
 
 public class ExampleHost : MonoBehaviour
 {
-    public bool isServerBuild = false;
+    
     public NetServer netServer;
     
 
     public void StartServer()
     {
+        SteamNetworkingUtils.InitRelayNetworkAccess();
+        SteamNetworkingUtils.DebugLevel = NetDebugOutput.Everything;
+        SteamNetworkingUtils.OnDebugOutput += (type, text) => {Debug.Log(text);};
+        
         netServer.StartServer();
 
         //InvokeRepeating("RpcFunOrSomething", 0, 1f);
     }
-
     public void StartSingleplayer()
     {
         netServer.StartServer(true);
+    }
+
+    private void Update()
+    {
+        SteamServer.RunCallbacks();
     }
 
     //void RpcFunOrSomething ()
