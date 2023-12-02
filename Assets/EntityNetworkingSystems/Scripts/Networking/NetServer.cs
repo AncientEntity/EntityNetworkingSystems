@@ -437,6 +437,9 @@ namespace EntityNetworkingSystems
                     SteamServer.ForceHeartbeat();
 
                     client.gotAuthPacket = true;
+                    
+                    //Send an auth packet back saying it was authed successfully! (See UnityPacketHandler auth section)
+                    SendPacket(client,new Packet(Packet.pType.networkAuth,Packet.sendType.nonbuffered,new byte[]{0}));
                 }
                 else
                 {
@@ -457,7 +460,6 @@ namespace EntityNetworkingSystems
 
         public void SendPacket(NetworkPlayer player, Packet packet)
         {
-
             if (packet.packetSendType == Packet.sendType.proximity)
             {
                 if (Vector3.Distance(player.proximityPosition, packet.packetPosition.ToVec3()) >= player.loadProximity)

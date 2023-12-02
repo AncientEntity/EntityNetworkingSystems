@@ -297,22 +297,28 @@ namespace EntityNetworkingSystems
                 }
                 
                 //Now that the server has 'logged us in' we have to send the auth packet or be kicked :O
+
+                if (!NetTools.isSingleplayer)
+                {
+                    ulong usedSteamID = 0;
+                    byte[] steamAuthData = new byte[0];
+                    int buildID = -1;
+
+                    steamAuthData = SteamInteraction.instance.clientAuth.Data;
+                    usedSteamID = SteamClient.SteamId.Value;
+                    buildID = SteamApps.BuildId; //ADDING +1 TO TEST VERSION MISMATCHES SHOULD BE REMOVED AFTER.
+
+
+                    //todo will need to reimplement buildID/password authing (nothing handled in NetServer)
+                    Packet authPacket = new Packet(Packet.pType.networkAuth, Packet.sendType.nonbuffered,
+                        ENSSerialization.SerializeAuthPacket(new NetworkAuthPacket(steamAuthData, usedSteamID,
+                            NetClient.instanceClient.password, buildID)));
+                    authPacket.sendToAll = false;
+                    authPacket.reliable = true;
+                    NetClient.instanceClient.SendPacket(authPacket);
+                }
                 
-                ulong usedSteamID = 0;
-                byte[] steamAuthData = new byte[0];
-                int buildID = -1;
-                
-                steamAuthData = SteamInteraction.instance.clientAuth.Data;
-                usedSteamID = SteamClient.SteamId.Value;
-                buildID = SteamApps.BuildId; //ADDING +1 TO TEST VERSION MISMATCHES SHOULD BE REMOVED AFTER.
-        
-           
-                //todo will need to reimplement buildID/password authing (nothing handled in NetServer)
-                Packet authPacket = new Packet(Packet.pType.networkAuth, Packet.sendType.nonbuffered, ENSSerialization.SerializeAuthPacket(new NetworkAuthPacket(steamAuthData, usedSteamID, NetClient.instanceClient.password,buildID)));
-                authPacket.sendToAll = false;
-                authPacket.reliable = true;
-                NetClient.instanceClient.SendPacket(authPacket);
-                
+
                 NetTools.onJoinServer.Invoke();
 
                 
@@ -385,9 +391,17 @@ namespace EntityNetworkingSystems
                     NetClient.instanceClient.DisconnectFromServer();
                     NetTools.onLeaveServer.Invoke(cP.reason);
                 }
-            } else if (curPacket.packetType == Packet.pType.networkAuth && NetTools.isServer)
+            } else if (curPacket.packetType == Packet.pType.networkAuth)
             {
-                NetServer.serverInstance.AuthenticateClient(curPacket);
+                if (NetTools.isServer && curPacket.packetData.Length > 1)
+                {
+                    //Server receives authentication packet from client
+                    NetServer.serverInstance.AuthenticateClient(curPacket);
+                } else if (NetTools.isClient)
+                {
+                    //When the client receives an auth packet it means they authed successfully :) (See AuthenticateClient)
+                    NetClient.instanceClient.TriggerAuthed();
+                }
             }
         }
         

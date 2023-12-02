@@ -6,6 +6,7 @@ using Steamworks;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Steamworks.Data;
+using UnityEditor;
 
 namespace EntityNetworkingSystems
 {
@@ -23,6 +24,9 @@ namespace EntityNetworkingSystems
         public ulong serversSteamID = 0; //The server's steam ID.
         public string password;
 
+        private bool hasAuthenticatedWithServer = false;
+        private List<Packet> preAuthenticatedPackets = new List<Packet>();
+        
         private ConnectionManager connectionManager;
 #region IConnectionManager
 
@@ -222,6 +226,13 @@ namespace EntityNetworkingSystems
                 UnityPacketHandler.instance.QueuePacket(packet);
                 return;
             }
+            
+            if (!hasAuthenticatedWithServer && packet.packetType != Packet.pType.networkAuth)
+            {
+                preAuthenticatedPackets.Add(packet);
+                return;
+            }
+
 
             if (NetTools.isServer)
             {
@@ -240,5 +251,13 @@ namespace EntityNetworkingSystems
             connectionManager?.Receive();
         }
 
+        public void TriggerAuthed()
+        {
+            hasAuthenticatedWithServer = true;
+            foreach (Packet awaiting in preAuthenticatedPackets)
+            {
+                SendPacket(awaiting);
+            }
+        }
     }
 }
