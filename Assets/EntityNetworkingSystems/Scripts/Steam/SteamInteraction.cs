@@ -135,9 +135,10 @@ namespace EntityNetworkingSystems
             
 
 
+            //todo remove this, we don't do game server stuff anymore
             SteamServerInit serverInitData = new SteamServerInit(NetServer.serverInstance.modDir, NetServer.serverInstance.gameDesc) { };
             serverInitData.DedicatedServer = false;
-            serverInitData.GamePort = (ushort)NetServer.serverInstance.hostPort;
+            serverInitData.GamePort = 24424;
             SteamServer.Init(NetServer.serverInstance.steamAppID, serverInitData);
             SteamServer.ServerName = SteamClient.Name + "'s Server.";
             SteamServer.MapName = NetServer.serverInstance.mapName;

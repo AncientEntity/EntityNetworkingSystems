@@ -9,7 +9,6 @@ using System;
 using UnityEngine.Events;
 using System.Runtime.Serialization.Formatters.Binary;
 using Steamworks;
-using EntityNetworkingSystems.UDP;
 using System.Linq;
 
 namespace EntityNetworkingSystems
@@ -22,7 +21,6 @@ namespace EntityNetworkingSystems
 
         public bool connectedToServer = false;
         public TcpClient client = null;
-        public UDPPlayer udpPlayer = null;
         public NetworkStream netStream;
         Thread connectionHandler = null;
         Thread udpRecieveHandler = null;
@@ -82,36 +80,7 @@ namespace EntityNetworkingSystems
 
 
         }
-
-
-        public void UDPHandler()
-        {
-            Thread.Sleep(1000);
-
-            //udpPlayer.SendPacket(new Packet(Packet.pType.unassigned, Packet.sendType.nonbuffered, new byte[0]));
-
-            while (udpPlayer != null && connectedToServer)
-            {
-                try
-                {
-                    UnityPacketHandler.instance.QueuePacket(udpPlayer.RecievePacket());
-                    //Debug.Log("Packet Received UDP");
-                }
-                catch (System.Exception e)
-                {
-                    if (!e.ToString().Contains("ThreadAbortException")) //Game stopped in Editor play mode.
-                    {
-                        if (e.ToString().Contains("NullReferenceException"))
-                        {
-                            return; //Most likely Unity editor play mode ended.
-                        }
-                        Debug.LogError(e);
-                    }
-                }
-            }
-        }
-
-
+        
         public void ConnectionHandler()
         {
             //Thread.Sleep(150);
@@ -148,15 +117,14 @@ namespace EntityNetworkingSystems
                 Debug.LogWarning("There is no loaded NetworkData in the scene. This may break some features.");
             }
 
-            NetworkPlayer player = new NetworkPlayer(null);
-            player.clientID = 0;
+            NetworkPlayer player = new NetworkPlayer();
 
             if (useSteamworks)
             {
                 player.steamID = SteamInteraction.instance.ourSteamID;
             }
 
-            NetServer.serverInstance.connections.Add(player);
+            NetServer.serverInstance.networkPlayers.Add(player);
 
             //PlayerLoginData pLD = new PlayerLoginData();
             //pLD.playerNetworkID = 0;
@@ -183,10 +151,7 @@ namespace EntityNetworkingSystems
             client = new TcpClient();
             //client.NoDelay = true;
             NetTools.isClient = true;
-
-            udpPlayer = new UDPPlayer(new IPEndPoint(IPAddress.Parse(ip), port));
-
-
+            
             Debug.Log("Attempting Connection");
             try
             {
@@ -224,7 +189,8 @@ namespace EntityNetworkingSystems
                 buildID = SteamApps.BuildId; //ADDING +1 TO TEST VERSION MISMATCHES SHOULD BE REMOVED AFTER.
             }
            
-            Packet authPacket = new Packet(Packet.pType.networkAuth, Packet.sendType.nonbuffered, ENSSerialization.SerializeAuthPacket(new NetworkAuthPacket(steamAuthData, usedSteamID, udpPlayer.portToUse, password,buildID)));
+            //todo will need to reimplement buildID/password authing (nothing handled in NetServer)
+            Packet authPacket = new Packet(Packet.pType.networkAuth, Packet.sendType.nonbuffered, ENSSerialization.SerializeAuthPacket(new NetworkAuthPacket(steamAuthData, usedSteamID, 0, password,buildID)));
             authPacket.sendToAll = false;
             authPacket.reliable = true;
             SendTCPPacket(authPacket);
@@ -235,9 +201,6 @@ namespace EntityNetworkingSystems
             connectionHandler = new Thread(new ThreadStart(ConnectionHandler));
             connectionHandler.Name = "ENSClientConnectionHandler";
             connectionHandler.Start();
-            udpRecieveHandler = new Thread(new ThreadStart(UDPHandler));
-            udpRecieveHandler.Name = "ENSClientUDPReciever";
-            udpRecieveHandler.Start();
             packetTCPSendQueue = new List<Packet>();
             packetUDPSendQueue = new List<Packet>();
             tcpSendHandler = new Thread(new ParameterizedThreadStart(PacketSendThread))
@@ -313,7 +276,6 @@ namespace EntityNetworkingSystems
                 client = null;
                 //connectionHandler.Abort();
                 udpRecieveHandler.Abort();
-                udpPlayer.Stop();
                 tcpSendHandler.Abort();
                 udpSendHandler.Abort();
                 if (useSteamworks)
@@ -344,9 +306,9 @@ namespace EntityNetworkingSystems
             {
                 if (packet.packetSendType == Packet.sendType.proximity)
                 {
-                    if (NetServer.serverInstance.connections.Count > 0)
+                    if (NetServer.serverInstance.networkPlayers.Count > 0)
                     {
-                        if (Vector3.Distance(packet.packetPosition.ToVec3(), NetServer.serverInstance.connections[0].proximityPosition) > NetServer.serverInstance.connections[0].loadProximity)
+                        if (Vector3.Distance(packet.packetPosition.ToVec3(), NetServer.serverInstance.networkPlayers[0].proximityPosition) > NetServer.serverInstance.networkPlayers[0].loadProximity)
                         {
                             return;
                         }
@@ -445,7 +407,7 @@ namespace EntityNetworkingSystems
 
         void SendUDPPacket(Packet packet)
         {
-            udpPlayer.SendPacket(packet);
+            //udpPlayer.SendPacket(packet);
         }
 
         void SendTCPPacket(Packet packet)//, bool queuedPacket = false)
@@ -463,47 +425,47 @@ namespace EntityNetworkingSystems
             //    NetTools.isSingleplayer = true;
             //}
 
-
-
-            lock (netStream)
-            {
-                lock (client)
-                {
-                    byte[] array = ENSSerialization.SerializePacket(packet);//Packet.SerializeObject(packet);
-#if UNITY_EDITOR
-                    if (trackOverhead)
-                    {
-                        if (overheadFilter == Packet.pType.unassigned || overheadFilter == packet.packetType)
-                        {
-                            packetByteLength = packetByteLength + array.Length + ",";
-                            //Debug.Log("JustData: " + packet.packetData.Length + ", All: " + array.Length);
-                            packetsSent++;
-                        }
-                    }
-#endif
-                    //First send packet size
-                    byte[] arraySize = new byte[4];
-                    arraySize = System.BitConverter.GetBytes(array.Length);
-                    //client.SendBufferSize = 4+array.Length;
-                    try
-                    {
-                        netStream.Write(arraySize, 0, arraySize.Length);
-                    }
-                    catch (Exception e)
-                    {
-                        //Moved to DisconnectFromServer
-                        //if(e.ToString().Contains("SocketException"))
-                        //{
-                        //    NetTools.onLeaveServer.Invoke(e.ToString());
-                        //}
-                    }
-
-
-                    //Send packet
-                    //client.SendBufferSize = array.Length;
-                    netStream.Write(array, 0, array.Length);
-                }
-            }
+//
+//
+//             lock (netStream)
+//             {
+//                 lock (client)
+//                 {
+//                     byte[] array = ENSSerialization.SerializePacket(packet);//Packet.SerializeObject(packet);
+// #if UNITY_EDITOR
+//                     if (trackOverhead)
+//                     {
+//                         if (overheadFilter == Packet.pType.unassigned || overheadFilter == packet.packetType)
+//                         {
+//                             packetByteLength = packetByteLength + array.Length + ",";
+//                             //Debug.Log("JustData: " + packet.packetData.Length + ", All: " + array.Length);
+//                             packetsSent++;
+//                         }
+//                     }
+// #endif
+//                     //First send packet size
+//                     byte[] arraySize = new byte[4];
+//                     arraySize = System.BitConverter.GetBytes(array.Length);
+//                     //client.SendBufferSize = 4+array.Length;
+//                     try
+//                     {
+//                         netStream.Write(arraySize, 0, arraySize.Length);
+//                     }
+//                     catch (Exception e)
+//                     {
+//                         //Moved to DisconnectFromServer
+//                         //if(e.ToString().Contains("SocketException"))
+//                         //{
+//                         //    NetTools.onLeaveServer.Invoke(e.ToString());
+//                         //}
+//                     }
+//
+//
+//                     //Send packet
+//                     //client.SendBufferSize = array.Length;
+//                     netStream.Write(array, 0, array.Length);
+//                 }
+//             }
         }
 
         public Packet RecvPacket()
@@ -605,10 +567,10 @@ namespace EntityNetworkingSystems
             {
                 udpRecieveHandler.Abort();
             }
-            if (udpPlayer != null)
-            {
-                udpPlayer.Stop();
-            }
+            // if (udpPlayer != null)
+            // {
+            //     udpPlayer.Stop();
+            // }
             if (tcpSendHandler != null)
             {
                 tcpSendHandler.Abort();

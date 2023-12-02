@@ -8,19 +8,18 @@ public class ExampleHost : MonoBehaviour
 {
     public bool isServerBuild = false;
     public NetServer netServer;
-
-    void Start()
-    {
-        netServer.Initialize();
-    }
-
-
+    
 
     public void StartServer()
     {
         netServer.StartServer();
 
         //InvokeRepeating("RpcFunOrSomething", 0, 1f);
+    }
+
+    public void StartSingleplayer()
+    {
+        netServer.StartServer(true);
     }
 
     //void RpcFunOrSomething ()

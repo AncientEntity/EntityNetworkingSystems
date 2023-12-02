@@ -22,6 +22,17 @@ public class ExampleClient : MonoBehaviour
 
         netClient.PostConnectStart();
     }
+    
+    public void ConnectToSingleplayer()
+    {
+        netClient.Initialize();
+        NetTools.onJoinServer.AddListener(delegate { InitializePlayer(); });
+        NetTools.onLeaveServer.AddListener(delegate { SceneManager.LoadSceneAsync("TestScene", LoadSceneMode.Single); });
+
+        netClient.ConnectToSingleplayer();
+        
+        netClient.PostConnectStart();
+    }
 
     public void Disconnect()
     {

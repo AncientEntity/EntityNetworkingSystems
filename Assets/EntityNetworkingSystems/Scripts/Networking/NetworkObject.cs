@@ -689,11 +689,11 @@ namespace EntityNetworkingSystems
                 NetClient.instanceClient.SendPacket(pack);
             } else if(NetServer.serverInstance != null)
             {
-                foreach (NetworkPlayer player in NetServer.serverInstance.connections) {
-                    if(!player.playerConnected)
-                    {
-                        continue; //No longer connected.
-                    }
+                foreach (NetworkPlayer player in NetServer.serverInstance.networkPlayers) {
+                    // if(!player.playerConnected) //todo may need to do this :)
+                    // {
+                    //     continue; //No longer connected.
+                    // }
                     if(player.clientID == NetTools.clientID)
                     {
                         continue;
