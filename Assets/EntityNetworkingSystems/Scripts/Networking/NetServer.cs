@@ -41,7 +41,6 @@ namespace EntityNetworkingSystems
 
         private bool initialized = false;
         private SocketManager socketManager;
-        private Thread socketReceiveThread;
         
         
         public void StartServer(bool isSingleplayer=false)
@@ -72,14 +71,14 @@ namespace EntityNetworkingSystems
             
             socketManager = SteamNetworkingSockets.CreateRelaySocket<SocketManager>(432);
             socketManager.Interface = this;
-            socketReceiveThread = new Thread(new ThreadStart(UpdateRecieve));
-            socketReceiveThread.Name = "ENSSocketRecieveThread";
 
-            
+
             Debug.Log("Server started successfully.");
             NetTools.isServer = true;
 
             UnityPacketHandler.instance.StartHandler();
+            
+            NetTools.TriggerReceiveThread();
         }
 
         public void StopServer()
@@ -239,42 +238,7 @@ namespace EntityNetworkingSystems
             
             //todo WILL NEED TO REIMPLEMENT NETWORK AUTH
             
-            if(true)//if (curPacket.packetType == Packet.pType.networkAuth)
-            {
-                //NetworkAuthPacket clientAuthPacket = ENSSerialization.DeserializeAuthPacket(curPacket.packetData);
 
-                if (!client.gotAuthPacket)
-                {
-                    //todo REIMPLEMENT
-                    // if(password != "" && clientAuthPacket.password != password)
-                    // {
-                    //     //Kick player wrong password.
-                    //     KickPlayer(client, "password");
-                    //     return;
-                    // } else if (SteamApps.BuildId != clientAuthPacket.steamBuildID)
-                    // {
-                    //     //Kick player wrong version.
-                    //     KickPlayer(client, "version");
-                    //     return;
-                    // }
-                    
-                    
-                    //SteamServer.UpdatePlayer(clientAuthPacket.steamID, "Player 1", 0);
-                    //Debug.Log("Recieved Valid Client Auth Ticket.");
-                    SteamInteraction.instance.connectedSteamIDs.Add(client.steamID);
-                    SteamServer.UpdatePlayer(client.steamID, new Friend(client.steamID).Name, 0);
-                    SteamServer.ForceHeartbeat();
-                    //Debug.Log(bAR);
-                    //SteamServer.ForceHeartbeat();
-                    
-                    
-                    client.gotAuthPacket = true;
-                }
-            } else
-            {
-                //Expected auth packet, got something else.
-            }
-            
             Packet loginPacket = new Packet(Packet.pType.loginInfo, Packet.sendType.nonbuffered, new PlayerLoginData((short)client.clientID,mySteamID));
             loginPacket.packetOwnerID = -1;
             loginPacket.sendToAll = false;
@@ -348,10 +312,6 @@ namespace EntityNetworkingSystems
             {
                 return;
             }
-            //if (fromSelf)
-            //{
-            //    Debug.Log("SELF PACKET: " + pack.packetType);
-            //}
 
             if (pack.packetOwnerID != client.clientID)// && client.tcpClient == NetClient.instanceClient.client) //if server dont change cause if it is -1 it has all authority.
             {
@@ -364,6 +324,13 @@ namespace EntityNetworkingSystems
             else
             {
                 pack.serverAuthority = false;
+            }
+            
+            //If the player hasn't sent us the auth packet yet and this one isn't an auth packet kick em.
+            if (!pack.serverAuthority && !client.gotAuthPacket && pack.packetType != Packet.pType.networkAuth)
+            {
+                KickPlayer(client,"Never Received Auth Packet",0.0f);
+                return;
             }
 
             if (pack.packetType == Packet.pType.rpc)
@@ -439,6 +406,45 @@ namespace EntityNetworkingSystems
             }
         }
 
+        public void AuthenticateClient(Packet authPacket)
+        {
+            NetworkAuthPacket clientAuthData = ENSSerialization.DeserializeAuthPacket(authPacket.packetData);
+            NetworkPlayer client = GetPlayerByID(authPacket.packetOwnerID);
+            
+            if (!client.gotAuthPacket)
+            {
+                if(password != "" && clientAuthData.password != password)
+                {
+                    //Kick player wrong password.
+                    KickPlayer(client, "password");
+                    return;
+                } else if (SteamApps.BuildId != clientAuthData.steamBuildID)
+                {
+                    //Kick player wrong version.
+                    KickPlayer(client, "version mismatch us:"+SteamApps.BuildId+", them:"+clientAuthData.steamBuildID);
+                    return;
+                }
+                
+                bool worked = SteamServer.BeginAuthSession(clientAuthData.authData, clientAuthData.steamID);
+
+                if (worked)
+                {
+
+                    client.steamID = clientAuthData.steamID;
+
+                    SteamInteraction.instance.connectedSteamIDs.Add(client.steamID);
+                    SteamServer.UpdatePlayer(client.steamID, new Friend(client.steamID).Name, 0);
+                    SteamServer.ForceHeartbeat();
+
+                    client.gotAuthPacket = true;
+                }
+                else
+                {
+                    KickPlayer(client,"Couldn't authenticate with Steam.");
+                }
+            }
+        }
+
         public bool IsInitialized()
         {
             return initialized;
@@ -468,6 +474,11 @@ namespace EntityNetworkingSystems
             
             byte[] serializedPacket = ENSSerialization.SerializePacket(packet);
             connectionsByNetworkPlayer[player].SendMessage(serializedPacket,packet.reliable ? SendType.Reliable : SendType.Unreliable);
+        }
+
+        public void Receive()
+        {
+            socketManager?.Receive();
         }
 
         byte[] RecieveSizeSpecificData(int byteCountToGet, NetworkStream netStream)
@@ -564,12 +575,9 @@ namespace EntityNetworkingSystems
 
         public NetworkPlayer GetPlayerByID(int id)
         {
-            foreach(NetworkPlayer player in networkPlayers)
+            if (networkPlayersByID.ContainsKey(id))
             {
-                if(player.clientID == id)
-                {
-                    return player;
-                }
+                return networkPlayersByID[id];
             }
             return null;
         }

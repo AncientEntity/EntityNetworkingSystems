@@ -148,21 +148,7 @@ namespace EntityNetworkingSystems
 
             SteamServer.LogOnAnonymous();
             doCallbacks = true;
-
-            SteamServer.OnValidateAuthTicketResponse += (steamid, ownerid, response) =>
-            {
-               
-                if (response == AuthResponse.OK)
-                {
-                    Debug.Log(steamid + " ticket is still valid");
-                }
-                else
-                {
-                    Debug.Log(steamid + " ticket is no longer valid");
-                //Add kick user stuff.
-                }
-            };
-
+            
             serverRunning = true;
 
             //steamSocket = new SteamSocketManager();

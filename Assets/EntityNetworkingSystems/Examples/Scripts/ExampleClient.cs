@@ -42,8 +42,6 @@ public class ExampleClient : MonoBehaviour
         NetTools.onLeaveServer.AddListener(delegate { SceneManager.LoadSceneAsync("TestScene", LoadSceneMode.Single); });
 
         netClient.ConnectToSingleplayer();
-        
-        netClient.PostConnectStart();
     }
 
     public void Disconnect()

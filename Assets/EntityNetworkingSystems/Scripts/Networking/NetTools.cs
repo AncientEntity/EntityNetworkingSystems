@@ -25,6 +25,8 @@ namespace EntityNetworkingSystems
 
         public static Thread mainUnityThread = Thread.CurrentThread;
 
+        private static Thread netReceiveThread;
+
         //Useless cause NetInstantiate should check, but still here!
         public static GameObject ManagedInstantiate(int prefabDomain, int prefabID, Vector3 position, Quaternion rotation, Packet.sendType sT = Packet.sendType.buffered, bool isSharedObject = false)
         {
@@ -313,10 +315,42 @@ namespace EntityNetworkingSystems
                 GetNetChildrenRecursive(child,childrenList);
             }
         }
+
+        internal static void TriggerReceiveThread()
+        {
+            if (netReceiveThread != null)
+            {
+                return; //Already running so ignore.
+            }
+            
+            netReceiveThread = new Thread(ReceiveThread);
+            netReceiveThread.Start();
+        }
+
+        private static void ReceiveThread()
+        {
+            Debug.Log("[NetTools] NetReceiveThread has been started.");
+            while (isServer || isClient)
+            {
+                if (isServer)
+                {
+                    NetServer.serverInstance.Receive();
+                }
+
+                if (isClient)
+                {
+                    NetClient.instanceClient.Receive();
+                }
+                
+                Thread.Sleep(1000 / 32);
+            }
+
+            
+            netReceiveThread = null;
+            Debug.Log("[NetTools] NetReceiveThread has been ended.");
+        }
         
     }
-
-
 
     public class PlayerEvent : UnityEvent<NetworkPlayer>
     {

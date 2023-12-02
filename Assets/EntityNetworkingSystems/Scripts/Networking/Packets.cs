@@ -337,7 +337,7 @@ namespace EntityNetworkingSystems
         public string password;
         public int steamBuildID; //The game's version. To verify that the server/client are on the same version.
 
-        public NetworkAuthPacket(byte[] data, ulong sID, int udpPort, string password, int buildID)
+        public NetworkAuthPacket(byte[] data, ulong sID, string password, int buildID)
         {
             authData = data;
             steamID = sID;

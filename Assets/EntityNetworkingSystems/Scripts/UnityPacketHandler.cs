@@ -2,6 +2,7 @@ using Steamworks;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net.Sockets;
+using System.Threading;
 using UnityEngine;
 
 namespace EntityNetworkingSystems
@@ -294,10 +295,27 @@ namespace EntityNetworkingSystems
                 {
                     NetServer.serverInstance.myConnection = NetServer.serverInstance.GetPlayerByID(NetTools.clientID);
                 }
-
+                
+                //Now that the server has 'logged us in' we have to send the auth packet or be kicked :O
+                
+                ulong usedSteamID = 0;
+                byte[] steamAuthData = new byte[0];
+                int buildID = -1;
+                
+                steamAuthData = SteamInteraction.instance.clientAuth.Data;
+                usedSteamID = SteamClient.SteamId.Value;
+                buildID = SteamApps.BuildId; //ADDING +1 TO TEST VERSION MISMATCHES SHOULD BE REMOVED AFTER.
+        
+           
+                //todo will need to reimplement buildID/password authing (nothing handled in NetServer)
+                Packet authPacket = new Packet(Packet.pType.networkAuth, Packet.sendType.nonbuffered, ENSSerialization.SerializeAuthPacket(new NetworkAuthPacket(steamAuthData, usedSteamID, NetClient.instanceClient.password,buildID)));
+                authPacket.sendToAll = false;
+                authPacket.reliable = true;
+                NetClient.instanceClient.SendPacket(authPacket);
+                
                 NetTools.onJoinServer.Invoke();
 
-                //print("Test");
+                
             }
             else if (curPacket.packetType == Packet.pType.netVarEdit)
             {
@@ -367,55 +385,12 @@ namespace EntityNetworkingSystems
                     NetClient.instanceClient.DisconnectFromServer();
                     NetTools.onLeaveServer.Invoke(cP.reason);
                 }
+            } else if (curPacket.packetType == Packet.pType.networkAuth && NetTools.isServer)
+            {
+                NetServer.serverInstance.AuthenticateClient(curPacket);
             }
-            //else if (curPacket.packetType == Packet.pType.networkAuth && NetTools.isServer)
-            //{
-
-
-                
-            //}
         }
-
-
-        //void Update()
-        //{
-        //    if(packetQueue.Count > 0)
-        //    {
-        //        Packet curPacket = packetQueue[0];
-        //        packetQueue.RemoveAt(0);
-
-        //        if(curPacket.packetType == Packet.pType.gOInstantiate)
-        //        {
-        //            GameObjectInstantiateData gOID = (GameObjectInstantiateData)curPacket.data;
-        //            GameObject g = Instantiate(NetworkData.instance.networkPrefabList[gOID.prefabDomainID].prefabList[gOID.prefabID], gOID.position.ToVec3(),Quaternion.identity);
-        //            NetworkObject nObj = g.AddComponent<NetworkObject>();
-        //            nObj.ownerID = curPacket.packetOwnerID;
-        //            nObj.prefabDomainID = gOID.prefabDomainID;
-        //            nObj.prefabID = gOID.prefabID;
-        //            nObj.networkID = gOID.netObjID;
-
-        //        } else if (curPacket.packetType == Packet.pType.gODestroy)
-        //        {
-        //            NetworkObject found = NetworkObject.NetObjFromNetID((int)curPacket.data);
-        //            if(found != null && (found.ownerID == curPacket.packetOwnerID || curPacket.packetOwnerID == -1))
-        //            {
-        //                Destroy(found.gameObject);
-        //            }
-        //        }
-        //        else if(curPacket.packetType == Packet.pType.allBuffered)
-        //        {
-        //            //Debug.Log("Recieved buffered packets.");
-        //            List<Packet> packetInfo = (List<Packet>)curPacket.data;
-        //            packetQueue.AddRange(packetInfo);
-        //        } else if (curPacket.packetType == Packet.pType.loginInfo)
-        //        {
-        //            Debug.Log("Login Info Packet Recieved.");
-        //            NetTools.clientID = ((PlayerLoginData)curPacket.data).playerNetworkID;
-        //        }
-        //    }
-        //}
-
-
+        
         public void QueuePacket(Packet packet)
         {
             packetQueue.Add(packet);

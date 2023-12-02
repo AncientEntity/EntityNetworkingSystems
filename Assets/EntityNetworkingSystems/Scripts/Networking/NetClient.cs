@@ -24,8 +24,6 @@ namespace EntityNetworkingSystems
         public string password;
 
         private ConnectionManager connectionManager;
-        private Thread connectionRecieveThread;
-
 #region IConnectionManager
 
 
@@ -140,53 +138,23 @@ namespace EntityNetworkingSystems
             connectionManager = SteamNetworkingSockets.ConnectRelay<ConnectionManager>(steamID64, port);
             connectionManager.Interface = this;
 
-            connectionRecieveThread = new Thread(UpdateRecieve);
-            connectionRecieveThread.Start();
-            
             PostConnectStart();
+            
+            NetTools.TriggerReceiveThread();
         }
         
         private bool SetupNewConnection()//(string ip = "127.0.0.1", int port = 24424)
         {
-            //if(client != null)
-            //{
-            //    client.Dispose();
-            //}
-
-            //client.NoDelay = true;
             NetTools.isClient = true;
-            
-
-            //NetTools.isSingleplayer = false;
-            ulong usedSteamID = 0;
-            byte[] steamAuthData = new byte[0];
-            int buildID = -1;
             
             if (!SteamInteraction.instance.clientStarted)
             {
                 SteamInteraction.instance.StartClient();
             }
 
-            steamAuthData = SteamInteraction.instance.clientAuth.Data;
-            usedSteamID = SteamClient.SteamId.Value;
-            buildID = SteamApps.BuildId; //ADDING +1 TO TEST VERSION MISMATCHES SHOULD BE REMOVED AFTER.
-        
-           
-            //todo will need to reimplement buildID/password authing (nothing handled in NetServer)
-            Packet authPacket = new Packet(Packet.pType.networkAuth, Packet.sendType.nonbuffered, ENSSerialization.SerializeAuthPacket(new NetworkAuthPacket(steamAuthData, usedSteamID, 0, password,buildID)));
-            authPacket.sendToAll = false;
-            authPacket.reliable = true;
-            SendPacket(authPacket);
-
-            
             connectedToServer = true;
 
             SteamFriends.SetRichPresence("steam_display", "Multiplayer");
-            //SteamFriends.SetRichPresence("steam_player_group", "Survival");
-            //SteamFriends.SetRichPresence("steam_player_group_size", PlayerController.allPlayers.Count.ToString()); //Also gets updated in playercontroller.start
-
-            
-            //NetTools.onJoinServer.Invoke();
             
             return true;
         }
@@ -208,22 +176,12 @@ namespace EntityNetworkingSystems
 
 
         }
-        
-        
-        private void UpdateRecieve()
-        {
-            while (connectionManager != null)
-            {
-                connectionManager.Receive();
-            }
-            Debug.Log("[NetServer] ConnectionManager Receive Thread has ended.");
-        }
 
         public void DisconnectFromServer()
         {
             if (!NetTools.isSingleplayer)
             {
-                connectionManager.Close();
+                connectionManager?.Close();
                 
                 SteamInteraction.instance.StopClient();
             }
@@ -245,7 +203,7 @@ namespace EntityNetworkingSystems
 
         public void SendPacket(Packet packet)
         {
-            if (NetTools.isSingleplayer || NetTools.isServer)
+            if (NetTools.isSingleplayer)
             {
                 if (packet.packetSendType == Packet.sendType.proximity)
                 {
@@ -265,12 +223,22 @@ namespace EntityNetworkingSystems
                 return;
             }
 
+            if (NetTools.isServer)
+            {
+                //Must be host and client so handle the packet directly like this. For some reason a SocketManager doesn't receive messages from the client if they share steamID.
+
+                NetServer.serverInstance.HandlePacketFromClient(packet,NetServer.serverInstance.myConnection,true);
+                return;
+            }
                         
             byte[] serializedPacket = ENSSerialization.SerializePacket(packet);
             connectionManager.Connection.SendMessage(serializedPacket,packet.reliable ? SendType.Reliable : SendType.Unreliable);
         }
         
-
+        public void Receive()
+        {
+            connectionManager?.Receive();
+        }
 
     }
 }

@@ -3,7 +3,6 @@ using EntityNetworkingSystems;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Mono.Nat;
 using Steamworks;
 
 public class ExampleHost : MonoBehaviour
@@ -15,8 +14,8 @@ public class ExampleHost : MonoBehaviour
     public void StartServer()
     {
         SteamNetworkingUtils.InitRelayNetworkAccess();
-        SteamNetworkingUtils.DebugLevel = NetDebugOutput.Everything;
-        SteamNetworkingUtils.OnDebugOutput += (type, text) => {Debug.Log(text);};
+        SteamNetworkingUtils.DebugLevel = NetDebugOutput.Warning;
+        SteamNetworkingUtils.OnDebugOutput += (type, text) => {Debug.LogWarning(text);};
         
         netServer.StartServer();
 

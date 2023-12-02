@@ -361,7 +361,7 @@ namespace EntityNetworkingSystems
             int byteLength = System.BitConverter.ToInt32(byteObject.GetRange(intIndex, 4).ToArray(), 0); intIndex += 4;
             string password = Encoding.ASCII.GetString(byteObject.GetRange(intIndex, byteLength).ToArray()); intIndex += byteLength;
 
-            return new NetworkAuthPacket(authData,steamID, udpPort,password,buildID);
+            return new NetworkAuthPacket(authData,steamID,password,buildID);
         }
 
         //RPCPacketData Serializer - Minimum Calculatable Bytes: 10 bytes
