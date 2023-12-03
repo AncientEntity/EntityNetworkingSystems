@@ -27,8 +27,10 @@ public class ExamplePlayerController : MonoBehaviour
         inputWorker = GetComponent<InputWorker>();
         net.onNetworkStart.AddListener(OnNetStart);
 
-        InvokeRepeating("SetRandomColor", 0f, 1f);
-
+        if (net.IsOwner())
+        {
+            InvokeRepeating("SetRandomColor", 0f, 1f);
+        }
 
     }
 

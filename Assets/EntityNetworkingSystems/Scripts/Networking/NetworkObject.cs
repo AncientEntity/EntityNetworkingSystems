@@ -419,16 +419,8 @@ namespace EntityNetworkingSystems
         //A premade "on value change" method for positional network fields. Gets added to fields named ENS_Position
         public void ManagePositionField(FieldArgs args)
         {
-            //SerializableVector sVec = args.GetValue<SerializableVector>();
-            //if(sVec == null)
-            //{
-            //    return;
-            //}
-
             Vector3 newPos = args.GetValue<SerializableVector>().ToVec3();//sVec.ToVec3();
-            //print(newPos);
             transform.position = newPos;
-            //Debug.Log(newPos);
         }
 
         //A premade "on value change" method for network fields representing scales. Gets added to fields named ENS_Scale
@@ -488,24 +480,19 @@ namespace EntityNetworkingSystems
             {
                 return true;
             }
-
-            //Turns out this can break stuff, so leave it disabled for now.
-            //if(fieldName.Contains("ENS_") && netObj.IsOwner())
-            //{
-            //    specialFieldsInitialized = true;
-            //    return true;
-            //}
-
-
+            
             if (fieldName == "ENS_Position")
             {
                 if (!justListener)
                 {
                     IfServerUpdateField(new SerializableVector(netObj.transform.position), netID, true);
                 }
-                //shouldBeProximity = true;
-                //onValueChange.AddListener(new UnityAction<FieldArgs>(netObj.ManagePositionField));
-                onValueChange.AddListener(netObj.ManagePositionField);
+
+                if (!netObj.IsOwner())
+                {
+                    onValueChange.AddListener(netObj.ManagePositionField);
+                }
+
                 specialFieldsInitialized = true;
                 return true;
             }
@@ -516,8 +503,12 @@ namespace EntityNetworkingSystems
                 {
                     IfServerUpdateField(new SerializableVector(netObj.transform.position), netID, true);
                 }
-                LinearInterpolation lI = netObj.gameObject.AddComponent<LinearInterpolation>();
-                onValueChange.AddListener(lI.UpdateIPosition);
+
+                if (!netObj.IsOwner())
+                {
+                    LinearInterpolation lI = netObj.gameObject.AddComponent<LinearInterpolation>();
+                    onValueChange.AddListener(lI.UpdateIPosition);
+                }
 
                 specialFieldsInitialized = true;
                 return true;
@@ -528,8 +519,12 @@ namespace EntityNetworkingSystems
                 {
                     IfServerUpdateField(new SerializableVector(netObj.transform.localScale), netID, true);
                 }
-                //shouldBeProximity = true;
-                onValueChange.AddListener(new UnityAction<FieldArgs>(netObj.ManageScaleField));
+
+                if (!netObj.IsOwner())
+                {
+                    onValueChange.AddListener(new UnityAction<FieldArgs>(netObj.ManageScaleField));
+                }
+
                 specialFieldsInitialized = true;
                 return true;
             }
@@ -539,7 +534,12 @@ namespace EntityNetworkingSystems
                 {
                     IfServerUpdateField(new SerializableQuaternion(netObj.transform.rotation), netID, true);
                 }
-                onValueChange.AddListener(new UnityAction<FieldArgs>(netObj.ManageRotationField));
+
+                if (!netObj.IsOwner())
+                {
+                    onValueChange.AddListener(new UnityAction<FieldArgs>(netObj.ManageRotationField));
+                }
+
                 specialFieldsInitialized = true;
                 return true;
             }
@@ -568,7 +568,6 @@ namespace EntityNetworkingSystems
             //UpdateField(default(T),netID,true);
 
             //initialized = true; //Gets set in LocalFieldSet
-
             if(!InitializeSpecialFields()) 
             {
                 switch (defaultValue)

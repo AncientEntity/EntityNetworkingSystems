@@ -83,6 +83,10 @@ namespace EntityNetworkingSystems
 
         public void StopServer()
         {
+            if (socketManager == null)
+            {
+                return; //Server not running.
+            }
 
             ConnectionPacket cP = new ConnectionPacket(true, "Server Closed.");
             Packet p = new Packet(Packet.pType.connectionPacket, Packet.sendType.nonbuffered, ENSSerialization.SerializeConnectionPacket(cP));
@@ -440,6 +444,8 @@ namespace EntityNetworkingSystems
                     
                     //Send an auth packet back saying it was authed successfully! (See UnityPacketHandler auth section)
                     SendPacket(client,new Packet(Packet.pType.networkAuth,Packet.sendType.nonbuffered,new byte[]{0}));
+                    
+                    Debug.Log("[NetServer] Client("+client.steamID+") has successfully authenticated.");
                 }
                 else
                 {

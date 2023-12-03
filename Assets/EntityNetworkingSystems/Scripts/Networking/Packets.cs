@@ -21,6 +21,7 @@ namespace EntityNetworkingSystems
             culledbuffered,
             proximity,
         }
+
         public sendType packetSendType = sendType.buffered;
 
         [System.Serializable]
@@ -37,6 +38,7 @@ namespace EntityNetworkingSystems
             networkAuth, //only is managed when the client first connects with the server. UnityPacketManager has no logic for it.
             connectionPacket, //For disconnect reasons/etc.
         }
+
         public pType packetType = pType.unassigned;
         public bool reliable = true;
 
@@ -44,13 +46,21 @@ namespace EntityNetworkingSystems
         //public string jsonDataTypeName;
 
         public byte[] packetData;
-        
-        public int packetOwnerID = NetTools.clientID; //If the client tries lying to server, the server verifies it in NetServer anyways...
-        public bool serverAuthority = false; //Manually changed in NetServer. Client changing it wont effect other clients/server.
+
+        public int
+            packetOwnerID =
+                NetTools.clientID; //If the client tries lying to server, the server verifies it in NetServer anyways...
+
+        public bool
+            serverAuthority =
+                false; //Manually changed in NetServer. Client changing it wont effect other clients/server.
+
         public bool sendToAll = true;
         public List<int> usersToRecieve = new List<int>(); //if send to all is false.
         public int relatesToNetObjID = -1;
-        public string tag = "None"; //A packet tag, used for identifying buffered packets. Completely optional. Tags are created in NetworkData
+
+        public string
+            tag = "None"; //A packet tag, used for identifying buffered packets. Completely optional. Tags are created in NetworkData
 
         public SerializableVector packetPosition;
 
@@ -58,7 +68,7 @@ namespace EntityNetworkingSystems
         {
             this.packetType = packetType;
             this.packetSendType = typeOfSend;
-            SetPacketData(new byte[] {b});
+            SetPacketData(new byte[] { b });
         }
 
         public Packet(pType packetType, sendType typeOfSend, byte[] obj)
@@ -66,7 +76,7 @@ namespace EntityNetworkingSystems
             this.packetType = packetType;
             this.packetSendType = typeOfSend;
             packetData = obj;
-            
+
         }
 
         public Packet(pType packetType, sendType typeOfSend, object obj = null)
@@ -82,7 +92,7 @@ namespace EntityNetworkingSystems
         //Not a good way to do it, suggested is making a custom serializor and using SetPacketData(byte[] data)
         public void SetPacketData(object obj)
         {
-            if(obj.GetType().ToString() == "EntityNetworkingSystems.NetworkFieldPacket")
+            if (obj.GetType().ToString() == "EntityNetworkingSystems.NetworkFieldPacket")
             {
                 SetPacketData(ENSSerialization.SerializeNetworkFieldPacket((NetworkFieldPacket)obj));
                 return;
@@ -110,13 +120,16 @@ namespace EntityNetworkingSystems
 
         }
 
-        [Obsolete("This uses the BinaryFormatter. It is recommended to make your own serializer and use that instead. Then just set packetData manually.")]
+        [Obsolete(
+            "This uses the BinaryFormatter. It is recommended to make your own serializer and use that instead. Then just set packetData manually.")]
         public T GetPacketData<T>()
         {
-            if(typeof(T).ToString() == "EntityNetworkingSystems.NetworkFieldPacket")
+            if (typeof(T).ToString() == "EntityNetworkingSystems.NetworkFieldPacket")
             {
-                return (T)System.Convert.ChangeType(ENSSerialization.DeserializeNetworkFieldPacket(packetData),typeof(T));
-            } else if (typeof(T).ToString() == "EntityNetworkingSystems.RPCPacketData")
+                return (T)System.Convert.ChangeType(ENSSerialization.DeserializeNetworkFieldPacket(packetData),
+                    typeof(T));
+            }
+            else if (typeof(T).ToString() == "EntityNetworkingSystems.RPCPacketData")
             {
                 return (T)System.Convert.ChangeType(ENSSerialization.DeserializeRPCPacketData(packetData), typeof(T));
             }
@@ -125,87 +138,46 @@ namespace EntityNetworkingSystems
             try
             {
                 return (T)System.Convert.ChangeType(packetData, typeof(T));
-            } catch
+            }
+            catch
             {
                 return ENSSerialization.DeserializeObject<T>(packetData);
             }
-            //System.Type t = System.Type.GetType(jsonDataTypeName);
-            ////Debug.Log(t);
-            //if (t.ToString() == "EntityNetworkingSystems.IntPacket")
-            //{
-            //    //If integer you must first convert it out of a IntPacket.
-            //    return JsonUtility.FromJson<IntPacket>(jsonData).integer;
-            //}
-            //else
-            //{
-            //    return JsonUtility.FromJson(jsonData, t);
-            //}
         }
-
-
-
-//        public static Packet DeJsonifyPacket(string jsonPacket)
-//        {
-//            //int lastJsonIndex = jsonPacket.LastIndexOf("}");
-//            //jsonPacket = jsonPacket.Substring(0, lastJsonIndex);
-
-
-//            try
-//            {
-//                //Debug.Log(jsonPacket);
-//                return JsonUtility.FromJson<Packet>(jsonPacket);
-//            }
-//            catch (Exception e)
-//            {
-//                Debug.LogError(e);
-//                //Debug.LogError("Error Dejsonify. Length: "+jsonPacket.Length+": " + jsonPacket);
-//#if UNITY_EDITOR
-//                NetworkData.instance.errorJson = jsonPacket;
-//#endif
-//                return null;
-//            }
-//        }
-
-//        public static string JsonifyPacket(Packet packet)
-//        {
-//            return JsonUtility.ToJson(packet);
-//        }
-        
-
     }
 
     [System.Serializable]
-    public class PlayerLoginData
-    {
-        public short clientID = -1;
-        public ulong serverSteamID = 0;
-        
-        public PlayerLoginData(short clientID = -1, ulong serverSteamID=0)
+        public class PlayerLoginData
         {
-            this.clientID = clientID;
-            this.serverSteamID = serverSteamID;
+            public short clientID = -1;
+            public ulong serverSteamID = 0;
+
+            public PlayerLoginData(short clientID = -1, ulong serverSteamID = 0)
+            {
+                this.clientID = clientID;
+                this.serverSteamID = serverSteamID;
+            }
         }
-    }
 
-    [System.Serializable]
-    public class GameObjectInstantiateData
-    {
-        public int prefabDomainID = -1;
-        public int prefabID = -1;
-        public SerializableVector position;
-        public SerializableQuaternion rotation;
+        [System.Serializable]
+        public class GameObjectInstantiateData
+        {
+            public int prefabDomainID = -1;
+            public int prefabID = -1;
+            public SerializableVector position;
+            public SerializableQuaternion rotation;
 
-        public int netObjID = -1;
-        public bool isShared = false;
-        public bool doImmediate = true;
+            public int netObjID = -1;
+            public bool isShared = false;
+            public bool doImmediate = true;
 
-        public List<NetworkFieldPacket> fieldDefaults = new List<NetworkFieldPacket>();
-
+            public List<NetworkFieldPacket> fieldDefaults = new List<NetworkFieldPacket>();
 
 
-    }
 
-    [System.Serializable]
+        }
+
+        [System.Serializable]
     public class SerializableVector
     {
         public float x;

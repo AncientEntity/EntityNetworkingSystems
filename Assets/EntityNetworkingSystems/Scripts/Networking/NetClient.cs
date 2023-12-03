@@ -183,6 +183,11 @@ namespace EntityNetworkingSystems
 
         public void DisconnectFromServer()
         {
+            if (connectionManager == null)
+            {
+                return; //Client not running
+            }
+            
             if (!NetTools.isSingleplayer)
             {
                 connectionManager?.Close();

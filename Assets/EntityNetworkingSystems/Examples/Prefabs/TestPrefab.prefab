@@ -27,12 +27,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9011985434738064851}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -5.9805527, y: -0.3159449, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &3678232543528101461
 SpriteRenderer:
@@ -45,10 +46,12 @@ SpriteRenderer:
   m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -105,7 +108,7 @@ MonoBehaviour:
   updateFieldsThroughServer: 0
   blockNetworkAnimator: 0
   fields:
-  - fieldName: ENS_Position
+  - fieldName: ENS_IPosition
     reliable: 0
     defaultValue: 6
     onValueChange:
@@ -114,6 +117,7 @@ MonoBehaviour:
     onValueChangeMethods: []
     shouldBeProximity: 0
     disableChangeEvents: 0
+    doDuplicateCheck: 0
     netObj: {fileID: 0}
   rpcs: []
   onNetworkStart:
@@ -121,6 +125,7 @@ MonoBehaviour:
       m_Calls: []
   prefabID: -1
   prefabDomainID: -1
+  invalidFieldHandling: 0
   queuedNetworkPackets: []
 --- !u!114 &-7292164649192616921
 MonoBehaviour:
@@ -144,6 +149,25 @@ BoxCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
