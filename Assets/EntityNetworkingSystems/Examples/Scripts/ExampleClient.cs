@@ -17,28 +17,25 @@ public class ExampleClient : MonoBehaviour
     {
         SteamClient.Init(480, false);
         targetSteamID = SteamClient.SteamId;
+
+        netClient.Initialize();
     }
 
     public void ConnectToServer()
     {
+        NetTools.onJoinServer.RemoveAllListeners();
         NetTools.onJoinServer.AddListener(InitializePlayer);
+        NetTools.onLeaveServer.RemoveAllListeners();;
         NetTools.onLeaveServer.AddListener(delegate { SceneManager.LoadSceneAsync("TestScene", LoadSceneMode.Single); });
-
-        netClient.Initialize();
+        
         netClient.ConnectToServer(targetSteamID);
-        
-        //netClient.Initialize();
-        //netClient = SteamNetworkingSockets.ConnectRelay<NetClient>(targetSteamID,432);
-        //netClient.Initialize();
-        
-        //netClient.PostConnectStart();
     }
     
     public void ConnectToSingleplayer()
     {
-        netClient.Initialize();
-        
+        NetTools.onJoinServer.RemoveAllListeners();
         NetTools.onJoinServer.AddListener(InitializePlayer);
+        NetTools.onLeaveServer.RemoveAllListeners();;
         NetTools.onLeaveServer.AddListener(delegate { SceneManager.LoadSceneAsync("TestScene", LoadSceneMode.Single); });
 
         netClient.ConnectToSingleplayer();
@@ -49,11 +46,6 @@ public class ExampleClient : MonoBehaviour
         netClient.DisconnectFromServer();
         NetServer.serverInstance.StopServer();
     }
-
-    //void Update()
-    //{
-    //    Debug.Log(NetTools.clientID);
-    //}
 
     void InitializePlayer()
     {

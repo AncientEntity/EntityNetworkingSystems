@@ -4,10 +4,10 @@ using UnityEngine;
 using Steamworks;
 using Steamworks.Data;
 using System;
+using System.Threading.Tasks;
 
 namespace EntityNetworkingSystems
 {
-
     public class SteamInteraction : MonoBehaviour
     {
         public static SteamInteraction instance = null;
@@ -22,13 +22,16 @@ namespace EntityNetworkingSystems
 
         public List<ulong> connectedSteamIDs = new List<ulong>();
 
+        public bool launchSteamGameServer = false;
+
         public ulong ourSteamID = 0;
         public string steamName = "";
 
         bool doCallbacks = false;
         bool serverRunning = false;
 
-
+        private Lobby currentLobby;
+        
         void FixedUpdate()
         {
             if (doCallbacks)
@@ -48,57 +51,41 @@ namespace EntityNetworkingSystems
             {
                 try
                 {
-                    //Debug.Log("Steamworks Initialized");
                     if (NetServer.serverInstance != null)
                     {
-                        //Debug.Log((uint)NetServer.serverInstance.steamAppID);
                         SteamClient.Init((uint)NetServer.serverInstance.steamAppID, false);
                     }
                     else
                     {
-                        //Debug.Log((uint)NetClient.instanceClient.steamAppID);
                         SteamClient.Init((uint)NetClient.instanceClient.steamAppID, false);
                     }
                     doCallbacks = true;
                 }
                 catch (Exception e)
                 {
-                    //Debug.Log((uint)NetServer.serverInstance.steamAppID);
                     Debug.LogError(e);
                 }
             }
-            //SteamFriends.OnGameLobbyJoinRequested += SteamFriends_OnGameLobbyJoinRequested;
             if (ourSteamID == 0)
             {
-                //Debug.Log(SteamClient.SteamId.Value);
                 ourSteamID = SteamClient.SteamId.Value;
             }
             if(steamName == "")
             {
                 steamName = SteamClient.Name;
             }
-            SteamUser.OnValidateAuthTicketResponse += (steamid, ownerid, response) =>
-            {
-                if (response == AuthResponse.OK)
-                {
-                    //Debug.Log("Ticket is still valid.");
-                }
-                else
-                {
-                    //Debug.Log("Ticket is no longer valid");
-                }
-            };
 
             initialized = true;
             Debug.Log("Steam Interaction Initialized");
         }
 
-        //private void SteamFriends_OnGameLobbyJoinRequested(Lobby arg1, SteamId arg2)
-        //{
-        //    arg1.GetGameServer();
-        //}
-
         public void StartClient()
+        {
+            GenerateNewSteamAuth();
+            clientStarted = true;
+        }
+
+        public void GenerateNewSteamAuth()
         {
             if(clientAuth != null)
             {
@@ -106,7 +93,6 @@ namespace EntityNetworkingSystems
                 clientAuth = null;
             }
             clientAuth = SteamUser.GetAuthSessionTicket();
-            clientStarted = true;
         }
 
         public void StopClient()
@@ -115,13 +101,8 @@ namespace EntityNetworkingSystems
             if (clientAuth != null)
             {
                 clientAuth.Cancel();
-                //clientAuth.Dispose();
                 clientAuth = null;
             }
-            //if ((NetTools.isServer && NetServer.serverInstance.steamAppID != -1) || (NetTools.isClient && NetClient.instanceClient.steamAppID != -1))
-            //{
-            //    Steamworks.SteamClient.Shutdown();
-            //}
             clientStarted = false;
         }
 
@@ -132,27 +113,35 @@ namespace EntityNetworkingSystems
                 Debug.LogError("Error run Initialize() before running StartServer().");
                 return;
             }
-            
 
 
-            //todo remove this, we don't do game server stuff anymore
-            SteamServerInit serverInitData = new SteamServerInit(NetServer.serverInstance.modDir, NetServer.serverInstance.gameDesc) { };
-            serverInitData.DedicatedServer = false;
-            serverInitData.GamePort = 24424;
-            SteamServer.Init(NetServer.serverInstance.steamAppID, serverInitData);
-            SteamServer.ServerName = SteamClient.Name + "'s Server.";
-            SteamServer.MapName = NetServer.serverInstance.mapName;
-            SteamServer.MaxPlayers = NetServer.serverInstance.maxConnections;
+            if (launchSteamGameServer)
+            {
+                
+                SteamServerInit serverInitData =
+                    new SteamServerInit(NetServer.serverInstance.modDir, "" + SteamClient.SteamId.Value) { };
+                serverInitData.DedicatedServer = false;
+                serverInitData.GamePort = 24424;
+                SteamServer.Init(NetServer.serverInstance.steamAppID, serverInitData);
+                SteamServer.ServerName = SteamClient.Name + "'s Server.";
+                SteamServer.MapName = NetServer.serverInstance.mapName;
+                SteamServer.MaxPlayers = NetServer.serverInstance.maxConnections;
 
-            SteamServer.AutomaticHeartbeats = true;
+                SteamServer.AutomaticHeartbeats = true;
 
-            SteamServer.LogOnAnonymous();
+                SteamServer.LogOnAnonymous();
+            }
+
             doCallbacks = true;
-            
+
             serverRunning = true;
 
-            //steamSocket = new SteamSocketManager();
-            //steamworksServerManager = SteamNetworkingSockets.CreateNormalSocket(Steamworks.Data.NetAddress.AnyIp((ushort)NetServer.serverInstance.hostPort), steamSocket);
+            CreateLobby();
+
+            if (launchSteamGameServer)
+            {
+                currentLobby.SetGameServer(SteamClient.SteamId);
+            }
         }
 
         public void ShutdownServer()
@@ -165,30 +154,49 @@ namespace EntityNetworkingSystems
             //steamworksServerManager = null;
             //steamSocket = null;
             doCallbacks = false;
-
-            foreach (ulong steamID in connectedSteamIDs)
+            if (launchSteamGameServer)
             {
-                SteamUser.EndAuthSession(steamID);
-                SteamServer.EndSession(steamID);
+                foreach (ulong steamID in connectedSteamIDs)
+                {
+                    SteamUser.EndAuthSession(steamID);
+                    SteamServer.EndSession(steamID);
+                }
             }
+
             connectedSteamIDs = new List<ulong>();
 
             SteamServer.Shutdown();
-
-            if (NetTools.ENSManagingSteam())
-            {
-                //SteamServer.LogOff();
-
-                if ((NetTools.isServer && NetServer.serverInstance.steamAppID != -1) || (NetTools.isClient && NetClient.instanceClient.steamAppID != -1))
-                {
-                    //SteamServer.Shutdown();
-                    //SteamClient.Shutdown();
-                }
-            }
+            LeaveLobby();
+            
             serverRunning = false;
         }
 
+        public async void CreateLobby()
+        {
+            Lobby? newLobby = await SteamMatchmaking.CreateLobbyAsync(NetServer.serverInstance.maxConnections);
+            if (newLobby.HasValue)
+            {
+                currentLobby = newLobby.Value;
+                currentLobby.Join();
+                currentLobby.SetData(LobbyDefinitions.LOBBY_HOSTID, ""+SteamClient.SteamId.Value);
+                currentLobby.SetData(LobbyDefinitions.LOBBY_NAME, ""+SteamClient.Name+"'s Lobby");
+                currentLobby.SetJoinable(true);
+                currentLobby.SetPublic();
+                Debug.Log("[SteamInteraction] Successfully created lobby("+currentLobby.Id.Value+").");
+            }
+            else
+            {
+                Debug.Log("[SteamInteraction] Failed to create lobby.");
+            }
+        }
 
+        public void LeaveLobby()
+        {
+            if (currentLobby.Id.IsValid)
+            {
+                currentLobby.Leave();
+            }
+        }
 
 
 

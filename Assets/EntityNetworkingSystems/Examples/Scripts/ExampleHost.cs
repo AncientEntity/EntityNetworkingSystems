@@ -18,8 +18,6 @@ public class ExampleHost : MonoBehaviour
         SteamNetworkingUtils.OnDebugOutput += (type, text) => {Debug.LogWarning(text);};
         
         netServer.StartServer();
-
-        //InvokeRepeating("RpcFunOrSomething", 0, 1f);
     }
     public void StartSingleplayer()
     {
@@ -30,15 +28,6 @@ public class ExampleHost : MonoBehaviour
     {
         SteamServer.RunCallbacks();
     }
-
-    //void RpcFunOrSomething ()
-    //{
-    //    foreach(ExamplePlayerController ePC in FindObjectsOfType<ExamplePlayerController>())
-    //    {
-    //        ePC.GetComponent<NetworkObject>().CallRPC("RandomColor",Packet.sendType.buffered,Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
-    //        //Debug.Log("Calling RPC");
-    //    }
-    //}
 
     void OnDestroy()
     {

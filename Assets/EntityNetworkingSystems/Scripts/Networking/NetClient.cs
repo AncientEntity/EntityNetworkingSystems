@@ -33,7 +33,7 @@ namespace EntityNetworkingSystems
 
         public void OnConnecting(ConnectionInfo info)
         {
-            
+
         }
 
         public void OnConnected(ConnectionInfo info)
@@ -61,15 +61,12 @@ namespace EntityNetworkingSystems
         
         public void Initialize()
         {
-
+            if (instanceClient != null)
+            {
+                //Debug.LogError("Trying to initial NetClient when it has already been initialized.");
+                return;
+            }
             instanceClient = this;
-
-
-            //if (client != null)
-            //{
-            //    //Debug.LogError("Trying to initial NetClient when it has already been initialized.");
-            //    return;
-            //}
 
             NetTools.isClient = true;
 
@@ -78,11 +75,11 @@ namespace EntityNetworkingSystems
                 GameObject steamIntegration = new GameObject("Steam Integration Handler");
                 steamIntegration.AddComponent<SteamInteraction>();
                 steamIntegration.GetComponent<SteamInteraction>().Initialize();
-                //steamIntegration.GetComponent<SteamInteraction>().StartServer();
                 GameObject.DontDestroyOnLoad(steamIntegration);
             }
-            
 
+
+            SteamFriends.OnGameLobbyJoinRequested += SteamOnGameLobbyJoinRequested;
 
             if (UnityPacketHandler.instance == null)
             {
@@ -155,7 +152,7 @@ namespace EntityNetworkingSystems
             {
                 SteamInteraction.instance.StartClient();
             }
-
+            
             connectedToServer = true;
 
             SteamFriends.SetRichPresence("steam_display", "Multiplayer");
@@ -194,12 +191,16 @@ namespace EntityNetworkingSystems
                 
                 SteamInteraction.instance.StopClient();
             }
+
+            connectionManager = null;
             connectedToServer = false;
             //NetClient.instanceClient = null;
             NetTools.clientID = -1;
             NetTools.isClient = false;
             NetTools.isSingleplayer = false;
             clientID = -1;
+            hasAuthenticatedWithServer = false;
+            preAuthenticatedPackets = new List<Packet>();
 
             SteamFriends.SetRichPresence("connect", "");
             SteamFriends.SetRichPresence("steam_display", "");
@@ -249,6 +250,20 @@ namespace EntityNetworkingSystems
                         
             byte[] serializedPacket = ENSSerialization.SerializePacket(packet);
             connectionManager.Connection.SendMessage(serializedPacket,packet.reliable ? SendType.Reliable : SendType.Unreliable);
+        }
+
+        private void SteamOnGameLobbyJoinRequested(Lobby lobby, SteamId friend)
+        {
+            // uint ip = 0;
+            // ushort port = 0;
+            // SteamId steamID = 0;
+            // bool success = lobby.GetGameServer(ref ip,ref port,ref steamID);
+            // if (success)
+            // {
+            //     ConnectToServer(steamID);    
+            // }
+            lobby.Refresh();
+            ConnectToServer(lobby.Owner.Id);
         }
         
         public void Receive()

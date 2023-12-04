@@ -342,7 +342,7 @@ namespace EntityNetworkingSystems
                     NetClient.instanceClient.Receive();
                 }
                 
-                Thread.Sleep(1000 / 32);
+                Thread.Sleep(1000 / 32); //32 Network Ticks per second, should be changeable later but without this we get warnings from steamworks.
             }
 
             

@@ -279,6 +279,20 @@ namespace EntityNetworkingSystems
             }
         }
 
+        //Gets the network field itself
+        public NetworkField GetNetworkField(string fieldName)
+        {
+            foreach (NetworkField field in fields)
+            {
+                if (field.fieldName == fieldName)
+                {
+                    return field;
+                }
+            }
+
+            return null;
+        }
+        
         public T GetField<T>(string fieldName)
         {
             for (int i = 0; i < fields.Count; i++)
@@ -433,7 +447,6 @@ namespace EntityNetworkingSystems
         public void ManageRotationField(FieldArgs args)
         {
             transform.rotation = args.GetValue<SerializableQuaternion>().ToQuaternion();
-            Debug.Log(transform.rotation, transform);
         }
 
 
@@ -554,7 +567,6 @@ namespace EntityNetworkingSystems
                 {
                     this.netID = netObj.networkID; //We do this here since NetworkData initializes the template fields but doesnt know this yet.
                     this.netObj = netObj;
-                    //InitializeSpecialFields();
                 }
                 return;
             }
@@ -564,10 +576,7 @@ namespace EntityNetworkingSystems
                 this.netID = netID;
                 this.netObj = netObj;
             }
-            //LocalFieldSet(default(T));
-            //UpdateField(default(T),netID,true);
-
-            //initialized = true; //Gets set in LocalFieldSet
+            
             if(!InitializeSpecialFields()) 
             {
                 switch (defaultValue)
@@ -689,10 +698,6 @@ namespace EntityNetworkingSystems
             } else if(NetServer.serverInstance != null)
             {
                 foreach (NetworkPlayer player in NetServer.serverInstance.networkPlayers) {
-                    // if(!player.playerConnected) //todo may need to do this :)
-                    // {
-                    //     continue; //No longer connected.
-                    // }
                     if(player.clientID == NetTools.clientID)
                     {
                         continue;

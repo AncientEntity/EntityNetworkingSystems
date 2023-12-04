@@ -304,12 +304,12 @@ namespace EntityNetworkingSystems
                     byte[] steamAuthData = new byte[0];
                     int buildID = -1;
 
+                    SteamInteraction.instance.GenerateNewSteamAuth();
                     steamAuthData = SteamInteraction.instance.clientAuth.Data;
                     usedSteamID = SteamClient.SteamId.Value;
                     buildID = SteamApps.BuildId; //ADDING +1 TO TEST VERSION MISMATCHES SHOULD BE REMOVED AFTER.
 
 
-                    //todo will need to reimplement buildID/password authing (nothing handled in NetServer)
                     Packet authPacket = new Packet(Packet.pType.networkAuth, Packet.sendType.nonbuffered,
                         ENSSerialization.SerializeAuthPacket(new NetworkAuthPacket(steamAuthData, usedSteamID,
                             NetClient.instanceClient.password, buildID)));
@@ -317,11 +317,7 @@ namespace EntityNetworkingSystems
                     authPacket.reliable = true;
                     NetClient.instanceClient.SendPacket(authPacket);
                 }
-                
 
-                NetTools.onJoinServer.Invoke();
-
-                
             }
             else if (curPacket.packetType == Packet.pType.netVarEdit)
             {
@@ -401,6 +397,7 @@ namespace EntityNetworkingSystems
                 {
                     //When the client receives an auth packet it means they authed successfully :) (See AuthenticateClient)
                     NetClient.instanceClient.TriggerAuthed();
+                    NetTools.onJoinServer.Invoke();
                 }
             }
         }

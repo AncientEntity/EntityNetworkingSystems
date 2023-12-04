@@ -282,16 +282,10 @@ namespace EntityNetworkingSystems
                         tempPackets = new List<Packet>();
                     }
                 }
-
-                //Send whatever remains in it otherwise max-1 or less packets will be lost.
-                //Debug.Log(tempPackets.Count);
+                
                 Packet lastMulti = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(tempPackets));
                 lastMulti.sendToAll = false;
                 SendPacket(client, lastMulti);
-                //Debug.Log(packetsToSend.Count);
-                //Packet bpacket = new Packet(Packet.pType.multiPacket, Packet.sendType.nonbuffered, new PacketListPacket(packetsToSend));
-                //bpacket.sendToAll = false;
-                //SendPacket(client, bpacket);
             }
             NetTools.onPlayerJoin.Invoke(client);
         }
@@ -429,7 +423,8 @@ namespace EntityNetworkingSystems
                     return;
                 }
                 
-                bool worked = SteamServer.BeginAuthSession(clientAuthData.authData, clientAuthData.steamID);
+                //If launchSteamGameServer is false then just assume it's true as then we don't authenticate.
+                bool worked = !SteamInteraction.instance.launchSteamGameServer || SteamServer.BeginAuthSession(clientAuthData.authData, clientAuthData.steamID);
 
                 if (worked)
                 {
@@ -437,8 +432,11 @@ namespace EntityNetworkingSystems
                     client.steamID = clientAuthData.steamID;
 
                     SteamInteraction.instance.connectedSteamIDs.Add(client.steamID);
-                    SteamServer.UpdatePlayer(client.steamID, new Friend(client.steamID).Name, 0);
-                    SteamServer.ForceHeartbeat();
+                    if (SteamInteraction.instance.launchSteamGameServer)
+                    {
+                        SteamServer.UpdatePlayer(client.steamID, new Friend(client.steamID).Name, 0);
+                        SteamServer.ForceHeartbeat();
+                    }
 
                     client.gotAuthPacket = true;
                     

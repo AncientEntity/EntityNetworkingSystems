@@ -53,8 +53,11 @@
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\Networking\Packets.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\Networking\NetworkObject.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Examples\Scripts\ExamplePlayerController.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Scripts\ServerList\ENSServerList.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Examples\Scripts\ExampleMoving.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\Steam\SteamInteraction.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Scripts\ServerList\ENSServerListButton.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Scripts\ServerList\ENSLobbyList.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\LinearInterpolation.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\Networking\NetTools.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\Networking\NetServer.cs" />
@@ -63,6 +66,8 @@
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\ENSSerialization.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\Utilities\InputWorker.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Scripts\NetworkData.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Scripts\ServerList\ENSLobbyListButton.cs" />
+     <Compile Include="Assets\EntityNetworkingSystems\Scripts\Steam\SteamDefinitions.cs" />
      <Compile Include="Assets\EntityNetworkingSystems\Examples\Scripts\DestroyOnUseUI.cs" />
      <Folder Include="Assets" />
      <Folder Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\redistributable_bin\win64" />
@@ -70,10 +75,10 @@
      <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Posix.xml" />
      <Folder Include="Assets\EntityNetworkingSystems\Examples" />
      <Folder Include="Assets\EntityNetworkingSystems\Scripts\Utilities" />
-     <Folder Include="Assets\EntityNetworkingSystems\Scripts\Backbone" />
      <Folder Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\redistributable_bin\osx" />
      <Folder Include="Assets\EntityNetworkingSystems\Plugins\SteamDSBinaries\config" />
      <None Include="Assets\EntityNetworkingSystems\Plugins\SteamDSBinaries\logs\systemdisplaymanager.txt" />
+     <Folder Include="Assets\EntityNetworkingSystems\Prefabs\Lists" />
      <Folder Include="Assets\EntityNetworkingSystems\Examples\Art" />
      <Folder Include="Assets\EntityNetworkingSystems\Scripts\Networking" />
      <None Include="Assets\EntityNetworkingSystems\Plugins\SteamDSBinaries\logs\systemdockmanager.txt" />
@@ -89,6 +94,7 @@
      <Folder Include="Assets\EntityNetworkingSystems\Examples\Scripts" />
      <Folder Include="Assets\EntityNetworkingSystems\Examples\Scenes" />
      <None Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks\Facepunch.Steamworks.Win32.xml" />
+     <Folder Include="Assets\EntityNetworkingSystems\Scripts\ServerList" />
      <None Include="Assets\EntityNetworkingSystems\Plugins\SteamDSBinaries\logs\connection_log_25505.txt" />
      <Folder Include="Assets\EntityNetworkingSystems\Plugins\Facepunch.Steamworks" />
      <None Include="Assets\EntityNetworkingSystems\Plugins\SteamDSBinaries\logs\systemperfmanager.txt" />
@@ -100,6 +106,7 @@
      <Folder Include="Assets\EntityNetworkingSystems\Plugins\SteamDSBinaries" />
      <None Include="Assets\EntityNetworkingSystems\Plugins\SteamDSBinaries\logs\stats_log.txt" />
      <None Include="Assets\EntityNetworkingSystems\Plugins\SteamDSBinaries\logs\content_log.txt" />
+     <Folder Include="Assets\EntityNetworkingSystems\Prefabs" />
      <Folder Include="Assets\EntityNetworkingSystems\Scripts\Steam" />
      <Folder Include="Assets\EntityNetworkingSystems" />
      <Reference Include="UnityEngine">
